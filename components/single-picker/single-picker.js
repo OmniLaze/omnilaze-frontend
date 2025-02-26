@@ -27,14 +27,22 @@ Component({
         }
     },
     data: {
-        value: 0
+        value: [] // 将在 attached 钩子中初始化为 [defaultIndex]
+    },
+    lifetimes: {
+        attached() {
+            this.setData({
+                value: [this.properties.defaultIndex]
+            });
+        }
     },
     methods: {
         onPickerChange(e) {
-            const { value } = e.detail;
-            this.setData({ value });
-            // 通知父级
-            this.triggerEvent('pickerChange', value);
+            const newValue = e.detail.value[0];
+            this.setData({
+                value: [newValue]
+            });
+            this.triggerEvent('pickerChange', { index: newValue });
         }
     }
 });
