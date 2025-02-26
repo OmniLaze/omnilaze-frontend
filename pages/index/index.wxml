@@ -5,10 +5,10 @@
         <single-picker
                 items="{{dayItems}}"
                 defaultIndex="{{defaultDayIndex}}"
-                width="90rpx"
+                width="140rpx"
                 height="60rpx"
                 lineHeight="60rpx"
-                fontSize="40rpx"
+                fontSize="55rpx"
                 bind:pickerChange="onDayPickerChange"
                 class="inline-picker"
         />
@@ -16,13 +16,14 @@
         <single-picker
                 items="{{mealItems}}"
                 defaultIndex="{{defaultMealIndex}}"
-                width="90rpx"
+                width="140rpx"
                 height="60rpx"
                 lineHeight="60rpx"
-                fontSize="40rpx"
+                fontSize="55rpx"
                 bind:pickerChange="onMealPickerChange"
-                class="inline-picker"/>
-        <text class="sentence-text gradient-text">，</text>
+                class="inline-picker"
+        />
+        <text class="sentence-text gradient-text">,</text>
     </view>
     <view class="sentence-line">
         <text class="sentence-text gradient-text">交给</text>
@@ -30,16 +31,16 @@
         <single-picker
                 items="{{aiItems}}"
                 defaultIndex="{{defaultAiIndex}}"
-                width="110px"
+                width="300rpx"
                 height="60rpx"
                 lineHeight="60rpx"
-                fontSize="40rpx"
+                fontSize="55rpx"
                 bind:pickerChange="onAiPickerChange"
                 class="inline-picker"/>
-        <text class="sentence-text gradient-text">吧！</text>
+        <text class="sentence-text gradient-text">吧!</text>
     </view>
     <!-- 将最后一行改为按钮 -->
     <button class="order-btn" bindtap="onDecideTap" hover-class="none">
-        <text class="sentence-text gradient-text">现在下单</text>
+        <text class="sentence-text order-btn-text">现在下单</text>
     </button>
 </view>
