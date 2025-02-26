@@ -1,36 +1,35 @@
-<view class="text-frame">
-    <view class="sentence">
-        <view class="sentence-line">
-            <text class="sentence-text gradient-text">懒得点</text>
-            <!-- 第一个老虎机，宽度设为 30px -->
-            <single-picker
-                    items="{{dayItems}}"
-                    defaultIndex="{{defaultDayIndex}}"
-                    width="30px"
-                    bind:pickerChange="onDayPickerChange"
-                    class="inline-picker"/>
-            <!-- 第二个老虎机，宽度设为 40px -->
-            <single-picker
-                    items="{{mealItems}}"
-                    defaultIndex="{{defaultMealIndex}}"
-                    width="40px"
-                    bind:pickerChange="onMealPickerChange"
-                    class="inline-picker"/>
-            <text class="sentence-text gradient-text">，</text>
-        </view>
-        <view class="sentence-line">
-            <text class="sentence-text gradient-text">交给</text>
-            <!-- 第三个老虎机，宽度设为 70px -->
-            <single-picker
-                    items="{{aiItems}}"
-                    defaultIndex="{{defaultAiIndex}}"
-                    width="70px"
-                    bind:pickerChange="onAiPickerChange"
-                    class="inline-picker"/>
-            <text class="sentence-text gradient-text">吧！</text>
-        </view>
+<view class="sentence">
+    <view class="sentence-line">
+        <text class="sentence-text gradient-text">懒得点</text>
+        <!-- 第一个老虎机，宽度设为 30px -->
+        <single-picker
+                items="{{dayItems}}"
+                defaultIndex="{{defaultDayIndex}}"
+                width="30px"
+                bind:pickerChange="onDayPickerChange"
+                class="inline-picker"/>
+        <!-- 第二个老虎机，宽度设为 40px -->
+        <single-picker
+                items="{{mealItems}}"
+                defaultIndex="{{defaultMealIndex}}"
+                width="40px"
+                bind:pickerChange="onMealPickerChange"
+                class="inline-picker"/>
+        <text class="sentence-text gradient-text">，</text>
     </view>
-    <button class="decide-btn" bindtap="onDecideTap">
+    <view class="sentence-line">
+        <text class="sentence-text gradient-text">交给</text>
+        <!-- 第三个老虎机，宽度设为 70px -->
+        <single-picker
+                items="{{aiItems}}"
+                defaultIndex="{{defaultAiIndex}}"
+                width="70px"
+                bind:pickerChange="onAiPickerChange"
+                class="inline-picker"/>
+        <text class="sentence-text gradient-text">吧！</text>
+    </view>
+    <!-- 将最后一行改为按钮 -->
+    <button class="order-btn" bindtap="onDecideTap" hover-class="none">
         <text class="sentence-text gradient-text">现在下单</text>
     </button>
 </view>
