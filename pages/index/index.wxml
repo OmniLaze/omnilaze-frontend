@@ -20,7 +20,7 @@
         </view>
         <view class="sentence-line">
             <text class="sentence-text gradient-text">交给</text>
-            <!-- 第三个老虎机，宽度设为 50px -->
+            <!-- 第三个老虎机，宽度设为 70px -->
             <single-picker
                     items="{{aiItems}}"
                     defaultIndex="{{defaultAiIndex}}"
@@ -31,6 +31,6 @@
         </view>
     </view>
     <button class="decide-btn" bindtap="onDecideTap">
-        <text class="gradient-text">下单！</text>
+        <text class="sentence-text gradient-text">现在下单</text>
     </button>
 </view>
