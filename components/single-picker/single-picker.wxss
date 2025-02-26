@@ -9,8 +9,7 @@
     line-height: 40px;
     text-align: center;
     font-size: 28rpx;
-    /* 橘黄色金属质感，多段渐变 */
-    background: linear-gradient(45deg, #00ffd9, #92cbd2, #13bedc, #3d5bd0, #FFD700);
+    background: linear-gradient(45deg, #ee7e0f, #fa9206, #FFD700, #FFC107, #FFECB3);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
