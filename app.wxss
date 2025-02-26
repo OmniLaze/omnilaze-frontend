@@ -1,30 +1,5 @@
-/* app.wxss */
-
-/* 全局基础样式：采用苹果系统优先字体，简洁留白 */
-page, view, text, button {
-    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue",
-    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-    color: #333;
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
 page {
-    background-color: #f8f8f8;
-}
+    /* 基础渐变背景，从左下角到右上角 */
+    background: linear-gradient(to top right, #e1b176, #f5c385, #f5e548, #efeede);
 
-/* 柔和阴影与圆角 */
-.shadow-sm {
-    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08);
-}
-.rounded {
-    border-radius: 16rpx;
-}
-
-/* Flex 布局工具类 */
-.flex-center {
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }

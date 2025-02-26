@@ -53,16 +53,24 @@
 .decide-btn {
     width: 320rpx;
     height: 80rpx;
-    background-color: #007aff;
+    background: rgba(255, 255, 255, 0.9); /* 90%透明背景 */
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
     border: none;
-    border-radius: 40rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+    border-radius: 20rpx; /* 圆角 */
+    /* 去掉了 box-shadow，不显示边界线条 */
     transition: background-color 0.3s ease;
 }
 
 .decide-btn:active {
-    background-color: #005bb5;
+    background: rgba(255, 255, 255, 0.8);
 }
+
+/* 下单按钮内部的文字设置为加粗 */
+.decide-btn text {
+    font-weight: bold;
+}
+
 
 /* 渐变文字效果 */
 .gradient-text {
