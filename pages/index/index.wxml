@@ -31,7 +31,7 @@
         <single-picker
                 items="{{aiItems}}"
                 defaultIndex="{{defaultAiIndex}}"
-                width="300rpx"
+                width="250rpx"
                 height="60rpx"
                 lineHeight="60rpx"
                 fontSize="55rpx"
@@ -40,6 +40,13 @@
         <text class="sentence-text gradient-text">吧!</text>
     </view>
     <!-- 将最后一行改为按钮 -->
+    <view class="sentence-line"></view>
+    <view class="sentence-line"></view>
+    <view class="sentence-line"></view>
+    <view class="sentence-line"></view>
+    <view class="sentence-line"></view>
+    <view class="sentence-line"></view>
+    <view class="sentence-line"></view>
     <button class="order-btn" bindtap="onDecideTap" hover-class="none">
         <text class="sentence-text order-btn-text">现在下单</text>
     </button>
