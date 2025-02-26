@@ -8,7 +8,7 @@
 .picker-item {
     line-height: 40px;
     text-align: center;
-    font-size: 28rpx;
+    font-size: 40rpx;
     background: linear-gradient(45deg, #ee7e0f, #fa9206, #FFD700, #FFC107, #FFECB3);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;

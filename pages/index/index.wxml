@@ -5,7 +5,7 @@
         <single-picker
                 items="{{dayItems}}"
                 defaultIndex="{{defaultDayIndex}}"
-                width="30px"
+                width="40px"
                 bind:pickerChange="onDayPickerChange"
                 class="inline-picker"/>
         <!-- 第二个老虎机，宽度设为 40px -->
@@ -23,7 +23,7 @@
         <single-picker
                 items="{{aiItems}}"
                 defaultIndex="{{defaultAiIndex}}"
-                width="70px"
+                width="100px"
                 bind:pickerChange="onAiPickerChange"
                 class="inline-picker"/>
         <text class="sentence-text gradient-text">吧！</text>

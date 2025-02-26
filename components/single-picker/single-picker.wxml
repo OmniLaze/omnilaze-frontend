@@ -2,7 +2,9 @@
              indicator-style="opacity: 0;"
              style="width: {{width}}; height: 40px;"
              value="{{value}}"
-             bindchange="onPickerChange">
+             bindchange="onPickerChange"
+             indicator-style="background: transparent; border: none; box-shadow: none;"
+             mask-style="background: transparent;">
     <picker-view-column>
         <view wx:for="{{items}}" wx:key="index" class="picker-item">
             {{item}}
