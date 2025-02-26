@@ -5,14 +5,21 @@
         <single-picker
                 items="{{dayItems}}"
                 defaultIndex="{{defaultDayIndex}}"
-                width="40px"
+                width="90rpx"
+                height="60rpx"
+                lineHeight="60rpx"
+                fontSize="40rpx"
                 bind:pickerChange="onDayPickerChange"
-                class="inline-picker"/>
+                class="inline-picker"
+        />
         <!-- 第二个老虎机，宽度设为 40px -->
         <single-picker
                 items="{{mealItems}}"
                 defaultIndex="{{defaultMealIndex}}"
-                width="40px"
+                width="90rpx"
+                height="60rpx"
+                lineHeight="60rpx"
+                fontSize="40rpx"
                 bind:pickerChange="onMealPickerChange"
                 class="inline-picker"/>
         <text class="sentence-text gradient-text">，</text>
@@ -24,6 +31,9 @@
                 items="{{aiItems}}"
                 defaultIndex="{{defaultAiIndex}}"
                 width="100px"
+                height="60rpx"
+                lineHeight="60rpx"
+                fontSize="40rpx"
                 bind:pickerChange="onAiPickerChange"
                 class="inline-picker"/>
         <text class="sentence-text gradient-text">吧！</text>

@@ -1,6 +1,5 @@
-/* 放大整体文字，增加字号 */
 .sentence {
-    font-size: 40rpx;  /* 从原来的 32rpx 增大 */
+    font-size: 40rpx;
     font-weight: 500;
     margin-bottom: 40rpx;
     display: flex;
@@ -8,30 +7,28 @@
     align-items: center;
 }
 
-/* 每行文本保持居中 */
 .sentence-line {
     display: flex;
     align-items: center;
     margin: 4rpx 0;
 }
 
-/* 文字间距可适当调整 */
 .sentence-text {
     margin: 0 8rpx;
 }
 
-/* 滚动选择器紧凑排列 */
+/* inline-picker 保持紧凑 */
 .inline-picker {
     display: inline-block;
     margin: 0 2rpx;
 }
 
-/* 渐变文字效果保持不变 */
 .gradient-text {
     background: linear-gradient(to right, #FF8C00, #FF8C00);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
+
 
 /* 新增下单按钮样式：半透明毛玻璃效果的带圆角背景 */
 .order-btn {
