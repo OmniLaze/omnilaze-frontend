@@ -35,27 +35,33 @@
 
 /* 新增下单按钮样式：半透明毛玻璃效果的带圆角背景 */
 .order-btn {
-    /* 半透明毛玻璃背景 */
-    background: rgba(255, 255, 255, 0.3);
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
-
-    /* 强制去掉各种边框和阴影 */
+    /* 先清理默认干扰 */
     border: none !important;
     outline: none !important;
     box-shadow: none !important;
     -webkit-box-shadow: none !important;
     -webkit-appearance: none !important;
 
-    /* 圆角 & 内边距 */
-    border-radius: 20rpx;
-    padding: 0.1rpx 4rpx;
+    /* 半透明毛玻璃背景 */
+    background: rgba(255, 255, 255, 0.3);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
 
-    /* 其他样式 */
+    /* 关键：强制设定高度、行高 */
+    height: 60rpx !important;       /* 你想要的高度 */
+    line-height: 70rpx !important;  /* 与 height 一致，避免撑高 */
+    min-height: 0 !important;
+
+    /* 辅助：可再设置一下内边距或取消 */
+    padding: 0 8rpx !important;
+
+    /* 圆角等其他样式 */
+    border-radius: 20rpx;
     display: inline-flex;
     align-items: center;
     justify-content: center;
 }
+
 
 /* 针对伪元素可能的默认样式，也进行覆盖 */
 .order-btn::before,
