@@ -1,5 +1,5 @@
 <picker-view class="single-picker-view"
-             indicator-style="height: 40px;"
+             indicator-style="opacity: 0;"
              style="width: {{width}}; height: 40px;"
              value="{{value}}"
              bindchange="onPickerChange">
@@ -9,4 +9,3 @@
         </view>
     </picker-view-column>
 </picker-view>
-

@@ -9,7 +9,8 @@
     line-height: 40px;
     text-align: center;
     font-size: 28rpx;
-    background: linear-gradient(to right, #FFFACD, #FF8C00);
+    /* 玫瑰金金属质感 */
+    background: linear-gradient(45deg, #e6b398, #d4a17d, #b76e79, #d4a17d, #e6b398);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }

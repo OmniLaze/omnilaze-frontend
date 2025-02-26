@@ -31,6 +31,6 @@
         </view>
     </view>
     <button class="decide-btn" bindtap="onDecideTap">
-        <text class="gradient-text">Let AI Decide</text>
+        <text class="gradient-text">下单！</text>
     </button>
 </view>
