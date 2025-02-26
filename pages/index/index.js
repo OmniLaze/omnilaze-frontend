@@ -1,6 +1,6 @@
 Page({
     data: {
-        dayItems: ['日天', '明天', '后天'],
+        dayItems: ['今天', '明天', '后天'],
         mealItems: ['早餐', '午餐', '晚餐'],
         aiItems: ['chatgpt o1', 'deepseek', '通义千问'],
 
@@ -10,7 +10,7 @@ Page({
 
         selectedDay: '明天',
         selectedMeal: '午餐',
-        selectedAI: 'chatgpt o1'
+        selectedAI: 'deepseek'
     },
 
     onDayPickerChange(e) {
