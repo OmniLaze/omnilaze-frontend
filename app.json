@@ -1,0 +1,11 @@
+{
+  "pages": [
+    "pages/index/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "AI点餐",
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTextStyle": "black"
+  },
+  "usingComponents": {}
+}

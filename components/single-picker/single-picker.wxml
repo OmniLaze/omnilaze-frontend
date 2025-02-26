@@ -1,0 +1,12 @@
+<picker-view class="single-picker-view"
+             indicator-style="height: 40px;"
+             style="width: {{width}}; height: 40px;"
+             value="{{value}}"
+             bindchange="onPickerChange">
+    <picker-view-column>
+        <view wx:for="{{items}}" wx:key="index" class="picker-item">
+            {{item}}
+        </view>
+    </picker-view-column>
+</picker-view>
+

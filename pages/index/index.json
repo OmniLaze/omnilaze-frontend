@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "AI点餐",
+  "usingComponents": {
+    "single-picker": "/components/single-picker/single-picker"
+  }
+}

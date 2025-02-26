@@ -1,0 +1,15 @@
+.single-picker-view {
+    /* 宽度由外部传入的 width 属性控制 */
+    height: 40px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.picker-item {
+    line-height: 40px;
+    text-align: center;
+    font-size: 28rpx;
+    background: linear-gradient(to right, #FFFACD, #FF8C00);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
