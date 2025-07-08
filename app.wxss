@@ -1,5 +1,0 @@
-page {
-    /* 基础渐变背景，从左下角到右上角 */
-    background: linear-gradient(to top right, #e1b176, #f5c385, #f5e548, #efeede);
-
-}
