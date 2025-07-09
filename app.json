@@ -1,0 +1,25 @@
+{
+  "pages": [
+    "pages/chat/chat"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#FFFEF5",
+    "navigationBarTitleText": "『懒得』点外卖",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#FFFEF5",
+    "backgroundColorTop": "#FFFEF5",
+    "backgroundColorBottom": "#FFF9E6",
+    "enablePullDownRefresh": false,
+    "navigationStyle": "custom"
+  },
+  "networkTimeout": {
+    "request": 60000,
+    "downloadFile": 10000
+  },
+  "debug": true,
+  "usingComponents": {},
+  "sitemapLocation": "sitemap.json",
+  "style": "v2",
+  "darkmode": false
+}

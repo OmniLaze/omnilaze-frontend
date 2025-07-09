@@ -1,0 +1,11 @@
+{
+  "navigationBarTitleText": "AI点餐助手",
+  "navigationBarBackgroundColor": "#5B69E8",
+  "navigationBarTextStyle": "white",
+  "backgroundColor": "#F8F9FF",
+  "backgroundTextStyle": "light",
+  "enablePullDownRefresh": false,
+  "disableScroll": false,
+  "onReachBottomDistance": 50,
+  "usingComponents": {}
+}
