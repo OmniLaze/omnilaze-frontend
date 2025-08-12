@@ -1,0 +1,168 @@
+/* 移除所有输入框的焦点边框 */
+input:focus,
+textarea:focus {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* 移除React Native Web生成的输入框焦点样式 */
+[data-focusable="true"]:focus,
+[contenteditable="true"]:focus {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* 移除所有可聚焦元素的默认焦点样式 */
+*:focus {
+  outline: none !important;
+}
+
+/* 修复React Native Web字体缩放问题 */
+html {
+  /* 禁用文本大小调整 */
+  -webkit-text-size-adjust: 100% !important;
+  -moz-text-size-adjust: 100% !important;
+  -ms-text-size-adjust: 100% !important;
+  text-size-adjust: 100% !important;
+  
+  /* 设置基准字体大小 */
+  font-size: 16px !important;
+  
+  /* 移动端优化 */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+body {
+  /* 确保字体大小一致性 */
+  font-size: 16px !important;
+  -webkit-text-size-adjust: 100% !important;
+  -moz-text-size-adjust: 100% !important;
+  -ms-text-size-adjust: 100% !important;
+  text-size-adjust: 100% !important;
+  
+  /* 防止字体平滑度问题 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  
+  /* 移动端优化 */
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* React Native Web根容器字体控制 */
+#root {
+  -webkit-text-size-adjust: 100% !important;
+  -moz-text-size-adjust: 100% !important;
+  -ms-text-size-adjust: 100% !important;
+  text-size-adjust: 100% !important;
+}
+
+/* 强制覆盖所有RN生成的大字体 */
+div[style*="font-size"] {
+  -webkit-text-size-adjust: 100% !important;
+  -moz-text-size-adjust: 100% !important;
+  -ms-text-size-adjust: 100% !important;
+  text-size-adjust: 100% !important;
+}
+
+/* 强制移动端布局适配 */
+@media screen and (max-width: 768px), 
+       screen and (max-device-width: 768px),
+       (pointer: coarse) {
+  
+  html, body {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+  
+  #root {
+    width: 100vw !important;
+    max-width: 100vw !important;
+  }
+  
+  /* 强制所有元素最大字体大小 */
+  *, 
+  div,
+  span,
+  p,
+  input,
+  button,
+  text,
+  [style*="font-size"] {
+    max-font-size: 20px !important;
+  }
+  
+  /* 覆盖所有可能的大字体样式 - 调整到合适大小 */
+  div[style*="font-size: 18px"],
+  div[style*="font-size: 19px"],
+  div[style*="font-size: 20px"],
+  div[style*="font-size: 21px"], 
+  div[style*="font-size: 22px"],
+  div[style*="font-size: 23px"],
+  div[style*="font-size: 24px"],
+  div[style*="font-size: 25px"],
+  div[style*="font-size: 26px"],
+  div[style*="font-size: 27px"],
+  div[style*="font-size: 28px"],
+  span[style*="font-size: 18px"],
+  span[style*="font-size: 19px"],
+  span[style*="font-size: 20px"],
+  span[style*="font-size: 21px"],
+  span[style*="font-size: 22px"],
+  span[style*="font-size: 23px"],
+  span[style*="font-size: 24px"],
+  span[style*="font-size: 25px"],
+  span[style*="font-size: 26px"],
+  span[style*="font-size: 27px"],
+  span[style*="font-size: 28px"] {
+    font-size: 17px !important;
+  }
+  
+  /* 特别大的字体降到更小 */
+  div[style*="font-size: 30px"],
+  div[style*="font-size: 32px"],
+  div[style*="font-size: 36px"],
+  div[style*="font-size: 40px"],
+  div[style*="font-size: 48px"],
+  span[style*="font-size: 30px"],
+  span[style*="font-size: 32px"],
+  span[style*="font-size: 36px"],
+  span[style*="font-size: 40px"],
+  span[style*="font-size: 48px"] {
+    font-size: 19px !important;
+  }
+  
+  /* 通用的字体大小重置 - 更激进的方法 */
+  div[class*="Text"] {
+    font-size: 17px !important;
+  }
+  
+  /* React Native Web生成的文本元素 */
+  [dir="auto"] {
+    font-size: 17px !important;
+  }
+  
+  /* 表单元素字体控制 */
+  input, 
+  textarea,
+  select,
+  button {
+    font-size: 16px !important; /* iOS需要16px以上防止缩放 */
+  }
+}
+
+/* 桌面端适配 */
+@media screen and (min-width: 769px) {
+  html, body {
+    max-width: 100vw;
+  }
+}

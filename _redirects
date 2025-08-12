@@ -1,0 +1,30 @@
+# Cloudflare Pages 前端部署配置
+
+# 构建设置
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# 环境变量
+[build.environment]
+  NODE_VERSION = "18"
+  REACT_APP_API_URL = "https://omnilaze-app-api.your-subdomain.workers.dev"
+
+# 重定向规则（适用于 SPA）
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# 头部配置
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+[[headers]]
+  for = "/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
