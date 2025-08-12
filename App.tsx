@@ -186,7 +186,7 @@ function OmnilazeAppContent() {
     authResetTrigger, setAuthResetTrigger,
     
     // 表单状态
-    address, budget, selectedAllergies, selectedPreferences, selectedFoodType,
+    address, budget, deliveryTime, selectedAllergies, selectedPreferences, selectedFoodType,
     otherAllergyText, otherPreferenceText, showMap, isAddressConfirmed,
     selectedAddressSuggestion, currentStep, completedAnswers, editingStep,
     originalAnswerBeforeEdit, currentOrderId, currentOrderNumber,
@@ -195,7 +195,7 @@ function OmnilazeAppContent() {
     isQuickOrderMode, completedQuestionsOffset, currentPushOffset,
     
     // 状态设置函数
-    setAddress, setBudget, setSelectedAllergies, setSelectedPreferences,
+    setAddress, setBudget, setDeliveryTime, setSelectedAllergies, setSelectedPreferences,
     setSelectedFoodType, setOtherAllergyText, setOtherPreferenceText,
     setShowMap, setIsAddressConfirmed, setSelectedAddressSuggestion,
     setCurrentStep, setCompletedAnswers, setEditingStep,
@@ -219,12 +219,13 @@ function OmnilazeAppContent() {
 
   // 获取移动端头部标题
   const getStepTitle = (step: number) => {
-    const titles = ['配送地址', '食物类型', '忌口说明', '口味偏好', '预算设置'];
+    const titles = ['配送地址', '食物类型', '忌口说明', '口味偏好', '用餐时间', '预算设置'];
     // 步骤0: 配送地址
     // 步骤1: 食物类型
     // 步骤2: 忌口说明
     // 步骤3: 口味偏好  
-    // 步骤4: 预算设置
+    // 步骤4: 用餐时间
+    // 步骤5: 预算设置
     return titles[step] || '懒得点外卖';
   };
 
@@ -563,13 +564,13 @@ function OmnilazeAppContent() {
   // 表单步骤管理hook
   const formSteps = useFormSteps({
     // 状态值
-    address, budget, selectedAllergies, selectedPreferences, selectedFoodType,
+    address, budget, deliveryTime, selectedAllergies, selectedPreferences, selectedFoodType,
     otherAllergyText, otherPreferenceText, currentStep, editingStep, completedAnswers,
     originalAnswerBeforeEdit, isFreeOrder, isAddressConfirmed, showMap,
     selectedAddressSuggestion, isAuthenticated, authQuestionText,
     
     // 状态设置函数
-    setAddress, setBudget, setSelectedAllergies, setSelectedPreferences, setSelectedFoodType,
+    setAddress, setBudget, setDeliveryTime, setSelectedAllergies, setSelectedPreferences, setSelectedFoodType,
     setOtherAllergyText, setOtherPreferenceText, setCurrentStep, setCompletedAnswers,
     setEditingStep, setOriginalAnswerBeforeEdit, setIsAddressConfirmed, setShowMap,
     setSelectedAddressSuggestion, setCurrentOrderId, setCurrentOrderNumber,
@@ -587,7 +588,7 @@ function OmnilazeAppContent() {
   
   // 订单管理hook
   const orderManagement = useOrderManagement({
-    authResult, address, selectedAllergies, selectedPreferences, budget,
+    authResult, address, deliveryTime, selectedAllergies, selectedPreferences, budget,
     selectedFoodType, isFreeOrder, currentUserSequenceNumber,
     otherAllergyText, otherPreferenceText, selectedAddressSuggestion,
     setCurrentOrderId, setCurrentOrderNumber, setCurrentUserSequenceNumber,
@@ -1308,6 +1309,7 @@ function OmnilazeAppContent() {
         currentStep={currentStep}
         address={address}
         budget={budget}
+        deliveryTime={deliveryTime}
         selectedAllergies={selectedAllergies}
         selectedPreferences={selectedPreferences}
         selectedFoodType={selectedFoodType}
@@ -1317,6 +1319,7 @@ function OmnilazeAppContent() {
         isFreeOrder={isFreeOrder}
         handleAddressChange={formSteps.handleAddressChange}
         handleSelectAddress={formSteps.handleSelectAddress}
+        handleDeliveryTimeConfirm={formSteps.handleDeliveryTimeConfirm}
         setBudget={setBudget}
         setSelectedAllergies={setSelectedAllergies}
         setSelectedPreferences={setSelectedPreferences}

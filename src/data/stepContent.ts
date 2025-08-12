@@ -22,6 +22,11 @@ export const STEP_CONTENT: StepContent[] = [
     inputType: "preference"
   },
   {
+    message: "想什么时候用餐？",
+    showDeliveryTimeInput: true,
+    inputType: "deliveryTime"
+  },
+  {
     message: "好的，这一顿打算花多少钱？",
     showBudgetInput: true,
     inputType: "budget"

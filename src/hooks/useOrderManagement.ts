@@ -6,6 +6,7 @@ import type { AuthResult } from '../types';
 interface UseOrderManagementProps {
   authResult: AuthResult | null;
   address: string;
+  deliveryTime: string;
   selectedAllergies: string[];
   selectedPreferences: string[];
   budget: string;
@@ -38,7 +39,7 @@ interface UseOrderManagementProps {
 
 export const useOrderManagement = (props: UseOrderManagementProps) => {
   const {
-    authResult, address, selectedAllergies, selectedPreferences, budget,
+    authResult, address, deliveryTime, selectedAllergies, selectedPreferences, budget,
     selectedFoodType, isFreeOrder, currentUserSequenceNumber,
     otherAllergyText, otherPreferenceText, selectedAddressSuggestion,
     setCurrentOrderId, setCurrentOrderNumber, setCurrentUserSequenceNumber,
@@ -56,6 +57,7 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
 
     const orderData = {
       address: address,
+      deliveryTime: deliveryTime,
       allergies: selectedAllergies,
       preferences: selectedPreferences,
       budget: budget,

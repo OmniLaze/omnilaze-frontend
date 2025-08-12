@@ -77,6 +77,7 @@ export interface InviteProgressResponse {
 }
 export interface OrderData {
   address: string;
+  deliveryTime?: string; // 用餐时间 (ASAP或具体时间)
   allergies: string[];
   preferences: string[];
   budget: string;

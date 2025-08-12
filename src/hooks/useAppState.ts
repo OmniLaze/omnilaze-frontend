@@ -11,6 +11,7 @@ export const useAppState = () => {
   const [budget, setBudget] = useState('');
   const [allergies, setAllergies] = useState('');
   const [preferences, setPreferences] = useState('');
+  const [deliveryTime, setDeliveryTime] = useState(''); // 新增用餐时间
   
   // 复选框状态
   const [selectedAllergies, setSelectedAllergies] = useState<string[]>([]);
@@ -72,6 +73,7 @@ export const useAppState = () => {
     
     setAddress('');
     setBudget('');
+    setDeliveryTime(''); // 重置用餐时间
     setSelectedAllergies([]);
     setSelectedPreferences([]);
     setSelectedFoodType([]);
@@ -106,6 +108,7 @@ export const useAppState = () => {
         originalAnswerBeforeEdit, // 保存编辑前的原始答案
         address,
         budget,
+        deliveryTime,
         selectedAllergies,
         selectedPreferences,
         selectedFoodType,
@@ -156,6 +159,7 @@ export const useAppState = () => {
         setOriginalAnswerBeforeEdit(savedConversation.originalAnswerBeforeEdit || null); // 恢复编辑前答案
         setAddress(savedConversation.address || '');
         setBudget(savedConversation.budget || '');
+        setDeliveryTime(savedConversation.deliveryTime || '');
         setSelectedAllergies(savedConversation.selectedAllergies || []);
         setSelectedPreferences(savedConversation.selectedPreferences || []);
         setSelectedFoodType(savedConversation.selectedFoodType || []);
@@ -196,6 +200,7 @@ export const useAppState = () => {
         setOriginalAnswerBeforeEdit(savedConversation.originalAnswerBeforeEdit || null); // 恢复编辑前答案
         setAddress(savedConversation.address || '');
         setBudget(savedConversation.budget || '');
+        setDeliveryTime(savedConversation.deliveryTime || '');
         setSelectedAllergies(savedConversation.selectedAllergies || []);
         setSelectedPreferences(savedConversation.selectedPreferences || []);
         setSelectedFoodType(savedConversation.selectedFoodType || []);
@@ -226,6 +231,7 @@ export const useAppState = () => {
     budget, setBudget,
     allergies, setAllergies,
     preferences, setPreferences,
+    deliveryTime, setDeliveryTime,
     
     // 复选框状态
     selectedAllergies, setSelectedAllergies,

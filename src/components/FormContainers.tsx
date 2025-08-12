@@ -5,6 +5,7 @@ import { ImageCheckbox } from './ImageCheckbox';
 import { BudgetInput } from './BudgetInput';
 import { PaymentComponent } from './PaymentComponent';
 import { ActionButton } from './ActionButton';
+import { DeliveryTimeStep } from './DeliveryTimeStep';
 import { ALLERGY_OPTIONS, PREFERENCE_OPTIONS, FOOD_TYPE_OPTIONS } from '../data/checkboxOptions';
 import { BUDGET_OPTIONS_FOOD, BUDGET_OPTIONS_DRINK, LAYOUT } from '../constants';
 import type { AddressSuggestion } from '../types';
@@ -18,6 +19,7 @@ interface FormInputContainerProps {
   // Form state
   address: string;
   budget: string;
+  deliveryTime: string;
   selectedAllergies: string[];
   selectedPreferences: string[];
   selectedFoodType: string[];
@@ -29,6 +31,7 @@ interface FormInputContainerProps {
   // Form handlers
   handleAddressChange: (text: string) => void;
   handleSelectAddress: (suggestion: AddressSuggestion) => void;
+  handleDeliveryTimeConfirm: (time: string) => void;
   setBudget: (value: string) => void;
   setSelectedAllergies: (value: string[]) => void;
   setSelectedPreferences: (value: string[]) => void;
@@ -55,6 +58,7 @@ export const FormInputContainer: React.FC<FormInputContainerProps> = ({
   currentStep,
   address,
   budget,
+  deliveryTime,
   selectedAllergies,
   selectedPreferences,
   selectedFoodType,
@@ -64,6 +68,7 @@ export const FormInputContainer: React.FC<FormInputContainerProps> = ({
   isFreeOrder,
   handleAddressChange,
   handleSelectAddress,
+  handleDeliveryTimeConfirm,
   setBudget,
   setSelectedAllergies,
   setSelectedPreferences,
@@ -97,6 +102,16 @@ export const FormInputContainer: React.FC<FormInputContainerProps> = ({
           animationValue={inputSectionAnimation}
         />
       </View>
+    );
+  }
+  
+  // 用餐时间选择
+  if (stepData.showDeliveryTimeInput) {
+    return (
+      <DeliveryTimeStep
+        onConfirm={handleDeliveryTimeConfirm}
+        initialValue={deliveryTime}
+      />
     );
   }
   
@@ -242,8 +257,13 @@ export const FormActionButtonContainer: React.FC<FormActionButtonContainerProps>
     );
   }
   
+  // 用餐时间步骤 - 组件内部有自己的确认按钮
+  if (currentStep === 4) {
+    return null;
+  }
+  
   // 预算步骤特殊处理 - 选择了预算后不显示确认按钮
-  if (currentStep === 4 && budget) {
+  if (currentStep === 5 && budget) {
     return null;
   }
   

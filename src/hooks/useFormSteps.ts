@@ -8,6 +8,7 @@ interface UseFormStepsProps {
   // State values
   address: string;
   budget: string;
+  deliveryTime: string;
   selectedAllergies: string[];
   selectedPreferences: string[];
   selectedFoodType: string[];
@@ -27,6 +28,7 @@ interface UseFormStepsProps {
   // State setters
   setAddress: (value: string) => void;
   setBudget: (value: string) => void;
+  setDeliveryTime: (value: string) => void;
   setSelectedAllergies: (value: string[]) => void;
   setSelectedPreferences: (value: string[]) => void;
   setSelectedFoodType: (value: string[]) => void;
@@ -61,11 +63,11 @@ interface UseFormStepsProps {
 
 export const useFormSteps = (props: UseFormStepsProps) => {
   const {
-    address, budget, selectedAllergies, selectedPreferences, selectedFoodType,
+    address, budget, deliveryTime, selectedAllergies, selectedPreferences, selectedFoodType,
     otherAllergyText, otherPreferenceText, currentStep, editingStep, completedAnswers,
     originalAnswerBeforeEdit, isFreeOrder, isAddressConfirmed, showMap,
     selectedAddressSuggestion, isAuthenticated, authQuestionText,
-    setAddress, setBudget, setSelectedAllergies, setSelectedPreferences, setSelectedFoodType,
+    setAddress, setBudget, setDeliveryTime, setSelectedAllergies, setSelectedPreferences, setSelectedFoodType,
     setOtherAllergyText, setOtherPreferenceText, setCurrentStep, setCompletedAnswers,
     setEditingStep, setOriginalAnswerBeforeEdit, setIsAddressConfirmed, setShowMap,
     setSelectedAddressSuggestion, setCurrentOrderId, setCurrentOrderNumber,
@@ -157,7 +159,8 @@ export const useFormSteps = (props: UseFormStepsProps) => {
         });
         return { type: 'preference', value: preferenceLabels.length > 0 ? preferenceLabels.join(', ') : '无特殊偏好' };
       }
-      case 4: return { type: 'budget', value: budget };
+      case 4: return { type: 'deliveryTime', value: deliveryTime === 'ASAP' ? '越快越好' : deliveryTime };
+      case 5: return { type: 'budget', value: budget };
       default: return null;
     }
   };
@@ -168,6 +171,8 @@ export const useFormSteps = (props: UseFormStepsProps) => {
     switch (answer.type) {
       case 'address': return answer.value;
       case 'phone': return answer.value;
+      case 'deliveryTime': 
+        return answer.value === '越快越好' ? '越快越好 (约45分钟)' : answer.value;
       case 'budget': return `¥${answer.value}`;
       case 'allergy': 
         return answer.value ? convertToChineseDisplay(answer.value) : '无忌口';
@@ -190,6 +195,8 @@ export const useFormSteps = (props: UseFormStepsProps) => {
       switch (stepData.inputType) {
         case 'address':
           return !!address.trim() && address.trim().length >= 5;
+        case 'deliveryTime':
+          return !!deliveryTime;
         case 'foodType':
           return selectedFoodType.length > 0;
         case 'allergy':
@@ -211,6 +218,8 @@ export const useFormSteps = (props: UseFormStepsProps) => {
       case 'allergy':
       case 'preference':
         return true;
+      case 'deliveryTime':
+        return !!deliveryTime;
       case 'budget':
         return !!budget.trim() && parseFloat(budget) >= 10;
       default:
@@ -241,6 +250,16 @@ export const useFormSteps = (props: UseFormStepsProps) => {
     
     setIsAddressConfirmed(true);
     changeEmotion('✅');
+    
+    setTimeout(() => {
+      handleNext();
+    }, 300);
+  };
+
+  // 确认用餐时间
+  const handleDeliveryTimeConfirm = (time: string) => {
+    setDeliveryTime(time);
+    changeEmotion('⏰');
     
     setTimeout(() => {
       handleNext();
@@ -331,6 +350,7 @@ export const useFormSteps = (props: UseFormStepsProps) => {
       setSelectedFoodType([]);
       setSelectedAllergies([]);
       setSelectedPreferences([]);
+      setDeliveryTime('');
       setBudget('');
       setIsAddressConfirmed(false);
       setShowMap(false);
@@ -338,20 +358,28 @@ export const useFormSteps = (props: UseFormStepsProps) => {
     }
     
     if (fromStep <= 1) {
-      // 编辑食物类型后，重置忌口、偏好、预算
+      // 编辑食物类型后，重置忌口、偏好、时间、预算
       setSelectedAllergies([]);
       setSelectedPreferences([]);
+      setDeliveryTime('');
       setBudget('');
     }
     
     if (fromStep <= 2) {
-      // 编辑忌口后，重置偏好、预算
+      // 编辑忌口后，重置偏好、时间、预算
       setSelectedPreferences([]);
+      setDeliveryTime('');
       setBudget('');
     }
     
     if (fromStep <= 3) {
-      // 编辑偏好后，重置预算
+      // 编辑偏好后，重置时间、预算
+      setDeliveryTime('');
+      setBudget('');
+    }
+    
+    if (fromStep <= 4) {
+      // 编辑时间后，重置预算
       setBudget('');
     }
     
@@ -371,6 +399,9 @@ export const useFormSteps = (props: UseFormStepsProps) => {
         setIsAddressConfirmed(false);
         setShowMap(false);
         mapAnimation.setValue(0);
+        break;
+      case 'deliveryTime':
+        setDeliveryTime(answerToEdit.value === '越快越好 (约45分钟)' ? 'ASAP' : answerToEdit.value);
         break;
       case 'foodType':
         if (answerToEdit.value !== '未选择') {
@@ -507,6 +538,7 @@ export const useFormSteps = (props: UseFormStepsProps) => {
     handleAddressChange,
     handleSelectAddress,
     handleAddressConfirm,
+    handleDeliveryTimeConfirm,
     handleNext,
     handleEditAddress,
     handleEditAnswer,
