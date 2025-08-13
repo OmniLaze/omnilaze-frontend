@@ -954,3 +954,59 @@ export const getOrderHistory = async (userId: string) => {
     };
   }
 }
+
+/**
+ * 上传订单语音反馈
+ */
+export const uploadOrderVoiceFeedback = async (
+  orderId: string, 
+  file: Blob | File | { uri: string; type: string; name: string },
+  userId: string,
+  durationSec?: number
+): Promise<ApiResponse> => {
+  try {
+    const formData = new FormData();
+    
+    if (Platform.OS === 'web') {
+      // Web平台：直接添加Blob/File
+      formData.append('file', file as Blob, 'recording.webm');
+    } else {
+      // 移动平台：使用Expo的文件URI格式
+      const fileData = file as { uri: string; type: string; name: string };
+      formData.append('file', {
+        uri: fileData.uri,
+        type: fileData.type || 'audio/mp4',
+        name: fileData.name || 'recording.mp4'
+      } as any);
+    }
+    
+    formData.append('user_id', userId);
+    if (durationSec) {
+      formData.append('duration_sec', durationSec.toString());
+    }
+
+    const response = await authFetch(buildApiUrl(`/orders/${orderId}/feedback/audio`), {
+      method: 'POST',
+      body: formData,
+      // 不设置Content-Type，让浏览器自动设置multipart boundary
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || '上传语音反馈失败');
+    }
+
+    return {
+      success: true,
+      message: data.message || '语音反馈上传成功',
+      data: data.data
+    };
+  } catch (error) {
+    console.error('上传语音反馈失败:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : '网络错误，请重试'
+    };
+  }
+};

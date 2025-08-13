@@ -8,6 +8,8 @@ const { height } = Dimensions.get('window');
 // 流式打字机效果 - 模拟现代AI流式传输
 export const useTypewriterEffect = () => {
   const [displayedText, setDisplayedText] = useState('');
+  // 始终保存最新文本到ref，避免闭包读取到过期值
+  const displayedTextRef = useRef<string>('');
   const [isTyping, setIsTyping] = useState(false);
   const [showCursor, setShowCursor] = useState(true);
   const [cursorOpacity] = useState(new Animated.Value(1));
@@ -17,6 +19,11 @@ export const useTypewriterEffect = () => {
   const rafRef = useRef<number | null>(null);
   const textChunks = useRef<string[]>([]);
   const isStreamingRef = useRef(false);
+
+  // 同步state到ref
+  useEffect(() => {
+    displayedTextRef.current = displayedText;
+  }, [displayedText]);
 
   // 智能呼吸式光标动画 - 更自然的AI光标效果
   const startCursorAnimation = () => {
@@ -116,8 +123,9 @@ export const useTypewriterEffect = () => {
 
   // AI流式输出效果 - 更真实的流式传输体验
   const typeText = (text: string, options: { instant?: boolean; onComplete?: () => void; streaming?: boolean; speed?: number; append?: boolean } = {}) => {
-    // 如果是追加模式，保留当前文本
-    const finalText = options.append ? (displayedText + text) : text;
+    // 如果是追加模式，使用ref中保存的最新文本，避免闭包导致的过期值覆盖
+    const currentBase = displayedTextRef.current;
+    const finalText = options.append ? (currentBase + text) : text;
     
     // 防止重复触发相同文本
     if (lastTextRef.current === finalText && displayedText === finalText && !options.instant) {
@@ -148,7 +156,7 @@ export const useTypewriterEffect = () => {
     setIsTyping(true);
     
     // 如果是追加模式，从当前文本长度开始
-    const startText = options.append ? displayedText : '';
+    const startText = options.append ? currentBase : '';
     const textToType = options.append ? text : finalText;
     
     if (!options.append) {

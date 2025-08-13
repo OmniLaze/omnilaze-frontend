@@ -35,6 +35,8 @@ interface UseOrderManagementProps {
   triggerShake: () => void;
   changeEmotion: (emotion: string) => void;
   typeText: (text: string, options?: { instant?: boolean; onComplete?: () => void; streaming?: boolean; speed?: number; append?: boolean }) => void;
+  // 新增：将完成的消息固定到消息日志（带头像）
+  pushOrderMessage: (text: string, avatar: 'assistant' | 'delivery') => void;
 }
 
 export const useOrderManagement = (props: UseOrderManagementProps) => {
@@ -45,8 +47,11 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
     setCurrentOrderId, setCurrentOrderNumber, setCurrentUserSequenceNumber,
     setIsOrderSubmitting, setIsSearchingRestaurant, setIsOrderCompleted,
     setCurrentStep, setCompletedAnswers, setInputError, setOrderMessage,
-    triggerShake, changeEmotion, typeText
+    triggerShake, changeEmotion, typeText, pushOrderMessage
   } = props;
+
+  // 防重复触发：下单消息流程闸门
+  const [orderFlowRunning, setOrderFlowRunning] = useState(false);
 
   // 创建订单
   const handleCreateOrder = async () => {
@@ -173,8 +178,10 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
     }
   };
 
-  // 确认下单后开始搜索餐厅
+  // 确认下单后：只显示第一段订单确认消息，使用统一样式
   const handleConfirmOrder = async (orderText?: string) => {
+    if (orderFlowRunning) return;
+    setOrderFlowRunning(true);
     setIsSearchingRestaurant(true);
     changeEmotion('🔍');
     
@@ -184,75 +191,34 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
       [5]: { type: 'payment', value: '已确认支付' } // 预算是第5步
     }));
     
-    // 如果有订单文字，显示它
+    // 如果有订单文字，显示第一段订单确认消息
     if (orderText) {
-      // 先显示订单确认文字
       typeText(orderText, {
         instant: false,
         streaming: false,
         speed: 30,
-        onComplete: () => {
-          // 文字显示完成后，等待一会再显示已支付
-          setTimeout(() => {
-            typeText('\n\n✅ 已支付', {
-              instant: false,
-              speed: 30,
-              append: true,
-              onComplete: () => {
-                // 2秒后显示正在挑选
-                setTimeout(() => {
-                  typeText('\n\n正在挑选...', {
-                    instant: false,
-                    speed: 50,
-                    append: true,
-                    onComplete: async () => {
-                      // 开始创建订单
-                      try {
-                        await handleCreateOrder();
-                        
-                        // 5秒后显示送达时间
-                        setTimeout(() => {
-                          const deliveryTimeDisplay = deliveryTime === 'ASAP' 
-                            ? '45分钟内' 
-                            : deliveryTime;
-                          typeText(`\n\n点好了，预计送达时间为 ${deliveryTimeDisplay}`, {
-                            instant: false,
-                            speed: 40,
-                            append: true,
-                            onComplete: () => {
-                              // 1秒后显示跟进信息
-                              setTimeout(() => {
-                                typeText('\n正在持续跟进送达情况，记得保持手机畅通。', {
-                                  instant: false,
-                                  speed: 40,
-                                  append: true,
-                                  onComplete: () => {
-                                    setIsOrderCompleted(true);
-                                    setIsSearchingRestaurant(false);
-                                    changeEmotion('✅');
-                                    
-                                    // 保存最终订单消息
-                                    const fullMessage = orderText + '\n\n✅ 已支付' + 
-                                      '\n\n点好了，预计送达时间为 ' + deliveryTimeDisplay + 
-                                      '\n正在持续跟进送达情况，记得保持手机畅通。';
-                                    setOrderMessage(fullMessage);
-                                  }
-                                });
-                              }, 1000);
-                            }
-                          });
-                        }, 5000);
-                      } catch (error) {
-                        setIsSearchingRestaurant(false);
-                        changeEmotion('😰');
-                        setInputError('订单创建失败，请重试');
-                      }
-                    }
-                  });
-                }, 2000);
-              }
-            });
-          }, 500);
+        onComplete: async () => {
+          try {
+            // 将第一段固定到消息日志（头像：assistant）
+            pushOrderMessage(orderText, 'assistant');
+            // 清空打字区
+            typeText('', { instant: true });
+
+            // 创建订单
+            await handleCreateOrder();
+
+            // 订单创建完成，设置状态
+            setIsOrderCompleted(true);
+            setIsSearchingRestaurant(false);
+            changeEmotion('✅');
+            setOrderMessage(orderText);
+            setOrderFlowRunning(false);
+          } catch (error) {
+            setIsSearchingRestaurant(false);
+            changeEmotion('😰');
+            setInputError('订单创建失败，请重试');
+            setOrderFlowRunning(false);
+          }
         }
       });
     } else {
@@ -263,6 +229,8 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
         setIsSearchingRestaurant(false);
         changeEmotion('😰');
         setInputError('订单创建失败，请重试');
+      } finally {
+        setOrderFlowRunning(false);
       }
     }
   };

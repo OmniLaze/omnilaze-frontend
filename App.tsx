@@ -34,6 +34,7 @@ import { FormInputContainer, FormActionButtonContainer } from './src/components/
 import ColorPalette from './src/components/ColorPalette';
 import { OrderHistorySidebar } from './src/components/OrderHistorySidebar';
 import { convertToChineseDisplay } from './src/data/checkboxOptions';
+import { OrderMessageLog, OrderLogItem } from './src/components/OrderMessageLog';
 
 // API Services
 import { checkPreferencesCompleteness, getPreferencesAsFormData } from './src/services/api';
@@ -176,6 +177,13 @@ function OmnilazeAppContent() {
   const questionStyles = createQuestionStyles(theme);
   const avatarStyles = createAvatarStyles(theme);
   const answerStyles = createAnswerStyles(theme);
+
+  // 订单消息日志：用于固定展示分段消息，每段只显示一次
+  const [orderMessagesLog, setOrderMessagesLog] = useState<OrderLogItem[]>([]);
+  const pushOrderMessage = useCallback((text: string, avatar: 'assistant' | 'delivery') => {
+    const id = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    setOrderMessagesLog((prev) => [...prev, { id, text, avatar }]);
+  }, []);
   
   // 解构需要的状态和函数
   const {
@@ -569,7 +577,6 @@ function OmnilazeAppContent() {
     if (nextStep < STEP_CONTENT.length) {
       if (process.env.NODE_ENV === 'development') {
         console.log('🔄 步骤推进:', currentStepIndex, '->', nextStep);
-        console.log('📝 当前displayedText:', displayedText ? displayedText.substring(0, 30) + '...' : 'null');
       }
       
       // 🔑 新的修复方案：立即清空文本并更新步骤，然后强制显示新问题
@@ -630,7 +637,8 @@ function OmnilazeAppContent() {
     setCurrentOrderId, setCurrentOrderNumber, setCurrentUserSequenceNumber,
     setIsOrderSubmitting, setIsSearchingRestaurant, setIsOrderCompleted,
     setCurrentStep, setCompletedAnswers, setInputError, setOrderMessage,
-    triggerShake, changeEmotion, typeText
+    triggerShake, changeEmotion, typeText,
+    pushOrderMessage
   });
   
   // ===========================================
@@ -1070,11 +1078,11 @@ function OmnilazeAppContent() {
           if (formDataResponse.success && formDataResponse.has_preferences) {
             const formData = formDataResponse.form_data;
             
-            // 自动填充所有表单数据
+            // 自动填充所有表单数据，并对数组进行去重
             setAddress(formData.address);
-            setSelectedFoodType(formData.selectedFoodType);
-            setSelectedAllergies(formData.selectedAllergies);
-            setSelectedPreferences(formData.selectedPreferences);
+            setSelectedFoodType(Array.from(new Set(formData.selectedFoodType || [])));
+            setSelectedAllergies(Array.from(new Set(formData.selectedAllergies || [])));
+            setSelectedPreferences(Array.from(new Set(formData.selectedPreferences || [])));
             setBudget(formData.budget);
             setOtherAllergyText(formData.otherAllergyText || '');
             setOtherPreferenceText(formData.otherPreferenceText || '');
@@ -1174,13 +1182,14 @@ function OmnilazeAppContent() {
       return;
     }
     
-    // 如果订单已完成且有订单消息，优先显示订单消息，不再显示其他问题
+    // 如果订单已完成且有订单消息：仅在刷新后恢复（displayedText为空）时一次性设置
+    // 避免在直播输出过程中把逐条追加的内容整体重置为完整文本
     if (isOrderCompleted && orderMessage) {
-      if (!displayedText || displayedText !== orderMessage) {
-        console.log('📝 显示订单消息:', orderMessage);
+      if (!displayedText && isStateRestored) {
+        console.log('📝 恢复订单消息（刷新后）:', orderMessage);
         setTextDirectly(orderMessage);
       }
-      return; // 重要：订单完成后直接返回，不再执行后续逻辑
+      return; // 订单完成后不再显示其他问题
     }
     
     // 未认证状态 - 显示认证问题
@@ -1248,13 +1257,6 @@ function OmnilazeAppContent() {
 
   // 专门监听displayedText变化的useEffect，用于调试
   useEffect(() => {
-    console.log('📝 displayedText 发生变化:', {
-      displayedText: displayedText ? displayedText.substring(0, 30) + '...' : 'null',
-      length: displayedText?.length || 0,
-      isEmpty: !displayedText,
-      isTyping
-    });
-    
     // 如果文本被清空且不在打字状态，尝试触发主useEffect重新检查
     if (!displayedText && !isTyping && isStateRestored && isAuthenticated) {
       console.log('🔄 文本已清空，主useEffect应该重新检查显示条件');
@@ -1579,6 +1581,8 @@ function OmnilazeAppContent() {
             alignSelf: 'center',
             flex: 1,
           }}>
+            {/* 订单消息日志（两段） */}
+            <OrderMessageLog messages={orderMessagesLog} />
             {/* 当前问题内容 */}
             <Animated.View
               style={{

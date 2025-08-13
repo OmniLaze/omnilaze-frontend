@@ -117,7 +117,13 @@ export const useAppState = () => {
         isAddressConfirmed,
         showMap,
         isOrderCompleted,
-        orderMessage
+        orderMessage,
+        // 新增订单相关状态
+        currentOrderId,
+        currentOrderNumber,
+        currentUserSequenceNumber,
+        isSearchingRestaurant,
+        isFreeOrder
       };
       CookieManager.saveConversationState(conversationState);
     }
@@ -160,15 +166,21 @@ export const useAppState = () => {
         setAddress(savedConversation.address || '');
         setBudget(savedConversation.budget || '');
         setDeliveryTime(savedConversation.deliveryTime || '');
-        setSelectedAllergies(savedConversation.selectedAllergies || []);
-        setSelectedPreferences(savedConversation.selectedPreferences || []);
-        setSelectedFoodType(savedConversation.selectedFoodType || []);
+        setSelectedAllergies(Array.from(new Set(savedConversation.selectedAllergies || [])));
+        setSelectedPreferences(Array.from(new Set(savedConversation.selectedPreferences || [])));
+        setSelectedFoodType(Array.from(new Set(savedConversation.selectedFoodType || [])));
         setOtherAllergyText(savedConversation.otherAllergyText || '');
         setOtherPreferenceText(savedConversation.otherPreferenceText || '');
         setIsAddressConfirmed(savedConversation.isAddressConfirmed || false);
         setShowMap(savedConversation.showMap || false);
         setIsOrderCompleted(savedConversation.isOrderCompleted || false);
         setOrderMessage(savedConversation.orderMessage || '');
+        // 恢复新增的订单相关状态
+        setCurrentOrderId(savedConversation.currentOrderId || null);
+        setCurrentOrderNumber(savedConversation.currentOrderNumber || null);
+        setCurrentUserSequenceNumber(savedConversation.currentUserSequenceNumber || null);
+        setIsSearchingRestaurant(savedConversation.isSearchingRestaurant || false);
+        setIsFreeOrder(savedConversation.isFreeOrder || false);
       }
       
       setIsStateRestored(true);
@@ -201,15 +213,21 @@ export const useAppState = () => {
         setAddress(savedConversation.address || '');
         setBudget(savedConversation.budget || '');
         setDeliveryTime(savedConversation.deliveryTime || '');
-        setSelectedAllergies(savedConversation.selectedAllergies || []);
-        setSelectedPreferences(savedConversation.selectedPreferences || []);
-        setSelectedFoodType(savedConversation.selectedFoodType || []);
+        setSelectedAllergies(Array.from(new Set(savedConversation.selectedAllergies || [])));
+        setSelectedPreferences(Array.from(new Set(savedConversation.selectedPreferences || [])));
+        setSelectedFoodType(Array.from(new Set(savedConversation.selectedFoodType || [])));
         setOtherAllergyText(savedConversation.otherAllergyText || '');
         setOtherPreferenceText(savedConversation.otherPreferenceText || '');
         setIsAddressConfirmed(savedConversation.isAddressConfirmed || false);
         setShowMap(savedConversation.showMap || false);
         setIsOrderCompleted(savedConversation.isOrderCompleted || false);
         setOrderMessage(savedConversation.orderMessage || '');
+        // 恢复新增的订单相关状态
+        setCurrentOrderId(savedConversation.currentOrderId || null);
+        setCurrentOrderNumber(savedConversation.currentOrderNumber || null);
+        setCurrentUserSequenceNumber(savedConversation.currentUserSequenceNumber || null);
+        setIsSearchingRestaurant(savedConversation.isSearchingRestaurant || false);
+        setIsFreeOrder(savedConversation.isFreeOrder || false);
       }
       
       setIsStateRestored(true);
@@ -223,7 +241,15 @@ export const useAppState = () => {
     if (isAuthenticated) {
       saveConversationState();
     }
-  }, [currentStep, completedAnswers, editingStep, originalAnswerBeforeEdit, address, budget, selectedAllergies, selectedPreferences, selectedFoodType, otherAllergyText, otherPreferenceText, isAddressConfirmed, showMap, isOrderCompleted, orderMessage]);
+  }, [
+    currentStep, completedAnswers, editingStep, originalAnswerBeforeEdit, 
+    address, budget, selectedAllergies, selectedPreferences, selectedFoodType, 
+    otherAllergyText, otherPreferenceText, isAddressConfirmed, showMap, 
+    isOrderCompleted, orderMessage, deliveryTime,
+    // 新增的订单相关状态
+    currentOrderId, currentOrderNumber, currentUserSequenceNumber, 
+    isSearchingRestaurant, isFreeOrder
+  ]);
 
   return {
     // 基础表单状态

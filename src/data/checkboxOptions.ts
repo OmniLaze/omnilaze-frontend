@@ -81,9 +81,9 @@ export const FOOD_TYPE_OPTIONS = [
   },
 ];
 
-// 英文值到中文显示的映射
+// 英文值到中文显示的映射 - 保持原有的选项
 export const VALUE_MAPPING: Record<string, string> = {
-  // 忌口映射
+  // 忌口映射 - 只包含原有的选项
   'seafood': '海鲜类',
   'nuts': '坚果类',
   'eggs': '蛋类',
@@ -104,23 +104,38 @@ export const VALUE_MAPPING: Record<string, string> = {
   'drink': '喝奶茶',
 };
 
-// 将英文值数组转换为中文显示的函数
+// 将英文值数组转换为中文显示的函数 - 支持去重和排序
 export const convertToChineseDisplay = (values: string | string[]): string => {
   if (!values) return '';
   
+  let valueArray: string[] = [];
+  
   if (Array.isArray(values)) {
     if (values.length === 0) return '';
-    return values.map(value => VALUE_MAPPING[value] || value).join('、');
-  }
-  
-  // 如果是单个值，检查是否为逗号分隔的字符串
-  if (typeof values === 'string') {
+    valueArray = values;
+  } else if (typeof values === 'string') {
+    // 如果是单个值，检查是否为逗号分隔的字符串
     if (values.includes(',')) {
-      const valuesArray = values.split(',').map(v => v.trim());
-      return valuesArray.map(value => VALUE_MAPPING[value] || value).join('、');
+      valueArray = values.split(',').map(v => v.trim());
+    } else {
+      valueArray = [values];
     }
-    return VALUE_MAPPING[values] || values;
+  } else {
+    return String(values);
   }
   
-  return String(values);
+  // 转换并收集结果
+  const convertedValues = valueArray.map(value => {
+    return VALUE_MAPPING[value] || value;
+  }).filter(Boolean); // 过滤掉空值
+  
+  // 去重：使用 Set 去除重复项
+  const uniqueValues = Array.from(new Set(convertedValues));
+  
+  // 排序：按中文拼音排序，确保显示一致性
+  const sortedValues = uniqueValues.sort((a, b) => {
+    return a.localeCompare(b, 'zh-CN');
+  });
+  
+  return sortedValues.join('、');
 };

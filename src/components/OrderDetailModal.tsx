@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,8 +8,10 @@ import {
   StyleSheet,
   Platform,
   SafeAreaView,
+  Image,
 } from 'react-native';
 import { useTheme } from '../contexts/ColorThemeContext';
+import { OrderVoiceRecorder } from './OrderVoiceRecorder';
 import { 
   allergyMap, 
   preferenceMap, 
@@ -32,6 +34,11 @@ interface Order {
   foodType?: string[];
   preferences?: string[];
   allergies?: string[];
+  userId?: string; // 添加userId字段
+  // 到达图片字段
+  arrivalImageUrl?: string;
+  arrivalImageTakenAt?: string;
+  arrivalImageSource?: string;
   form_data?: {
     budget?: string;
     address?: string;
@@ -62,6 +69,7 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
   onClose,
 }) => {
   const { theme } = useTheme();
+  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
 
   // 调试：打印完整的订单数据
   React.useEffect(() => {
@@ -293,6 +301,23 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                   <Text style={styles.label}>用餐时间</Text>
                   <Text style={styles.value}>{getDeliveryTime()}</Text>
                 </View>
+                {order.arrivalImageUrl && (
+                  <View style={styles.arrivalImageSection}>
+                    <Text style={styles.label}>到达照片</Text>
+                    <TouchableOpacity style={styles.arrivalImageContainer}>
+                      <Image 
+                        source={{ uri: order.arrivalImageUrl }} 
+                        style={styles.arrivalImage}
+                        resizeMode="cover"
+                      />
+                      {order.arrivalImageTakenAt && (
+                        <Text style={styles.arrivalImageTime}>
+                          拍摄时间: {new Date(order.arrivalImageTakenAt).toLocaleString('zh-CN')}
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
 
               {/* 点单详情 */}
@@ -311,10 +336,42 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                   <Text style={styles.value}>{getPreferences()}</Text>
                 </View>
               </View>
+
+              {/* 语音反馈按钮 */}
+              <View style={styles.section}>
+                <TouchableOpacity 
+                  style={styles.voiceFeedbackButton}
+                  onPress={() => setShowVoiceRecorder(true)}
+                >
+                  <Text style={styles.voiceFeedbackButtonText}>添加语音反馈</Text>
+                </TouchableOpacity>
+              </View>
             </ScrollView>
           </View>
         </SafeAreaView>
       </View>
+      
+      {/* 语音录制模态框 */}
+      {showVoiceRecorder && order && (
+        <Modal
+          visible={showVoiceRecorder}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowVoiceRecorder(false)}
+        >
+          <View style={styles.voiceRecorderOverlay}>
+            <OrderVoiceRecorder
+              orderId={order.id}
+              userId={order.userId || 'unknown'}
+              onClose={() => setShowVoiceRecorder(false)}
+              onSuccess={() => {
+                setShowVoiceRecorder(false);
+                // 可以在这里刷新订单数据或显示成功提示
+              }}
+            />
+          </View>
+        </Modal>
+      )}
     </Modal>
   );
 };
@@ -402,5 +459,41 @@ const createStyles = (theme: any) => StyleSheet.create({
   address: {
     fontSize: 13,
     lineHeight: 18,
+  },
+  arrivalImageSection: {
+    marginTop: 16,
+  },
+  arrivalImageContainer: {
+    marginTop: 8,
+  },
+  arrivalImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
+    backgroundColor: theme.BORDER || 'rgba(0, 0, 0, 0.06)',
+  },
+  arrivalImageTime: {
+    fontSize: 12,
+    color: theme.TEXT_SECONDARY,
+    marginTop: 4,
+  },
+  voiceFeedbackButton: {
+    backgroundColor: theme.PRIMARY,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  voiceFeedbackButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  voiceRecorderOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

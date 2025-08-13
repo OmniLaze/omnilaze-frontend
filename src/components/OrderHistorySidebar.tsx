@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Modal, Animated, Platform, SafeAreaView } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Modal, Animated, Platform, SafeAreaView, Image } from 'react-native';
 import { useTheme } from '../contexts/ColorThemeContext';
 import { getOrderHistory } from '../services/api';
 import { OrderDetailModal } from './OrderDetailModal';
@@ -18,6 +18,10 @@ interface Order {
   foodType?: string[];
   preferences?: string[];
   allergies?: string[];
+  // 到达图片字段
+  arrivalImageUrl?: string;
+  arrivalImageTakenAt?: string;
+  arrivalImageSource?: string;
   // 支持嵌套的表单数据结构
   form_data?: {
     budget?: string;
@@ -57,6 +61,35 @@ export const OrderHistorySidebar: React.FC<OrderHistorySidebarProps> = ({
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showOrderDetail, setShowOrderDetail] = useState(false);
 
+  // 使用 useCallback 包装 loadOrderHistory，避免函数重复创建
+  const loadOrderHistory = useCallback(async () => {
+    if (!userId) return;
+    
+    setLoading(true);
+    try {
+      // 调试日志已简化
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 加载订单历史，用户ID:', userId);
+      }
+      const result = await getOrderHistory(userId);
+      
+      if (result.success) {
+        // 处理后端返回的数据格式
+        let rawOrders = result.data?.orders || result.data || result.orders || [];
+        
+        // 规范化订单数据结构
+        const normalizedOrders = rawOrders.map((order: any) => normalizeOrderData(order));
+        setOrders(normalizedOrders);
+      } else {
+        console.error('获取订单历史失败:', result.message);
+      }
+    } catch (error) {
+      console.error('加载订单历史时出错:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
+
   useEffect(() => {
     if (isVisible && userId) {
       loadOrderHistory();
@@ -74,7 +107,7 @@ export const OrderHistorySidebar: React.FC<OrderHistorySidebarProps> = ({
         useNativeDriver: true,
       }).start();
     }
-  }, [isVisible, userId]);
+  }, [isVisible, userId, loadOrderHistory]); // 添加 loadOrderHistory 作为依赖
 
   // 监听订单历史更新事件
   useEffect(() => {
@@ -90,43 +123,7 @@ export const OrderHistorySidebar: React.FC<OrderHistorySidebarProps> = ({
         window.removeEventListener('orderHistoryUpdate', handleOrderHistoryUpdate);
       };
     }
-  }, [userId]);
-
-  const loadOrderHistory = async () => {
-    if (!userId) return;
-    
-    setLoading(true);
-    try {
-      console.log('🔄 开始加载订单历史，用户ID:', userId);
-      const result = await getOrderHistory(userId);
-      console.log('🔄 API返回结果:', result);
-      
-      if (result.success) {
-        // 处理后端返回的数据格式
-        let rawOrders = result.data?.orders || result.data || result.orders || [];
-        console.log('📦 原始订单历史数据 (未规范化):', rawOrders);
-        
-        if (rawOrders.length > 0) {
-          console.log('📦 第一个原始订单完整结构:', JSON.stringify(rawOrders[0], null, 2));
-        }
-        
-        // 规范化订单数据结构
-        const normalizedOrders = rawOrders.map((order: any) => normalizeOrderData(order));
-        
-        if (normalizedOrders.length > 0) {
-          console.log('📦 第一个规范化订单详情:', normalizedOrders[0]);
-          console.log('📦 规范化订单完整结构:', JSON.stringify(normalizedOrders[0], null, 2));
-        }
-        setOrders(normalizedOrders);
-      } else {
-        console.error('❌ API返回失败:', result.message);
-      }
-    } catch (error) {
-      console.error('❌ 加载订单历史失败:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [userId, loadOrderHistory]); // 添加 loadOrderHistory 作为依赖
 
   const getOrderAmount = (order: Order): string => {
     // 尝试多个可能的字段名和嵌套结构
@@ -155,15 +152,19 @@ export const OrderHistorySidebar: React.FC<OrderHistorySidebarProps> = ({
       }
     }
     
-    console.log('💰 订单金额检查:', {
-      orderId: order.id,
-      budget: order.budget,
-      amount: order.amount,
-      totalAmount: order.totalAmount,
-      form_data_budget: order.form_data?.budget,
-      formData_budget: order.formData?.budget,
-      finalAmount: amount
-    });
+    // 调试日志已移除，避免性能问题
+    // 如需调试，可临时启用：
+    // if (process.env.NODE_ENV === 'development') {
+    //   console.log('💰 订单金额检查:', {
+    //     orderId: order.id,
+    //     budget: order.budget,
+    //     amount: order.amount,
+    //     totalAmount: order.totalAmount,
+    //     form_data_budget: order.form_data?.budget,
+    //     formData_budget: order.formData?.budget,
+    //     finalAmount: amount
+    //   });
+    // }
     
     if (!amount || amount === '0' || amount === '') {
       return '未知';
@@ -315,7 +316,15 @@ export const OrderHistorySidebar: React.FC<OrderHistorySidebarProps> = ({
                           {getDeliveryTimeDisplay(order)}
                         </Text>
                       </View>
-                      <Text style={styles.amountText}>¥{getOrderAmount(order)}</Text>
+                      <View style={styles.orderRight}>
+                        <Text style={styles.amountText}>¥{getOrderAmount(order)}</Text>
+                        {order.arrivalImageUrl && (
+                          <Image 
+                            source={{ uri: order.arrivalImageUrl }} 
+                            style={styles.arrivalThumbnail}
+                          />
+                        )}
+                      </View>
                     </View>
                   </TouchableOpacity>
                 ))
@@ -475,5 +484,16 @@ const createStyles = (theme: any) => StyleSheet.create({
     color: theme.TEXT_PRIMARY,
     fontWeight: '500',
     textAlign: 'right',
+  },
+  orderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  arrivalThumbnail: {
+    width: 32,
+    height: 32,
+    borderRadius: 4,
+    backgroundColor: theme.BORDER || 'rgba(0, 0, 0, 0.06)',
   },
 });

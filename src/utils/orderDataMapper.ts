@@ -2,22 +2,20 @@
  * 数据映射工具 - 统一处理订单数据的中英文转换
  */
 
-// 忌口选项映射
+// 忌口选项映射 - 只包含 checkboxOptions.ts 中原有的选项
 export const allergyMap: Record<string, string> = {
-  'seafood': '海鲜',
-  'nuts': '坚果',
-  'dairy': '乳制品',
-  'gluten': '麦质',
-  'egg': '鸡蛋',
-  'soy': '大豆',
+  'seafood': '海鲜类',
+  'nuts': '坚果类',
+  'eggs': '蛋类',
+  'soy': '大豆类',
+  'dairy': '乳制品类',
   'other-allergy': '其他',
   // 反向映射
-  '海鲜': 'seafood',
-  '坚果': 'nuts',
-  '乳制品': 'dairy',
-  '麦质': 'gluten',
-  '鸡蛋': 'egg',
-  '大豆': 'soy',
+  '海鲜类': 'seafood',
+  '坚果类': 'nuts',
+  '蛋类': 'eggs',
+  '大豆类': 'soy',
+  '乳制品类': 'dairy',
   '其他': 'other-allergy'
 };
 
@@ -51,14 +49,15 @@ export const foodTypeMap: Record<string, string> = {
 };
 
 /**
- * 转换数组数据到中文显示
+ * 转换数组数据到中文显示 - 支持去重和排序
  */
 export function convertToChineseDisplay(items: string | string[], mapData: Record<string, string>): string {
   if (!items) return '';
   
   const itemArray = Array.isArray(items) ? items : [items];
   
-  return itemArray.map(item => {
+  // 转换并收集结果
+  const convertedItems = itemArray.map(item => {
     // 如果已经是中文，直接返回
     if (mapData[item]) {
       return mapData[item];
@@ -69,7 +68,17 @@ export function convertToChineseDisplay(items: string | string[], mapData: Recor
     }
     // 返回原值
     return item;
-  }).join('、');
+  }).filter(Boolean); // 过滤掉空值
+  
+  // 去重：使用 Set 去除重复项
+  const uniqueItems = Array.from(new Set(convertedItems));
+  
+  // 排序：按中文拼音排序，确保显示一致性
+  const sortedItems = uniqueItems.sort((a, b) => {
+    return a.localeCompare(b, 'zh-CN');
+  });
+  
+  return sortedItems.join('、');
 }
 
 /**
@@ -172,6 +181,11 @@ export function normalizeOrderData(order: any): any {
     foodType: metadataFoodType || order.foodType || order.food_type || formData.foodType || formData.food_type || formData.selectedFoodType || [],
     allergies: parsedAllergies || order.allergies || formData.allergies || formData.selectedAllergies || [],
     preferences: parsedPreferences || order.preferences || formData.preferences || formData.selectedPreferences || [],
+    
+    // 到达图片字段
+    arrivalImageUrl: order.arrivalImageUrl || order.arrival_image_url,
+    arrivalImageTakenAt: order.arrivalImageTakenAt || order.arrival_image_taken_at,
+    arrivalImageSource: order.arrivalImageSource || order.arrival_image_source,
     
     // 状态信息
     status: order.status || 'pending',

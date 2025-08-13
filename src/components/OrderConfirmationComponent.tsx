@@ -44,20 +44,18 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
   const formatOrderConfirmationText = useCallback(() => {
     const foodTypeText = selectedFoodType.includes('drink') ? '奶茶' : '正餐';
     const allergyText = selectedAllergies.length > 0 
-      ? selectedAllergies.filter(a => a !== 'none').map(a => {
+      ? Array.from(new Set(selectedAllergies.filter(a => a !== 'none').map(a => {
+          // 只包含 checkboxOptions.ts 中原有的选项
           const allergyMap: Record<string, string> = {
-            'seafood': '海鲜',
-            'nuts': '坚果',
-            'dairy': '乳制品',
-            'gluten': '麦质',
-            'egg': '鸡蛋',
-            'soy': '大豆',
-            'peanut': '花生',
-            'lactose': '乳糖',
+            'seafood': '海鲜类',
+            'nuts': '坚果类',
+            'eggs': '蛋类',
+            'soy': '大豆类',
+            'dairy': '乳制品类',
             'other-allergy': '其他'
           };
           return allergyMap[a] || a;
-        }).join('、')
+        }))).sort((a, b) => a.localeCompare(b, 'zh-CN')).join('、')
       : '';
     
     const preferenceText = selectedPreferences.map(p => {

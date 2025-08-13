@@ -147,7 +147,10 @@ export const useFormSteps = (props: UseFormStepsProps) => {
           const option = ALLERGY_OPTIONS.find(opt => opt.id === id);
           return option ? option.label : id;
         });
-        return { type: 'allergy', value: allergyLabels.length > 0 ? allergyLabels.join(', ') : '无忌口' };
+        // 去重并排序
+        const uniqueAllergies = Array.from(new Set(allergyLabels))
+          .sort((a, b) => a.localeCompare(b, 'zh-CN'));
+        return { type: 'allergy', value: uniqueAllergies.length > 0 ? uniqueAllergies.join('、') : '无忌口' };
       }
       case 3: {
         const preferenceLabels = selectedPreferences.map(id => {
@@ -175,7 +178,8 @@ export const useFormSteps = (props: UseFormStepsProps) => {
         return answer.value === '越快越好' ? '越快越好 (约45分钟)' : answer.value;
       case 'budget': return `¥${answer.value}`;
       case 'allergy': 
-        return answer.value ? convertToChineseDisplay(answer.value) : '无忌口';
+        // answer.value 已经是中文显示的字符串，无需再次转换
+        return answer.value || '无忌口';
       case 'preference': 
         return answer.value ? convertToChineseDisplay(answer.value) : '无特殊偏好';
       case 'foodType': 

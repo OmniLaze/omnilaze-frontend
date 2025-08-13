@@ -146,8 +146,8 @@ export const ImageCheckbox: React.FC<ImageCheckboxProps> = ({
           hideOtherInput();
         }
       } else {
-        // 添加选择
-        newSelection = [...selectedIds, optionId];
+        // 添加选择，使用去重逻辑
+        newSelection = Array.from(new Set([...selectedIds, optionId]));
         // 如果选择了其他选项，显示输入框
         if (isOtherOption) {
           showOtherInputAnimated();
