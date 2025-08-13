@@ -47,9 +47,13 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
       ? selectedAllergies.filter(a => a !== 'none').map(a => {
           const allergyMap: Record<string, string> = {
             'seafood': '海鲜',
+            'nuts': '坚果',
+            'dairy': '乳制品',
+            'gluten': '麦质',
+            'egg': '鸡蛋',
+            'soy': '大豆',
             'peanut': '花生',
             'lactose': '乳糖',
-            'gluten': '麸质',
             'other-allergy': '其他'
           };
           return allergyMap[a] || a;
@@ -58,8 +62,12 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
     
     const preferenceText = selectedPreferences.map(p => {
       const preferenceMap: Record<string, string> = {
-        'spicy': '香辣',
+        'spicy': '辣',
+        'mild': '不辣',
+        'sour': '酸',
+        'sweet': '甜',
         'light': '清淡',
+        'rich': '浓郁',
         'sour-sweet': '酸甜',
         'salty': '咸香',
         'creamy': '奶香',

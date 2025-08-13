@@ -393,7 +393,15 @@ export const useValidation = () => {
       case 3: // 偏好
         return { isValid: true };
         
-      case 4: // 预算
+      case 4: // 时间选择
+        if (!value || value === '') {
+          const errorMessage = '请选择用餐时间';
+          setInputError(errorMessage);
+          return { isValid: false, errorMessage };
+        }
+        return { isValid: true };
+        
+      case 5: // 预算
         const budgetNum = parseFloat(value);
         if (!value || budgetNum <= 0) {
           const errorMessage = '请设置一个合理的预算金额';

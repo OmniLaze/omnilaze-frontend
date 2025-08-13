@@ -119,12 +119,19 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
         }
         
         // 通知订单历史更新 - 触发组件重新获取订单列表
-        // 这里可以使用EventEmitter或者Context来通知OrderHistorySidebar刷新
+        // 传递更详细的订单信息以便快速更新UI
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('orderHistoryUpdate', { 
             detail: { 
               orderId: result.order_id,
-              orderNumber: result.order_number 
+              orderNumber: result.order_number,
+              orderData: {
+                ...orderData,
+                id: result.order_id,
+                orderNumber: result.order_number,
+                status: 'pending',
+                createdAt: new Date().toISOString()
+              }
             } 
           }));
         }

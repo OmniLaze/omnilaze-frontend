@@ -119,7 +119,6 @@ export const DeliveryTimeStep: React.FC<DeliveryTimeStepProps> = ({
 
   return (
     <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
-      <Text style={styles.question}>想什么时候用餐？</Text>
       
       {/* 快速选项 */}
       <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>

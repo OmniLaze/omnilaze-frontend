@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Modal, Animated, Platform, SafeAreaView } from 'react-native';
 import { useTheme } from '../contexts/ColorThemeContext';
 import { getOrderHistory } from '../services/api';
+import { OrderDetailModal } from './OrderDetailModal';
+import { normalizeOrderData } from '../utils/orderDataMapper';
 
 interface Order {
   id: string;
@@ -16,6 +18,23 @@ interface Order {
   foodType?: string[];
   preferences?: string[];
   allergies?: string[];
+  // 支持嵌套的表单数据结构
+  form_data?: {
+    budget?: string;
+    address?: string;
+    deliveryTime?: string;
+    allergies?: string[];
+    preferences?: string[];
+    foodType?: string[];
+  };
+  formData?: {
+    budget?: string;
+    address?: string;
+    deliveryTime?: string;
+    allergies?: string[];
+    preferences?: string[];
+    foodType?: string[];
+  };
 }
 
 interface OrderHistorySidebarProps {
@@ -33,6 +52,10 @@ export const OrderHistorySidebar: React.FC<OrderHistorySidebarProps> = ({
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
   const [slideAnim] = useState(new Animated.Value(-400));
+  
+  // 订单详情状态
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [showOrderDetail, setShowOrderDetail] = useState(false);
 
   useEffect(() => {
     if (isVisible && userId) {
@@ -74,31 +97,71 @@ export const OrderHistorySidebar: React.FC<OrderHistorySidebarProps> = ({
     
     setLoading(true);
     try {
+      console.log('🔄 开始加载订单历史，用户ID:', userId);
       const result = await getOrderHistory(userId);
+      console.log('🔄 API返回结果:', result);
+      
       if (result.success) {
         // 处理后端返回的数据格式
-        const orders = result.data?.orders || result.data || result.orders || [];
-        console.log('📦 订单历史数据:', orders);
-        if (orders.length > 0) {
-          console.log('📦 第一个订单详情:', orders[0]);
+        let rawOrders = result.data?.orders || result.data || result.orders || [];
+        console.log('📦 原始订单历史数据 (未规范化):', rawOrders);
+        
+        if (rawOrders.length > 0) {
+          console.log('📦 第一个原始订单完整结构:', JSON.stringify(rawOrders[0], null, 2));
         }
-        setOrders(orders);
+        
+        // 规范化订单数据结构
+        const normalizedOrders = rawOrders.map((order: any) => normalizeOrderData(order));
+        
+        if (normalizedOrders.length > 0) {
+          console.log('📦 第一个规范化订单详情:', normalizedOrders[0]);
+          console.log('📦 规范化订单完整结构:', JSON.stringify(normalizedOrders[0], null, 2));
+        }
+        setOrders(normalizedOrders);
+      } else {
+        console.error('❌ API返回失败:', result.message);
       }
     } catch (error) {
-      console.error('加载订单历史失败:', error);
+      console.error('❌ 加载订单历史失败:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const getOrderAmount = (order: Order): string => {
-    // 尝试多个可能的字段名
-    const amount = order.budget || order.amount || order.totalAmount;
+    // 尝试多个可能的字段名和嵌套结构
+    let amount = null;
+    
+    // 直接字段检查
+    if (order.budget && order.budget !== '0' && order.budget !== '') {
+      amount = order.budget;
+    } else if (order.amount && order.amount !== '0' && order.amount !== '') {
+      amount = order.amount;
+    } else if (order.totalAmount && order.totalAmount !== '0' && order.totalAmount !== '') {
+      amount = order.totalAmount;
+    }
+    
+    // 检查嵌套的表单数据 (form_data)
+    if (!amount && order.form_data) {
+      if (order.form_data.budget && order.form_data.budget !== '0' && order.form_data.budget !== '') {
+        amount = order.form_data.budget;
+      }
+    }
+    
+    // 检查其他可能的嵌套结构
+    if (!amount && order.formData) {
+      if (order.formData.budget && order.formData.budget !== '0' && order.formData.budget !== '') {
+        amount = order.formData.budget;
+      }
+    }
+    
     console.log('💰 订单金额检查:', {
       orderId: order.id,
       budget: order.budget,
       amount: order.amount,
       totalAmount: order.totalAmount,
+      form_data_budget: order.form_data?.budget,
+      formData_budget: order.formData?.budget,
       finalAmount: amount
     });
     
@@ -137,6 +200,41 @@ export const OrderHistorySidebar: React.FC<OrderHistorySidebarProps> = ({
       case 'cancelled': return '#DC143C';
       default: return theme.TEXT_SECONDARY;
     }
+  };
+
+  // 获取食物类型显示
+  const getFoodTypeDisplay = (order: Order): string => {
+    const foodType = order.foodType || order.form_data?.foodType || order.formData?.foodType || [];
+    if (!foodType || foodType.length === 0) return '🍽️ 未指定';
+    
+    if (Array.isArray(foodType)) {
+      if (foodType.includes('drink')) return '🧋 奶茶';
+      if (foodType.includes('food')) return '🍱 正餐';
+    }
+    return '🍽️ 未指定';
+  };
+  
+  // 获取送达时间显示
+  const getDeliveryTimeDisplay = (order: Order): string => {
+    const time = order.deliveryTime || order.form_data?.deliveryTime || order.formData?.deliveryTime;
+    if (!time) return '未指定';
+    if (time === 'ASAP') return '越快越好';
+    return time;
+  };
+  
+  // 处理订单点击
+  const handleOrderPress = (order: Order) => {
+    console.log('🔍 点击订单，准备显示详情:', order);
+    console.log('🔍 订单form_data:', order.form_data);
+    console.log('🔍 订单formData:', order.formData);
+    setSelectedOrder(order);
+    setShowOrderDetail(true);
+  };
+
+  // 关闭订单详情
+  const handleCloseOrderDetail = () => {
+    setShowOrderDetail(false);
+    setSelectedOrder(null);
   };
 
   const styles = createStyles(theme);
@@ -183,7 +281,12 @@ export const OrderHistorySidebar: React.FC<OrderHistorySidebarProps> = ({
                 </View>
               ) : (
                 orders.map((order) => (
-                  <TouchableOpacity key={order.id} style={styles.orderCard} activeOpacity={0.6}>
+                  <TouchableOpacity 
+                    key={order.id} 
+                    style={styles.orderCard} 
+                    activeOpacity={0.6}
+                    onPress={() => handleOrderPress(order)}
+                  >
                     <View style={styles.orderHeader}>
                       <Text style={styles.orderNumber}>#{order.orderNumber}</Text>
                       <View style={styles.statusContainer}>
@@ -206,10 +309,10 @@ export const OrderHistorySidebar: React.FC<OrderHistorySidebarProps> = ({
                     <View style={styles.orderDetails}>
                       <View style={styles.orderMeta}>
                         <Text style={styles.detailText}>
-                          {order.foodType && Array.isArray(order.foodType) && order.foodType.includes('drink') ? '🧋 奶茶' : '🍱 正餐'}
+                          {getFoodTypeDisplay(order)}
                         </Text>
                         <Text style={styles.detailText}>
-                          {order.deliveryTime === 'ASAP' ? '越快越好' : (order.deliveryTime || '未指定')}
+                          {getDeliveryTimeDisplay(order)}
                         </Text>
                       </View>
                       <Text style={styles.amountText}>¥{getOrderAmount(order)}</Text>
@@ -221,6 +324,13 @@ export const OrderHistorySidebar: React.FC<OrderHistorySidebarProps> = ({
           </SafeAreaView>
         </Animated.View>
       </TouchableOpacity>
+      
+      {/* 订单详情模态框 */}
+      <OrderDetailModal
+        order={selectedOrder}
+        isVisible={showOrderDetail}
+        onClose={handleCloseOrderDetail}
+      />
     </Modal>
   );
 };

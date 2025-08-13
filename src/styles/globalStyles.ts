@@ -219,16 +219,18 @@ export const createAnswerStyles = (theme: any = COLORS) => StyleSheet.create({
   },
   answerWithEdit: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'flex-start',
-    gap: 10,
+    gap: 6,
   },
   editAnswerButton: {
-    padding: 6,
-    borderRadius: 6,
+    padding: 2,
+    borderRadius: 4,
     backgroundColor: 'transparent',
     opacity: 0.9,
-    
+    minHeight: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

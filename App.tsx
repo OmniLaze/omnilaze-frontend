@@ -215,35 +215,6 @@ function OmnilazeAppContent() {
   // 订单历史侧边栏状态
   const [showOrderHistory, setShowOrderHistory] = useState(false);
   
-  // 新增订单处理
-  const handleNewOrder = useCallback(() => {
-    // 保留之前的表单数据，只跳到时间选择步骤
-    setIsOrderCompleted(false);
-    setOrderMessage('');
-    setEditingStep(null);
-    setCurrentStep(4); // 直接跳到时间选择步骤
-    setDeliveryTime(''); // 清空时间选择
-    
-    // 保持已填写的答案
-    if (authResult) {
-      const currentAnswers = { ...completedAnswers };
-      // 移除时间和预算的答案，让用户重新选择
-      delete currentAnswers[4]; // 时间
-      delete currentAnswers[5]; // 预算
-      setCompletedAnswers(currentAnswers);
-    }
-  }, [authResult, completedAnswers, setCompletedAnswers, setCurrentStep, setIsOrderCompleted, setOrderMessage, setEditingStep, setDeliveryTime]);
-  
-  // 打开订单历史
-  const handleOpenOrderHistory = useCallback(() => {
-    setShowOrderHistory(true);
-  }, []);
-  
-  // 关闭订单历史
-  const handleCloseOrderHistory = useCallback(() => {
-    setShowOrderHistory(false);
-  }, []);
-
   // 包装setCurrentStep以支持移动端动画
   const updateCurrentStep = (newStep: number) => {
     setPreviousStep(currentStep);
@@ -274,6 +245,38 @@ function OmnilazeAppContent() {
     clearText,
     isStreaming 
   } = useTypewriterEffect();
+  
+  // 新增订单处理
+  const handleNewOrder = useCallback(() => {
+    // 保留之前的表单数据，只跳到时间选择步骤
+    setIsOrderCompleted(false);
+    setOrderMessage('');
+    setEditingStep(null);
+    setCurrentStep(4); // 直接跳到时间选择步骤
+    setDeliveryTime(''); // 清空时间选择
+    
+    // 清空显示文本，触发问题重新显示
+    clearText();
+    
+    // 保持已填写的答案
+    if (authResult) {
+      const currentAnswers = { ...completedAnswers };
+      // 移除时间和预算的答案，让用户重新选择
+      delete currentAnswers[4]; // 时间
+      delete currentAnswers[5]; // 预算
+      setCompletedAnswers(currentAnswers);
+    }
+  }, [authResult, completedAnswers, setCompletedAnswers, setCurrentStep, setIsOrderCompleted, setOrderMessage, setEditingStep, setDeliveryTime, clearText]);
+  
+  // 打开订单历史
+  const handleOpenOrderHistory = useCallback(() => {
+    setShowOrderHistory(true);
+  }, []);
+  
+  // 关闭订单历史
+  const handleCloseOrderHistory = useCallback(() => {
+    setShowOrderHistory(false);
+  }, []);
   const { inputError, validateInput, validatePhoneNumber, setInputError } = useValidation();
   const { 
     questionAnimations,
@@ -1077,19 +1080,22 @@ function OmnilazeAppContent() {
             setOtherPreferenceText(formData.otherPreferenceText || '');
             setSelectedAddressSuggestion(formData.selectedAddressSuggestion);
             
-            // 标记前面步骤为已完成，但不包括预算步骤
+            // 标记前面步骤为已完成，包括默认配送时间但不包括预算步骤
             const completedAnswers = {
               [-1]: { type: 'phone' as const, value: result.phoneNumber },
               [0]: { type: 'address' as const, value: formData.address },
               [1]: { type: 'foodType' as const, value: convertToChineseDisplay(formData.selectedFoodType) },
               [2]: { type: 'allergy' as const, value: convertToChineseDisplay(formData.selectedAllergies) },
-              [3]: { type: 'preference' as const, value: convertToChineseDisplay(formData.selectedPreferences) }
+              [3]: { type: 'preference' as const, value: convertToChineseDisplay(formData.selectedPreferences) },
+              [4]: { type: 'deliveryTime' as const, value: '越快越好' } // 默认配送时间
               // 不包括预算步骤，让用户在预算步骤手动确认
             };
             
-            // 显式清除步骤4及之后的答案，确保预算步骤显示
+            // 设置默认配送时间
+            setDeliveryTime('ASAP');
+            
+            // 显式清除预算步骤的答案，确保预算步骤显示
             const currentCompletedAnswers: any = { ...completedAnswers };
-            delete currentCompletedAnswers[4];
             delete currentCompletedAnswers[5];
             
             // 批量状态更新
@@ -1106,7 +1112,7 @@ function OmnilazeAppContent() {
             setIsQuickOrderMode(true); // 设置快速下单模式
             setIsOrderCompleted(false);
             setIsSearchingRestaurant(false);
-            setCurrentStep(4); // 跳到预算步骤（第4步）
+            setCurrentStep(5); // 跳到预算步骤（第5步）
             
             return;
           }

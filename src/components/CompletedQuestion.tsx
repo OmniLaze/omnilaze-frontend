@@ -99,7 +99,7 @@ export const CompletedQuestion: React.FC<CompletedQuestionProps> = ({
                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                         activeOpacity={0.6}
                       >
-                        <SimpleIcon name="edit" size={18} color={theme.TEXT_SECONDARY} />
+                        <SimpleIcon name="edit" size={14} color={theme.TEXT_SECONDARY} />
                       </TouchableOpacity>
                     )}
                   </View>
@@ -172,7 +172,7 @@ export const CompletedQuestion: React.FC<CompletedQuestionProps> = ({
                         {canEdit && (
                           isHovered && (
                             <TouchableOpacity onPress={onEdit} style={answerStyles.editAnswerButton}>
-                              <SimpleIcon name="edit" size={22} color={theme.GRAY_600} />
+                              <SimpleIcon name="edit" size={16} color={theme.GRAY_600} />
                             </TouchableOpacity>
                           )
                         )}

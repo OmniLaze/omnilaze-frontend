@@ -261,8 +261,13 @@ export const useFormSteps = (props: UseFormStepsProps) => {
     setDeliveryTime(time);
     changeEmotion('⏰');
     
-    setTimeout(() => {
-      handleNext();
+    // 直接使用传入的时间值进行验证和提交，避免状态更新延迟的问题
+    const timeAnswer: Answer = { type: 'deliveryTime', value: time === 'ASAP' ? '越快越好' : time };
+    
+    setTimeout(async () => {
+      const success = await handleAnswerSubmission(currentStep, timeAnswer, {
+        onComplete: () => handleStepProgression(currentStep)
+      });
     }, 300);
   };
 
