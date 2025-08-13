@@ -202,7 +202,6 @@ interface FormActionButtonContainerProps {
   
   // Action handlers
   handleFinishEditing: () => void;
-  handleCancelEditing: () => void;
   handleAddressConfirm: () => void;
   handleNext: () => void;
   
@@ -217,7 +216,6 @@ export const FormActionButtonContainer: React.FC<FormActionButtonContainerProps>
   address,
   canProceed,
   handleFinishEditing,
-  handleCancelEditing,
   handleAddressConfirm,
   handleNext,
   inputSectionAnimation
@@ -228,19 +226,12 @@ export const FormActionButtonContainer: React.FC<FormActionButtonContainerProps>
   // 编辑模式下的按钮
   if (editingStep !== null) {
     return (
-      <View style={{ flexDirection: 'row', gap: 12, marginTop: topGap }}>
+      <View style={{ marginTop: topGap }}>
         <ActionButton
           onPress={handleFinishEditing}
           title="保存"
           disabled={!canProceed}
           isActive={canProceed}
-          animationValue={inputSectionAnimation}
-        />
-        <ActionButton
-          onPress={handleCancelEditing}
-          title="取消"
-          disabled={false}
-          isActive={false}
           animationValue={inputSectionAnimation}
         />
       </View>

@@ -147,24 +147,23 @@ export const createButtonStyles = (theme: any = COLORS) => StyleSheet.create({
     backgroundColor: theme.WHITE,
     borderWidth: 1,
     borderColor: theme.GRAY_300,
-    ...createShadowStyle(theme.SHADOW, { width: 0, height: 10 }, 0.06, 20, 2),
+    // 移除默认阴影
   },
   activeSimpleButton: {
     backgroundColor: '#FAFAFA',
     borderColor: theme.GRAY_300,
-    ...createShadowStyle(theme.SHADOW, { width: 0, height: 12 }, 0.08, 24, 3),
+    // 移除默认阴影
   },
   disabledSimpleButton: {
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    ...createShadowStyle('#000', { width: 0, height: 0 }, 0, 0, 0),
   },
   hoverSimpleButton: {
     ...(Platform.OS === 'web' && {
-      // 只加深边框和轻微背景，不做上浮
+      // hover时才显示阴影
       transform: [{ translateY: 0 }],
-      boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
       borderColor: '#D1D5DB',
       backgroundColor: '#FCFCFC',
     } as any),
@@ -197,7 +196,7 @@ export const createButtonStyles = (theme: any = COLORS) => StyleSheet.create({
     alignSelf: 'flex-start',
     marginTop: 4,
     marginLeft: 0,
-    ...createShadowStyle(theme.SHADOW, { width: 0, height: 10 }, 0.06, 20, 2),
+    // 移除默认阴影
   },
   nextSimpleButtonText: {
     color: theme.TEXT_PRIMARY,

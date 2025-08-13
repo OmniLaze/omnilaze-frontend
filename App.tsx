@@ -324,10 +324,10 @@ function OmnilazeAppContent() {
     const CURRENT_PAGE_OFFSET = 167; // 向上偏移167px，让当前问题页不那么靠上
     const getCurrentPagePosition = () => bufferContainerHeight + completedQuestionsHeight - CURRENT_PAGE_OFFSET;
     
-    // 🔥 修正：限制滚动范围，只允许在两个容器间滚动  
-    const maxScrollPosition = getCurrentPagePosition(); // 最大滚动到当前问题页面位置
+    // 🔥 修复：允许更大的滚动范围，不限制向下滚动
+    const maxScrollPosition = Math.max(getCurrentPagePosition() + pageHeight, bufferContainerHeight + completedQuestionsHeight + pageHeight); // 允许滚动到更下方
     const minScrollPosition = 0; // 最小滚动位置，允许看到缓冲区内容
-    const dynamicContentHeight = Math.max(maxScrollPosition + pageHeight, bufferContainerHeight + completedQuestionsHeight + pageHeight);
+    const dynamicContentHeight = Math.max(maxScrollPosition + pageHeight, bufferContainerHeight + completedQuestionsHeight + pageHeight * 2); // 增加内容高度
     
     return {
       pageHeight,
@@ -596,6 +596,17 @@ function OmnilazeAppContent() {
           const hasUserInput = !!completedAnswers[nextStep];
           console.log('📋 检查用户输入状态:', { nextStep, hasUserInput, hasAnswer: !!completedAnswers[nextStep] });
           handleQuestionTransition(stepData.message, hasUserInput);
+          
+          // 🔧 关键修复：延迟显示输入框，确保所有状态（包括editingStep=null）都已同步
+          setTimeout(() => {
+            const currentInputValue: number = (inputSectionAnimation as any)?.__getValue?.() ?? 0;
+            if (currentInputValue === 0) {
+              console.log('🔧 强制触发输入框显示，修复编辑模式后的显示bug');
+              animateInputSection(1, 250);
+            } else {
+              console.log('📋 输入框已显示，跳过强制触发');
+            }
+          }, 100); // 确保handleQuestionTransition的打字机效果有时间完成
         }
       }, 10); // 很短的延迟，确保状态更新完成
       
@@ -827,16 +838,23 @@ function OmnilazeAppContent() {
     const midPoint = (completedPagePosition + currentPagePosition) / 3;
     let nextMode: 'current' | 'completed' = focusMode;
     
+    // 🔧 修复：更灵活的焦点切换逻辑，不限制滚动方向
     if (focusMode === 'current') {
-      // 仅当滚动明显靠近已完成页时才切换，且需要有已完成答案
+      // 当前在current模式，向上滚动到已完成页时切换
       if (offsetY < midPoint - FOCUS_HYSTERESIS && Object.keys(completedAnswers).length > 0) {
         nextMode = 'completed';
       }
     } else {
-      // 从已完成页回到当前页需超过滞后阈值
+      // 当前在completed模式，向下滚动到当前页时切换
       if (offsetY > midPoint + FOCUS_HYSTERESIS) {
         nextMode = 'current';
       }
+    }
+    
+    // 🔧 新增：在编辑模式下，允许更自由的滚动，减少焦点模式的强制切换
+    if (editingStep !== null && Math.abs(offsetY - currentPagePosition) < 100) {
+      // 编辑模式下，如果接近当前问题页面，保持current模式
+      nextMode = 'current';
     }
     
     if (nextMode !== focusMode) {
@@ -850,7 +868,9 @@ function OmnilazeAppContent() {
         offsetY: Math.round(offsetY),
         maxScroll: Math.round(dynamicContentHeight - height),
         isAtTop: offsetY < 10,
-        isAtBottom: offsetY > (dynamicContentHeight - height - 10)
+        isAtBottom: offsetY > (dynamicContentHeight - height - 10),
+        editingStep,
+        focusMode: nextMode
       });
     }
   };
@@ -864,8 +884,15 @@ function OmnilazeAppContent() {
       offsetY,
       bufferContainerHeight,
       completedQuestionsHeight,
-      dynamicContentHeight
+      dynamicContentHeight,
+      editingStep
     });
+    
+    // 🔧 修复：在编辑模式下，减少自动吸附的干扰
+    if (editingStep !== null) {
+      console.log('📝 编辑模式下，跳过强制吸附');
+      return;
+    }
     
     // 定义两个吸附位置：
     // 1. 已完成问题页面顶部（跳过空白缓冲区）
@@ -1153,10 +1180,30 @@ function OmnilazeAppContent() {
       const currentInputValue: number = (inputSectionAnimation as any)?.__getValue?.() ?? 0;
       if (currentInputValue === 0) {
         // 打字机完成后立即显示输入框，使用统一的动画函数
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🎭 打字机效果完成，显示输入框');
+        }
         animateInputSection(1, 250);
       }
     }
   }, [displayedText, isTyping, editingStep]);
+  
+  // 🔧 修复：编辑模式结束后的额外检查，避免输入框不显示的bug
+  useEffect(() => {
+    // 当编辑模式结束（editingStep从非null变为null）且有显示文本时，确保输入框显示
+    if (editingStep === null && displayedText && !isTyping) {
+      const currentInputValue: number = (inputSectionAnimation as any)?.__getValue?.() ?? 0;
+      if (currentInputValue === 0) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔧 编辑模式结束后补充检查，强制显示输入框');
+        }
+        // 短暂延迟，确保状态完全同步
+        setTimeout(() => {
+          animateInputSection(1, 250);
+        }, 50);
+      }
+    }
+  }, [editingStep, displayedText, isTyping]);
 
   // 不再需要初始化动画，问题直接显示在顶部
 
@@ -1269,8 +1316,22 @@ function OmnilazeAppContent() {
       const stepData = STEP_CONTENT[editingStep];
       if (stepData) {
         handleQuestionTransition(stepData.message, true); // 编辑模式总是有用户输入
-        // 编辑模式时，直接滚动到当前问题页面
-        scrollToPage('current');
+        // 🔧 修复：编辑模式时，温和地滚动到当前问题页面，但不强制
+        // 只有当用户明显偏离当前问题页面时才滚动
+        const currentPagePos = getCurrentPagePosition();
+        const currentScrollPos = (scrollPosition as any)?.__getValue?.() ?? 0;
+        const distanceFromCurrentPage = Math.abs(currentScrollPos - currentPagePos);
+        
+        // 只有当距离当前问题页面超过200px时才自动滚动
+        if (distanceFromCurrentPage > 200) {
+          setTimeout(() => {
+            scrollToPage('current');
+          }, 300); // 延迟滚动，避免与其他动画冲突
+        } else {
+          // 如果已经接近当前问题页面，只设置焦点模式
+          setFocusMode('current');
+          saveFocusMode('current');
+        }
       }
     }
   }, [editingStep, isStateRestored]);
@@ -1388,7 +1449,6 @@ function OmnilazeAppContent() {
         address={address}
         canProceed={formSteps.canProceed()}
         handleFinishEditing={formSteps.handleFinishEditing}
-        handleCancelEditing={formSteps.handleCancelEditing}
         handleAddressConfirm={formSteps.handleAddressConfirm}
         handleNext={formSteps.handleNext}
         inputSectionAnimation={inputSectionAnimation}
@@ -1463,13 +1523,13 @@ function OmnilazeAppContent() {
       <ScrollView
         ref={scrollViewRef}
         style={{ flex: 1 }}
-        contentContainerStyle={Platform.OS === 'web' ? { height: dynamicContentHeight } : undefined}
+        contentContainerStyle={Platform.OS === 'web' ? { height: dynamicContentHeight } : { minHeight: '150%' }} // 🔧 修复：移动端确保有足够的滚动空间
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={16}
         onScroll={handleScroll}
         onMomentumScrollEnd={handleScrollEnd}
         onScrollEndDrag={handleScrollEnd}
-        bounces={false} // 禁用弹性滚动，避免超出边界
+        bounces={Platform.OS !== 'web'} // 🔧 修复：移动端允许弹性滚动，改善用户体验
         decelerationRate={0.92} // 调整减速率，让滚动停止更快，吸附更明显
         // 暂时移除snapToOffsets，使用自定义吸附逻辑
       >
@@ -1552,7 +1612,7 @@ function OmnilazeAppContent() {
                           onEdit={() => formSteps.handleEditAnswer(index)}
                           formatAnswerDisplay={formSteps.formatAnswerDisplay}
                           isEditing={false} // 已完成问题区域不显示编辑表单
-                          canEdit={index >= 0 && (isQuickOrderMode || !(isOrderCompleted && index === 4))}
+                          canEdit={index >= 0 && !isOrderCompleted} // 🔧 修复：支付成功后禁用所有编辑功能
                         />
                       </Animated.View>
                     );

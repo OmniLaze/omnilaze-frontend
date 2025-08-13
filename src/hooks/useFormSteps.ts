@@ -466,7 +466,7 @@ export const useFormSteps = (props: UseFormStepsProps) => {
       // 使用统一的回答提交函数
       const success = handleAnswerSubmission(editingStep, currentAnswer, {
         isEditing: true,
-        skipAnimation: true, // 编辑模式不需要动画
+        skipAnimation: false, // 🔧 修复：不跳过动画，确保后续动画正常执行
         onComplete: () => {
           // 🔧 生产环境日志清理：条件性日志输出
           if (process.env.NODE_ENV === 'development') {
@@ -480,23 +480,24 @@ export const useFormSteps = (props: UseFormStepsProps) => {
           
           const currentEditingStep = editingStep;
           
-          // 清除编辑状态
-          setEditingStep(null);
-          setOriginalAnswerBeforeEdit(null);
-          
-          // 🔑 关键修复：使用handleStepProgression来推进步骤并显示新问题
+          // 🔧 修复：使用React 18的状态更新最佳实践，确保状态同步
+          // 先调用handleStepProgression，它内部会处理步骤推进和输入框显示
           if (currentEditingStep !== null && currentEditingStep < STEP_CONTENT.length - 1) {
-            // 🔧 生产环境日志清理：条件性日志输出
             if (process.env.NODE_ENV === 'development') {
               console.log('🔄 编辑完成，调用handleStepProgression推进到下一步');
             }
             handleStepProgression(currentEditingStep);
           } else {
-            // 🔧 生产环境日志清理：条件性日志输出
             if (process.env.NODE_ENV === 'development') {
               console.log('📝 编辑完成，已经是最后一步，无需推进');
             }
           }
+          
+          // 然后在下一个tick清除编辑状态，避免竞争条件
+          setTimeout(() => {
+            setEditingStep(null);
+            setOriginalAnswerBeforeEdit(null);
+          }, 0);
         }
       });
       
