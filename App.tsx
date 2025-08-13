@@ -32,6 +32,7 @@ import { UserMenu } from './src/components/UserMenu';
 import { InviteModalWithFreeDrink } from './src/components/InviteModalWithFreeDrink';
 import { FormInputContainer, FormActionButtonContainer } from './src/components/FormContainers';
 import ColorPalette from './src/components/ColorPalette';
+import { OrderHistorySidebar } from './src/components/OrderHistorySidebar';
 import { convertToChineseDisplay } from './src/data/checkboxOptions';
 
 // API Services
@@ -210,6 +211,38 @@ function OmnilazeAppContent() {
 
   // 移动端专用状态：用于步骤变化动画
   const [previousStep, setPreviousStep] = useState<number | undefined>(undefined);
+  
+  // 订单历史侧边栏状态
+  const [showOrderHistory, setShowOrderHistory] = useState(false);
+  
+  // 新增订单处理
+  const handleNewOrder = useCallback(() => {
+    // 保留之前的表单数据，只跳到时间选择步骤
+    setIsOrderCompleted(false);
+    setOrderMessage('');
+    setEditingStep(null);
+    setCurrentStep(4); // 直接跳到时间选择步骤
+    setDeliveryTime(''); // 清空时间选择
+    
+    // 保持已填写的答案
+    if (authResult) {
+      const currentAnswers = { ...completedAnswers };
+      // 移除时间和预算的答案，让用户重新选择
+      delete currentAnswers[4]; // 时间
+      delete currentAnswers[5]; // 预算
+      setCompletedAnswers(currentAnswers);
+    }
+  }, [authResult, completedAnswers, setCompletedAnswers, setCurrentStep, setIsOrderCompleted, setOrderMessage, setEditingStep, setDeliveryTime]);
+  
+  // 打开订单历史
+  const handleOpenOrderHistory = useCallback(() => {
+    setShowOrderHistory(true);
+  }, []);
+  
+  // 关闭订单历史
+  const handleCloseOrderHistory = useCallback(() => {
+    setShowOrderHistory(false);
+  }, []);
 
   // 包装setCurrentStep以支持移动端动画
   const updateCurrentStep = (newStep: number) => {
@@ -1135,13 +1168,13 @@ function OmnilazeAppContent() {
       return;
     }
     
-    // 如果有持久化的订单消息，优先显示
-    if (orderMessage && isOrderCompleted) {
+    // 如果订单已完成且有订单消息，优先显示订单消息，不再显示其他问题
+    if (isOrderCompleted && orderMessage) {
       if (!displayedText || displayedText !== orderMessage) {
         console.log('📝 显示订单消息:', orderMessage);
         setTextDirectly(orderMessage);
       }
-      return;
+      return; // 重要：订单完成后直接返回，不再执行后续逻辑
     }
     
     // 未认证状态 - 显示认证问题
@@ -1151,10 +1184,11 @@ function OmnilazeAppContent() {
       return;
     }
     
-    // 已认证状态 - 显示表单问题
+    // 已认证状态 - 显示表单问题（但如果订单已完成则不显示）
     const shouldShowQuestion = (
       editingStep === null && 
       isAuthenticated && 
+      !isOrderCompleted && // 新增：订单完成后不再显示问题
       currentStep < STEP_CONTENT.length && 
       !completedAnswers[currentStep] && 
       !isTyping && 
@@ -1165,6 +1199,7 @@ function OmnilazeAppContent() {
       shouldShowQuestion,
       editingStep: editingStep,
       isAuthenticated,
+      isOrderCompleted, // 新增日志
       currentStepValid: currentStep < STEP_CONTENT.length,
       currentStep,
       stepContentLength: STEP_CONTENT.length,
@@ -1373,6 +1408,15 @@ function OmnilazeAppContent() {
       )}
       
       
+      {/* 订单历史侧边栏 */}
+      {isAuthenticated && (
+        <OrderHistorySidebar
+          isVisible={showOrderHistory}
+          onClose={handleCloseOrderHistory}
+          userId={authResult?.userId || null}
+        />
+      )}
+      
       {/* 邀请免单弹窗 */}
       {authResult && (
         <InviteModalWithFreeDrink
@@ -1386,7 +1430,9 @@ function OmnilazeAppContent() {
       
       {/* 进度条 - 仅网页端显示，移动端完全不显示 */}
       {isAuthenticated && Platform.OS === 'web' && (
-        <ProgressSteps currentStep={currentStep} />
+        <ProgressSteps 
+          currentStep={currentStep}
+        />
       )}  
 
       {/* 移动端头部 - 头像、标题、手机尾号、进度条 */}
@@ -1398,6 +1444,8 @@ function OmnilazeAppContent() {
           onMenuPress={() => setShowFreeDrinkModal(true)}
           onLogout={handleLogout}
           onInvite={handleInvite} // 🔧 修正：使用正确的handleInvite函数
+          onHistoryPress={handleOpenOrderHistory}
+          onNewOrderPress={handleNewOrder}
           currentStep={currentStep}
           previousStep={previousStep}
         />

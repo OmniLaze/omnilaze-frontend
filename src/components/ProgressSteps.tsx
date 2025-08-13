@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Dimensions, Platform } from 'react-native';
+import { View, Text, Dimensions, Platform, TouchableOpacity } from 'react-native';
 import { createProgressStyles } from '../styles/globalStyles';
 import { useTheme } from '../contexts/ColorThemeContext';
 import { STEP_TITLES } from '../constants';
@@ -8,9 +8,13 @@ const { width } = Dimensions.get('window');
 
 interface ProgressStepsProps {
   currentStep: number;
+  onHistoryPress?: () => void;
+  onNewOrderPress?: () => void;
 }
 
-export const ProgressSteps: React.FC<ProgressStepsProps> = ({ currentStep }) => {
+export const ProgressSteps: React.FC<ProgressStepsProps> = ({ 
+  currentStep 
+}) => {
   const { theme } = useTheme();
   const progressStyles = createProgressStyles(theme);
 
@@ -21,6 +25,7 @@ export const ProgressSteps: React.FC<ProgressStepsProps> = ({ currentStep }) => 
 
   return (
     <View style={progressStyles.progressContainer}>
+      {/* 进度条 - 移除了左侧按钮区域 */}
       <View style={progressStyles.progressSteps}>
         {STEP_TITLES.map((title, index) => (
           <View key={index} style={progressStyles.stepItem}>

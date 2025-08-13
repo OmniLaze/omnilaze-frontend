@@ -34,7 +34,7 @@ interface UseOrderManagementProps {
   // Animation & UI functions
   triggerShake: () => void;
   changeEmotion: (emotion: string) => void;
-  typeText: (text: string, options?: { instant?: boolean; onComplete?: () => void; streaming?: boolean }) => void;
+  typeText: (text: string, options?: { instant?: boolean; onComplete?: () => void; streaming?: boolean; speed?: number; append?: boolean }) => void;
 }
 
 export const useOrderManagement = (props: UseOrderManagementProps) => {
@@ -118,6 +118,17 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
           }
         }
         
+        // 通知订单历史更新 - 触发组件重新获取订单列表
+        // 这里可以使用EventEmitter或者Context来通知OrderHistorySidebar刷新
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('orderHistoryUpdate', { 
+            detail: { 
+              orderId: result.order_id,
+              orderNumber: result.order_number 
+            } 
+          }));
+        }
+        
         handleSubmitOrder(result.order_id!);
       } else {
         setInputError(result.message);
@@ -156,38 +167,96 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
   };
 
   // 确认下单后开始搜索餐厅
-  const handleConfirmOrder = async () => {
+  const handleConfirmOrder = async (orderText?: string) => {
     setIsSearchingRestaurant(true);
     changeEmotion('🔍');
     
     // 立即标记支付步骤为完成，隐藏PaymentComponent
     setCompletedAnswers((prev: any) => ({
       ...prev,
-      [4]: { type: 'payment', value: '已确认支付' } // 假设支付是第4步
+      [5]: { type: 'payment', value: '已确认支付' } // 预算是第5步
     }));
     
-    // 创建订单
-    try {
-      await handleCreateOrder();
-      
-      // 1.5秒后显示完成消息并持久化
-      setTimeout(() => {
-        setIsSearchingRestaurant(false);
-        setIsOrderCompleted(true);
-        changeEmotion('🎉');
-        // 构建包含用户注册次序的消息
-        let message = '我去下单，记得保持手机畅通，不要错过外卖员电话哦';
-        if (authResult?.userSequence) {
-          message = `这是我们第${authResult.userSequence}个注册用户的订单！${message}`;
+    // 如果有订单文字，显示它
+    if (orderText) {
+      // 先显示订单确认文字
+      typeText(orderText, {
+        instant: false,
+        streaming: false,
+        speed: 30,
+        onComplete: () => {
+          // 文字显示完成后，等待一会再显示已支付
+          setTimeout(() => {
+            typeText('\n\n✅ 已支付', {
+              instant: false,
+              speed: 30,
+              append: true,
+              onComplete: () => {
+                // 2秒后显示正在挑选
+                setTimeout(() => {
+                  typeText('\n\n正在挑选...', {
+                    instant: false,
+                    speed: 50,
+                    append: true,
+                    onComplete: async () => {
+                      // 开始创建订单
+                      try {
+                        await handleCreateOrder();
+                        
+                        // 5秒后显示送达时间
+                        setTimeout(() => {
+                          const deliveryTimeDisplay = deliveryTime === 'ASAP' 
+                            ? '45分钟内' 
+                            : deliveryTime;
+                          typeText(`\n\n点好了，预计送达时间为 ${deliveryTimeDisplay}`, {
+                            instant: false,
+                            speed: 40,
+                            append: true,
+                            onComplete: () => {
+                              // 1秒后显示跟进信息
+                              setTimeout(() => {
+                                typeText('\n正在持续跟进送达情况，记得保持手机畅通。', {
+                                  instant: false,
+                                  speed: 40,
+                                  append: true,
+                                  onComplete: () => {
+                                    setIsOrderCompleted(true);
+                                    setIsSearchingRestaurant(false);
+                                    changeEmotion('✅');
+                                    
+                                    // 保存最终订单消息
+                                    const fullMessage = orderText + '\n\n✅ 已支付' + 
+                                      '\n\n点好了，预计送达时间为 ' + deliveryTimeDisplay + 
+                                      '\n正在持续跟进送达情况，记得保持手机畅通。';
+                                    setOrderMessage(fullMessage);
+                                  }
+                                });
+                              }, 1000);
+                            }
+                          });
+                        }, 5000);
+                      } catch (error) {
+                        setIsSearchingRestaurant(false);
+                        changeEmotion('😰');
+                        setInputError('订单创建失败，请重试');
+                      }
+                    }
+                  });
+                }, 2000);
+              }
+            });
+          }, 500);
         }
-        
-        typeText(message, { streaming: true });
-        setOrderMessage(message); // 持久化消息
-      }, 1500);
-    } catch (error) {
-      setIsSearchingRestaurant(false);
-      changeEmotion('😰');
-      setInputError('订单创建失败，请重试');
+      });
+    } else {
+      // 没有订单文字时的旧流程（备用）
+      try {
+        await handleCreateOrder();
+      } catch (error) {
+        setIsSearchingRestaurant(false);
+        changeEmotion('😰');
+        setInputError('订单创建失败，请重试');
+      }
     }
   };
 

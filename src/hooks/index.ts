@@ -63,7 +63,19 @@ export const useTypewriterEffect = () => {
   }, [showCursor]);
 
   // AI流式输出速度计算 - 更真实的流式传输效果
-  const calculateStreamingSpeed = (char: string, index: number, totalLength: number, isChunkEnd: boolean = false) => {
+  const calculateStreamingSpeed = (char: string, index: number, totalLength: number, isChunkEnd: boolean = false, customSpeed?: number) => {
+    // 如果提供了自定义速度，使用自定义速度
+    if (customSpeed !== undefined) {
+      // 标点符号后的停顿，相对于自定义速度调整
+      if (['。', '？', '！'].includes(char)) {
+        return customSpeed * 3;
+      }
+      if (['，', '；', '：'].includes(char)) {
+        return customSpeed * 2;
+      }
+      return customSpeed;
+    }
+    
     const ultraFast = 8;     // 极快模式 - 模拟AI模型输出token
     const fast = 15;         // 快速模式
     const normal = 25;       // 正常模式
@@ -103,14 +115,17 @@ export const useTypewriterEffect = () => {
   };
 
   // AI流式输出效果 - 更真实的流式传输体验
-  const typeText = (text: string, options: { instant?: boolean; onComplete?: () => void; streaming?: boolean } = {}) => {
+  const typeText = (text: string, options: { instant?: boolean; onComplete?: () => void; streaming?: boolean; speed?: number; append?: boolean } = {}) => {
+    // 如果是追加模式，保留当前文本
+    const finalText = options.append ? (displayedText + text) : text;
+    
     // 防止重复触发相同文本
-    if (lastTextRef.current === text && displayedText === text && !options.instant) {
+    if (lastTextRef.current === finalText && displayedText === finalText && !options.instant) {
       options.onComplete?.();
       return;
     }
     
-    lastTextRef.current = text;
+    lastTextRef.current = finalText;
     
     // 清除之前的动画
     if (currentAnimationRef.current) {
@@ -121,21 +136,28 @@ export const useTypewriterEffect = () => {
     }
     
     // 即时显示模式
-    if (options.instant || !text || text.length === 0) {
+    if (options.instant || !finalText || finalText.length === 0) {
       isStreamingRef.current = false;
       setIsTyping(false);
-      setDisplayedText(text || '');
+      setDisplayedText(finalText || '');
       options.onComplete?.();
       return;
     }
     
     isStreamingRef.current = true;
     setIsTyping(true);
-    setDisplayedText('');
-    triggerStreamingEffect(); // 触发渐入效果
+    
+    // 如果是追加模式，从当前文本长度开始
+    const startText = options.append ? displayedText : '';
+    const textToType = options.append ? text : finalText;
+    
+    if (!options.append) {
+      setDisplayedText('');
+      triggerStreamingEffect(); // 触发渐入效果
+    }
     
     // 将文本分割成AI token风格的块（模拟真实AI输出）
-    const chunks = splitIntoAIChunks(text);
+    const chunks = splitIntoAIChunks(textToType);
     textChunks.current = chunks;
     
     let chunkIndex = 0;
@@ -176,12 +198,12 @@ export const useTypewriterEffect = () => {
         
         // 更新显示的文本
         const partialChunk = currentChunk.substring(0, charIndex + 1);
-        const fullText = [...displayedChunks, partialChunk].join('');
+        const fullText = startText + [...displayedChunks, partialChunk].join('');
         setDisplayedText(fullText);
         
         // 计算下一个字符的延迟
         const isChunkEnd = charIndex === currentChunk.length - 1;
-        nextCharTime = calculateStreamingSpeed(char, charIndex, currentChunk.length, isChunkEnd);
+        nextCharTime = calculateStreamingSpeed(char, charIndex, currentChunk.length, isChunkEnd, options.speed);
         
         lastTime = currentTime;
         charIndex++;

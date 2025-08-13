@@ -925,3 +925,32 @@ export async function getPreferencesAsFormData(userId: string): Promise<FormData
     };
   }
 }
+
+/**
+ * 获取用户订单历史
+ */
+export const getOrderHistory = async (userId: string) => {
+  try {
+    const response = await authFetch(buildApiUrl(`/orders/${userId}`), {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: Platform.OS === "web" ? "include" : undefined,
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "获取订单历史失败");
+    }
+
+    return data;
+  } catch (error) {
+    return {
+      success: false,
+      orders: [],
+      message: error instanceof Error ? error.message : "网络错误，请重试"
+    };
+  }
+}

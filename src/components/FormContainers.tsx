@@ -41,7 +41,7 @@ interface FormInputContainerProps {
   
   // Action handlers
   handleFinishEditing?: () => void;
-  handleConfirmOrder: () => void;
+  handleConfirmOrder: (orderText?: string) => void;
   
   // Animation & UI
   inputSectionAnimation: Animated.Value;
@@ -152,6 +152,11 @@ export const FormInputContainer: React.FC<FormInputContainerProps> = ({
             onConfirmOrder={handleConfirmOrder}
             isTyping={isTyping}
             isFreeOrder={isFreeOrder}
+            address={address}
+            deliveryTime={deliveryTime}
+            selectedAllergies={selectedAllergies}
+            selectedPreferences={selectedPreferences}
+            selectedFoodType={selectedFoodType}
           />
         )}
       </View>

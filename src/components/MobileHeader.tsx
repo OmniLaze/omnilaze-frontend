@@ -14,6 +14,8 @@ interface MobileHeaderProps {
   onMenuPress?: () => void;
   onLogout?: () => void;
   onInvite?: () => void;
+  onHistoryPress?: () => void;
+  onNewOrderPress?: () => void;
   currentStep: number;
   previousStep?: number;
 }
@@ -25,6 +27,8 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
   onMenuPress,
   onLogout,
   onInvite,
+  onHistoryPress,
+  onNewOrderPress,
   currentStep,
   previousStep
 }) => {
@@ -38,7 +42,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
   const [showBubble, setShowBubble] = useState(true);
   const [showAboutModal, setShowAboutModal] = useState(false);
 
-  // 只在移动端显示
+  // 只在移动端或网页端缩小时显示
   if (Platform.OS === 'web' && width > 768) {
     return null;
   }
@@ -136,8 +140,21 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
       alignItems: 'center' as const,
       justifyContent: 'space-between' as const,
     },
-    leftSpacer: {
-      flex: 1, // 占据剩余空间，让中间内容居中
+    leftButtons: {
+      flexDirection: 'row' as const,
+      gap: 12,
+      flex: 1, // 占据左侧空间
+    },
+    iconButton: {
+      width: 28,
+      height: 28,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+    },
+    iconButtonText: {
+      fontSize: 18,
+      color: theme.TEXT_SECONDARY,
+      fontWeight: '400' as const,
     },
     centerContent: {
       alignItems: 'center' as const,
@@ -335,10 +352,25 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
 
   return (
     <View style={headerStyles.container}>
-      {/* Flexbox 布局：左边空白，中间进度+标题，右边手机号按钮 */}
+      {/* Flexbox 布局：左边按钮，中间进度+标题，右边手机号按钮 */}
       <View style={headerStyles.flexRow}>
-        {/* 左侧空白区域 - flex grow 占据剩余空间 */}
-        <View style={headerStyles.leftSpacer} />
+        {/* 左侧：侧边栏和新增订单按钮 */}
+        <View style={headerStyles.leftButtons}>
+          <TouchableOpacity 
+            style={headerStyles.iconButton}
+            onPress={onHistoryPress}
+            activeOpacity={0.7}
+          >
+            <Text style={headerStyles.iconButtonText}>☰</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={headerStyles.iconButton}
+            onPress={onNewOrderPress}
+            activeOpacity={0.7}
+          >
+            <Text style={headerStyles.iconButtonText}>+</Text>
+          </TouchableOpacity>
+        </View>
 
         {/* 中间：进度点 + 标题组合 - 固定宽度 */}
         <Animated.View 
