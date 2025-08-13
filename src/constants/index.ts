@@ -23,7 +23,7 @@ export const TIMING = {
 } as const;
 
 export const COLORS = {
-  PRIMARY: '#FF9944',
+  PRIMARY: '#FF6B35',
   BACKGROUND: '#FFFFFF',
   WHITE: '#FFFFFF',
   TEXT_PRIMARY: '#000000',

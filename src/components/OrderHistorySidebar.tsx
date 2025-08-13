@@ -194,7 +194,7 @@ export const OrderHistorySidebar: React.FC<OrderHistorySidebarProps> = ({
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return '#FFA500';
+      case 'pending': return '#FF6B35';
       case 'processing': return '#4169E1';
       case 'delivering': return '#32CD32';
       case 'completed': return '#228B22';

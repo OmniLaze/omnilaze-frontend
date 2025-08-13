@@ -114,7 +114,7 @@ export function formatDeliveryTime(time: string | undefined): string {
  */
 export function formatOrderStatus(status: string): { text: string; color: string } {
   const statusMap: Record<string, { text: string; color: string }> = {
-    'pending': { text: '待处理', color: '#FFA500' },
+    'pending': { text: '待处理', color: '#FF6B35' },
     'processing': { text: '处理中', color: '#4169E1' },
     'delivering': { text: '配送中', color: '#32CD32' },
     'completed': { text: '已完成', color: '#228B22' },

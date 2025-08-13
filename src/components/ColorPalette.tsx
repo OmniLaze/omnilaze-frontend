@@ -223,7 +223,7 @@ const ColorPalette: React.FC<ColorPaletteProps> = ({
   };
 
   const presetThemes = [
-    { name: '新色卡主题', primary: '#FF9944', bg: '#FEFCF4', text: '#000000' },
+    { name: '新色卡主题', primary: '#FF6B35', bg: '#FEFCF4', text: '#000000' },
     { name: '金色主题', primary: '#F4D03F', bg: '#CCCCCC', text: '#000000' },
     { name: '原始绿色', primary: '#66CC99', bg: '#F2F2F2', text: '#444444' },
     { name: '红色主题', primary: '#FF6B6B', bg: '#FFE5E5', text: '#8B0000' },
@@ -232,7 +232,7 @@ const ColorPalette: React.FC<ColorPaletteProps> = ({
     { name: '薄荷绿', primary: '#96CEB4', bg: '#F0F9F4', text: '#065F46' },
     { name: '黄色主题', primary: '#FFEAA7', bg: '#FFFBF0', text: '#92400E' },
     { name: '紫色主题', primary: '#DDA0DD', bg: '#F8F0F8', text: '#581C87' },
-    { name: '橙色主题', primary: '#FFA07A', bg: '#FFF4F0', text: '#C2410C' },
+    { name: '橙色主题', primary: '#FF6B35', bg: '#FFF4F0', text: '#C2410C' },
     { name: '深色模式', primary: '#10b981', bg: '#1f2937', text: '#f9fafb' },
     { name: '高对比度', primary: '#000000', bg: '#ffffff', text: '#000000' },
   ];
