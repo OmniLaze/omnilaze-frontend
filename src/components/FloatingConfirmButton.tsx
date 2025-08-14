@@ -25,10 +25,15 @@ interface FloatingConfirmButtonProps {
   // 操作回调
   onConfirm: () => void;
   onDeliveryTimeConfirm?: (time: string) => void;
+  onGoToPayment?: () => void; // 新增：支付按钮回调
   
   // 特殊状态
   isOrderCompleted: boolean;
   isAuthenticated: boolean;
+  
+  // 新增：支付相关状态
+  showGoToPaymentButton?: boolean; // 是否显示去支付按钮（基于打字机效果完成）
+  isPaymentCompleted?: boolean; // 支付是否已完成
 }
 
 export const FloatingConfirmButton: React.FC<FloatingConfirmButtonProps> = ({
@@ -43,8 +48,11 @@ export const FloatingConfirmButton: React.FC<FloatingConfirmButtonProps> = ({
   deliveryTimeSelection,
   onConfirm,
   onDeliveryTimeConfirm,
+  onGoToPayment,
   isOrderCompleted,
   isAuthenticated,
+  showGoToPaymentButton = false,
+  isPaymentCompleted = false,
 }) => {
   const { theme } = useTheme();
   const [buttonOpacity] = useState(new Animated.Value(0));
@@ -90,7 +98,10 @@ export const FloatingConfirmButton: React.FC<FloatingConfirmButtonProps> = ({
         return budget.trim().length > 0;
       
       case 6: // 订单确认步骤
-        return false; // 订单确认页面有自己的支付按钮
+        // 在订单确认步骤，显示支付按钮的条件：
+        // 1. 打字机效果已完成（showGoToPaymentButton为true）
+        // 2. 支付尚未完成（!isPaymentCompleted）
+        return showGoToPaymentButton && !isPaymentCompleted;
       
       default:
         return false;
@@ -123,6 +134,8 @@ export const FloatingConfirmButton: React.FC<FloatingConfirmButtonProps> = ({
     deliveryTimeSelection,
     isOrderCompleted,
     isAuthenticated,
+    showGoToPaymentButton,
+    isPaymentCompleted,
     shouldShow
   ]);
 
@@ -137,6 +150,9 @@ export const FloatingConfirmButton: React.FC<FloatingConfirmButtonProps> = ({
         return '确认';
       case 4:
         return '确认';
+      case 6:
+        // 订单确认步骤显示"去支付"
+        return '去支付';
       default:
         return '确认';
     }
@@ -152,6 +168,9 @@ export const FloatingConfirmButton: React.FC<FloatingConfirmButtonProps> = ({
       } else if (selectedOption === 'scheduled' && selectedTime) {
         onDeliveryTimeConfirm(selectedTime);
       }
+    } else if (currentStep === 6 && onGoToPayment) {
+      // 订单确认步骤的支付按钮处理
+      onGoToPayment();
     } else {
       // 其他步骤使用通用确认逻辑
       onConfirm();

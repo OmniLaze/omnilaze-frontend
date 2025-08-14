@@ -29,6 +29,9 @@ interface OrderConfirmationComponentProps {
   currentQuestionAnimation?: Animated.Value;
   shakeAnimation?: Animated.Value;
   emotionAnimation?: Animated.Value;
+  
+  // 新增：通知父组件支付按钮应该显示
+  onShouldShowPaymentButton?: (shouldShow: boolean) => void;
 }
 
 export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProps> = ({
@@ -48,6 +51,7 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
   currentQuestionAnimation = new Animated.Value(1),
   shakeAnimation = new Animated.Value(0),
   emotionAnimation = new Animated.Value(1),
+  onShouldShowPaymentButton,
 }) => {
   console.log('📋 OrderConfirmationComponent 渲染开始，props:', {
     address: address?.substring(0, 20) + '...',
@@ -60,9 +64,6 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
   const { theme } = useTheme();
   const questionStyles = createQuestionStyles(theme);
   
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [showGoToPaymentButton, setShowGoToPaymentButton] = useState(false);
-  const [showConfirmButton, setShowConfirmButton] = useState(false);
   const [hasShownSummary, setHasShownSummary] = useState(false);
   const [manualDisplayText, setManualDisplayText] = useState(''); // 备用文字显示
   
@@ -76,7 +77,6 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
   
   console.log('📋 OrderConfirmationComponent 状态:', {
     hasShownSummary,
-    showGoToPaymentButton,
     summaryDisplayedTextLength: summaryDisplayedText.length,
     summaryIsTyping
   });
@@ -138,8 +138,8 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
       console.log('💰 支付已完成，显示静态文本:', summaryText);
       setManualDisplayText(summaryText);
       setHasShownSummary(true);
-      // 支付完成后不显示任何按钮
-      setShowGoToPaymentButton(false);
+      // 支付完成后通知父组件隐藏支付按钮
+      onShouldShowPaymentButton?.(false);
       return;
     }
     
@@ -160,9 +160,10 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
           streaming: false,
           speed: 25,
           onComplete: () => {
-            console.log('📝 总结文字显示完成，显示去支付按钮');
-            setShowGoToPaymentButton(true); // 显示"去支付"按钮而不是"确认下单"按钮
+            console.log('📝 总结文字显示完成，通知父组件显示支付按钮');
             setHasShownSummary(true);
+            // 通知父组件显示悬浮支付按钮
+            onShouldShowPaymentButton?.(true);
           }
         });
       } catch (error) {
@@ -170,8 +171,9 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
         // 如果打字机效果失败，直接显示按钮
         console.log('📋 使用备用显示方式');
         setTimeout(() => {
-          setShowGoToPaymentButton(true); // 显示"去支付"按钮
           setHasShownSummary(true);
+          // 通知父组件显示悬浮支付按钮
+          onShouldShowPaymentButton?.(true);
         }, 1000); // 给用户时间看到文字
       }
     }
@@ -181,41 +183,21 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
   useEffect(() => {
     console.log('📋 OrderConfirmationComponent 状态变化:', {
       hasShownSummary,
-      showGoToPaymentButton,
       summaryDisplayedText: summaryDisplayedText.substring(0, 50) + '...',
       summaryIsTyping
     });
-  }, [hasShownSummary, showGoToPaymentButton, summaryDisplayedText, summaryIsTyping]);
-  
-  // 处理确认下单 - 现在只触发支付弹窗
-  const handleConfirmOrder = () => {
-    console.log('💳 触发支付弹窗');
-    setShowPaymentModal(true);
-  };
-  
-  // 处理"去支付"按钮点击
-  const handleGoToPayment = () => {
-    setShowGoToPaymentButton(false);
-    setShowPaymentModal(true);
-  };
+  }, [hasShownSummary, summaryDisplayedText, summaryIsTyping]);
   
   // 处理支付完成
   const handlePaymentComplete = (success: boolean) => {
-    setShowPaymentModal(false);
-    
     if (success) {
       // 支付成功，通知父组件创建订单
       const orderText = formatOrderConfirmationText();
       onPaymentComplete?.(true, orderText);
       onConfirmOrder();
-      
-      // 支付成功后不清理状态，保持总结文字的静态显示
-      // setShowSummaryText(false);  // 注释掉这行
-      // setShowGoToPaymentButton(false);  // 注释掉这行
-      // clearSummaryText();  // 注释掉这行
     } else {
-      // 支付取消时显示"去支付"按钮
-      setShowGoToPaymentButton(true);
+      // 支付取消时重新显示支付按钮
+      onShouldShowPaymentButton?.(true);
     }
   };
   
@@ -253,33 +235,12 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
         </Text>
       </Animated.View>
       
-      {/* "去支付"悬浮按钮 - 总结文字完成后显示，但支付完成后隐藏 */}
-      {showGoToPaymentButton && !isPaymentCompleted && (
-        <Animated.View 
-          style={[
-            styles.floatingPaymentContainer,
-            {
-              opacity: 1,
-            }
-          ]}
-          pointerEvents="auto"
-        >
-          <ActionButton
-            onPress={handleGoToPayment}
-            title="去支付"
-            disabled={false}
-            isActive={true}
-            variant="confirm"
-          />
-        </Animated.View>
-      )}
-      
       {/* 支付弹窗 */}
       <Modal
-        visible={showPaymentModal}
+        visible={isPaymentModalVisible || false}
         transparent={true}
         animationType="slide"
-        onRequestClose={() => setShowPaymentModal(false)}
+        onRequestClose={() => onShouldShowPaymentButton?.(true)}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -318,12 +279,6 @@ const createStyles = (theme: any) => {
   return StyleSheet.create({
     container: {
       marginTop: width > 768 ? 16 : 8, // 移动端减少顶部间距，与其他组件保持一致
-    },
-    floatingPaymentContainer: {
-      position: 'absolute',
-      bottom: Platform.OS === 'ios' ? 20 : 10,
-      right: 20,
-      zIndex: 1000, // 确保在最上层，悬浮在所有内容之上
     },
   modalOverlay: {
     flex: 1,

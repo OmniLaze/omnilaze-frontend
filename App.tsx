@@ -186,6 +186,29 @@ function OmnilazeAppContent() {
     setOrderMessagesLog((prev) => [...prev, { id, text, avatar }]);
   }, []);
   
+  // 支付相关回调函数
+  const handleShouldShowPaymentButton = useCallback((shouldShow: boolean) => {
+    setShowGoToPaymentButton(shouldShow);
+  }, []);
+  
+  const handleGoToPayment = useCallback(() => {
+    setShowGoToPaymentButton(false);
+    setShowPaymentModal(true);
+  }, []);
+  
+  const handlePaymentComplete = useCallback((success: boolean, orderText?: string) => {
+    setShowPaymentModal(false);
+    if (success) {
+      setIsPaymentCompleted(true);
+      setShowGoToPaymentButton(false);
+      // 这里可以添加订单创建逻辑
+      console.log('💰 支付成功，订单创建:', orderText);
+    } else {
+      // 支付取消时重新显示支付按钮
+      setShowGoToPaymentButton(true);
+    }
+  }, []);
+  
   // 配送时间选择状态（用于全局悬浮按钮）
   const [deliveryTimeSelection, setDeliveryTimeSelection] = useState<{
     selectedOption: 'asap' | 'scheduled' | null;
@@ -194,6 +217,11 @@ function OmnilazeAppContent() {
     selectedOption: null,
     selectedTime: '',
   });
+  
+  // 支付相关状态（用于悬浮支付按钮）
+  const [showGoToPaymentButton, setShowGoToPaymentButton] = useState(false);
+  const [isPaymentCompleted, setIsPaymentCompleted] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   
   // 解构需要的状态和函数
   const {
@@ -1462,6 +1490,10 @@ function OmnilazeAppContent() {
         shakeAnimation={shakeAnimation}
         emotionAnimation={emotionAnimation}
         renderActionButton={renderActionButton}
+        onShouldShowPaymentButton={handleShouldShowPaymentButton}
+        onPaymentComplete={handlePaymentComplete}
+        showPaymentModal={showPaymentModal}
+        setShowPaymentModal={setShowPaymentModal}
       />
     );
   };
@@ -1907,6 +1939,9 @@ function OmnilazeAppContent() {
         }}
         isOrderCompleted={isOrderCompleted}
         isAuthenticated={isAuthenticated}
+        showGoToPaymentButton={showGoToPaymentButton}
+        isPaymentCompleted={isPaymentCompleted}
+        onGoToPayment={handleGoToPayment}
       />
 
       {/* 移除过渡问题组件 - 不再需要动画渲染 */}

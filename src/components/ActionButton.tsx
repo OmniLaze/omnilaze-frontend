@@ -96,12 +96,12 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
             backgroundColor: animatedBackgroundColor,
           }
         ]}
+        onPointerEnter={() => Platform.OS === 'web' && setIsHovered(true)}
+        onPointerLeave={() => Platform.OS === 'web' && setIsHovered(false)}
       >
         <Pressable
           onPress={onPress}
           disabled={disabled}
-          onHoverIn={() => setIsHovered(true)}
-          onHoverOut={() => setIsHovered(false)}
           style={[
             {
               flex: 1,

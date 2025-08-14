@@ -63,6 +63,12 @@ interface FormInputContainerProps {
   
   // Button handlers
   renderActionButton: () => React.ReactNode;
+  
+  // Payment related handlers - 新增
+  onShouldShowPaymentButton?: (shouldShow: boolean) => void;
+  onPaymentComplete?: (success: boolean, orderText?: string) => void;
+  showPaymentModal?: boolean;
+  setShowPaymentModal?: (show: boolean) => void;
 }
 
 export const FormInputContainer: React.FC<FormInputContainerProps> = ({
@@ -100,6 +106,10 @@ export const FormInputContainer: React.FC<FormInputContainerProps> = ({
   shakeAnimation,
   emotionAnimation,
   renderActionButton,
+  onShouldShowPaymentButton,
+  onPaymentComplete,
+  showPaymentModal,
+  setShowPaymentModal,
 }) => {
   // 🔧 性能优化：使用 useMemo 缓存预算选项，避免重复计算
   const budgetOptions = useMemo(() => {
@@ -196,15 +206,17 @@ export const FormInputContainer: React.FC<FormInputContainerProps> = ({
         isFreeOrder={isFreeOrder}
         animationValue={inputSectionAnimation}
         onConfirmOrder={handleConfirmOrder}
-        onPaymentComplete={(success, orderText) => {
+        onPaymentComplete={onPaymentComplete || ((success, orderText) => {
           if (success && orderText) {
             handleConfirmOrder(orderText);
           }
-        }}
+        })}
         isPaymentCompleted={isSearchingRestaurant || isOrderCompleted} // 传递支付完成状态
         currentQuestionAnimation={currentQuestionAnimation}
         shakeAnimation={shakeAnimation}
         emotionAnimation={emotionAnimation}
+        onShouldShowPaymentButton={onShouldShowPaymentButton}
+        isPaymentModalVisible={showPaymentModal}
       />
     );
   }
