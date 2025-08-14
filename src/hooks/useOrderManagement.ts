@@ -107,6 +107,62 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
     }, 1000); // 1秒等待
   };
 
+  // 新增：创建订单总结文本并推入历史
+  const createOrderSummaryAndPush = (
+    address: string,
+    deliveryTime: string, 
+    selectedAllergies: string[],
+    selectedPreferences: string[],
+    selectedFoodType: string[],
+    budget: string
+  ) => {
+    const foodTypeText = selectedFoodType.includes('drink') ? '奶茶' : '正餐';
+    const allergyText = selectedAllergies.length > 0 
+      ? Array.from(new Set(selectedAllergies.filter(a => a !== 'none').map(a => {
+          const allergyMap: Record<string, string> = {
+            'seafood': '海鲜类',
+            'nuts': '坚果类',
+            'eggs': '蛋类',
+            'soy': '大豆类',
+            'dairy': '乳制品类',
+            'other-allergy': '其他'
+          };
+          return allergyMap[a] || a;
+        }))).sort((a, b) => a.localeCompare(b, 'zh-CN')).join('、')
+      : '';
+    
+    const preferenceText = selectedPreferences.map(p => {
+      const preferenceMap: Record<string, string> = {
+        'spicy': '辣',
+        'mild': '不辣',
+        'sour': '酸',
+        'sweet': '甜',
+        'light': '清淡',
+        'rich': '浓郁',
+        'sour-sweet': '酸甜',
+        'salty': '咸香',
+        'creamy': '奶香',
+        'other-preference': '其他'
+      };
+      return preferenceMap[p] || p;
+    }).join('、');
+    
+    const deliveryTimeText = deliveryTime === 'ASAP' ? '越快越好' : deliveryTime;
+    
+    let text = `收到，我现在下单\n`;
+    text += `为你在 ${address}，\n`;
+    text += `安排一份${allergyText ? `不要${allergyText}的` : ''}${preferenceText}口味${foodTypeText}，\n`;
+    text += `并且选择${deliveryTimeText}的配送。\n`;
+    text += `我会尽力使订单价格逼近${budget}元，\n`;
+    text += `若实际下单费用小于${budget}，超出部分将自动退款至你的账户。\n\n`;
+    text += `感谢信任！`;
+    
+    // 将总结文字推入历史消息
+    pushOrderMessage(text, 'assistant');
+    
+    return text;
+  };
+
   // 创建订单
   const handleCreateOrder = async () => {
     if (!authResult?.userId || !authResult?.phoneNumber) {
@@ -263,6 +319,17 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
                 setIsSearchingRestaurant(false);
                 changeEmotion('✅');
                 setOrderFlowRunning(false);
+                
+                // 在开始订单状态推进之前，先创建并推入订单总结文字
+                createOrderSummaryAndPush(
+                  address,
+                  deliveryTime,
+                  selectedAllergies,
+                  selectedPreferences,
+                  selectedFoodType,
+                  budget
+                );
+                
                 // 开始订单状态推进流程
                 handleOrderStatusFlow();
               } catch (error) {
@@ -308,6 +375,17 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
               setIsSearchingRestaurant(false);
               changeEmotion('✅');
               setOrderFlowRunning(false);
+              
+              // 在开始订单状态推进之前，先创建并推入订单总结文字
+              createOrderSummaryAndPush(
+                address,
+                deliveryTime,
+                selectedAllergies,
+                selectedPreferences,
+                selectedFoodType,
+                budget
+              );
+              
               // 开始订单状态推进流程
               handleOrderStatusFlow();
             } catch (error) {
@@ -331,6 +409,7 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
     handleCreateOrder,
     handleSubmitOrder,
     handleConfirmOrder,
-    handleOrderStatusFlow
+    handleOrderStatusFlow,
+    createOrderSummaryAndPush
   };
 };

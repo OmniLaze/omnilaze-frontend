@@ -295,25 +295,28 @@ function OmnilazeAppContent() {
   
   // 新增订单处理
   const handleNewOrder = useCallback(() => {
-    // 保留之前的表单数据，只跳到时间选择步骤
+    // 重置订单状态，从预算问题开始
     setIsOrderCompleted(false);
+    setIsSearchingRestaurant(false);
     setOrderMessage('');
     setEditingStep(null);
-    setCurrentStep(4); // 直接跳到时间选择步骤
-    setDeliveryTime(''); // 清空时间选择
+    setCurrentStep(5); // 跳到预算步骤（步骤5）
+    setBudget(''); // 清空预算
     
     // 清空显示文本，触发问题重新显示
     clearText();
     
-    // 保持已填写的答案
+    // 保持已填写的答案，但移除预算答案让用户重新选择
     if (authResult) {
       const currentAnswers = { ...completedAnswers };
-      // 移除时间和预算的答案，让用户重新选择
-      delete currentAnswers[4]; // 时间
+      // 只移除预算的答案，让用户重新选择
       delete currentAnswers[5]; // 预算
       setCompletedAnswers(currentAnswers);
     }
-  }, [authResult, completedAnswers, setCompletedAnswers, setCurrentStep, setIsOrderCompleted, setOrderMessage, setEditingStep, setDeliveryTime, clearText]);
+    
+    // 清空订单消息日志，防止显示之前的订单状态消息
+    setOrderMessagesLog([]);
+  }, [authResult, completedAnswers, setCompletedAnswers, setCurrentStep, setIsOrderCompleted, setIsSearchingRestaurant, setOrderMessage, setEditingStep, setBudget, clearText, setOrderMessagesLog]);
   
   // 打开订单历史
   const handleOpenOrderHistory = useCallback(() => {
