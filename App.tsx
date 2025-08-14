@@ -374,13 +374,36 @@ function OmnilazeAppContent() {
     
     const mobileHeaderHeight = getMobileHeaderHeight();
     
-    // 🎯 当前问题页位置调整 - 考虑页眉高度和编辑舒适度
-    const EDIT_COMFORT_OFFSET = 60; // 编辑时的舒适偏移，确保问题在页眉下方合适位置
+    // 🎯 当前问题页位置调整 - 精确计算头像图标位置
+    const AVATAR_TO_HEADER_DISTANCE = 20; // 头像距离页眉下边缘的理想距离
     const getCurrentPagePosition = () => {
       const basePosition = bufferContainerHeight + completedQuestionsHeight;
-      // 移动端需要额外考虑页眉高度
-      const mobileOffset = (Platform.OS !== 'web' || width <= 768) ? mobileHeaderHeight + EDIT_COMFORT_OFFSET : 167;
-      return basePosition - mobileOffset;
+      
+      // 🎯 精确计算头像的实际位置偏移
+      // 当前问题页面结构（从页面顶部到头像顶部的距离）：
+      // 1. 当前问题页面容器 paddingTop: 12px
+      // 2. CurrentQuestion容器 paddingTop: 8px  
+      // 3. 头像marginTop: 0px (alignSelf: flex-start)
+      const CURRENT_PAGE_PADDING_TOP = 12;
+      const CURRENT_QUESTION_PADDING_TOP = 8;
+      const AVATAR_MARGIN_TOP = 0;
+      
+      const avatarOffsetFromPageTop = CURRENT_PAGE_PADDING_TOP + CURRENT_QUESTION_PADDING_TOP + AVATAR_MARGIN_TOP;
+      
+      // 🎯 计算需要的滚动位置：让头像距离页眉下边缘指定距离
+      // scrollY = 页面实际位置 - (页眉高度 + 理想距离 - 头像在页面中的偏移)
+      const targetScrollPosition = basePosition - (mobileHeaderHeight + AVATAR_TO_HEADER_DISTANCE - avatarOffsetFromPageTop);
+      
+      console.log('🎯 头像位置精确计算:', {
+        basePosition,
+        mobileHeaderHeight,
+        AVATAR_TO_HEADER_DISTANCE,
+        avatarOffsetFromPageTop,
+        targetScrollPosition,
+        calculation: `${basePosition} - (${mobileHeaderHeight} + ${AVATAR_TO_HEADER_DISTANCE} - ${avatarOffsetFromPageTop}) = ${targetScrollPosition}`
+      });
+      
+      return targetScrollPosition;
     };
     
     // 🔥 修复：允许更大的滚动范围，不限制向下滚动
@@ -394,7 +417,7 @@ function OmnilazeAppContent() {
       SNAP_THRESHOLD,
       FOCUS_HYSTERESIS,
       mobileHeaderHeight,
-      EDIT_COMFORT_OFFSET,
+      AVATAR_TO_HEADER_DISTANCE,
       getCurrentPagePosition,
       maxScrollPosition,
       minScrollPosition,
@@ -964,7 +987,7 @@ function OmnilazeAppContent() {
     console.log('📍 吸附位置计算:', {
       completedPagePosition,
       currentPagePosition,
-      getCurrentPagePositionCalc: `${bufferContainerHeight} + ${completedQuestionsHeight} - (${scrollDimensions.mobileHeaderHeight} + ${scrollDimensions.EDIT_COMFORT_OFFSET}) = ${currentPagePosition}`
+      getCurrentPagePositionCalc: `${bufferContainerHeight} + ${completedQuestionsHeight} - (${scrollDimensions.mobileHeaderHeight} + ${scrollDimensions.AVATAR_TO_HEADER_DISTANCE} - 20) = ${currentPagePosition}`
     });
     
     // 计算中点，用于判断吸附方向
@@ -1397,7 +1420,7 @@ function OmnilazeAppContent() {
           currentScrollPos,
           distanceFromCurrentPage,
           mobileHeaderHeight: scrollDimensions.mobileHeaderHeight,
-          editComfortOffset: scrollDimensions.EDIT_COMFORT_OFFSET
+          avatarToHeaderDistance: scrollDimensions.AVATAR_TO_HEADER_DISTANCE
         });
         
         // 🔧 编辑模式优化：无论距离多远，都滚动到最佳编辑位置
