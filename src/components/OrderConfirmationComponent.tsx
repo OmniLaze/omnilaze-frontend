@@ -196,7 +196,8 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
       onPaymentComplete?.(true, orderText);
       onConfirmOrder();
     } else {
-      // 支付取消时重新显示支付按钮
+      // 支付取消时：1. 通知父组件关闭弹窗 2. 重新显示支付按钮
+      onPaymentComplete?.(false);
       onShouldShowPaymentButton?.(true);
     }
   };

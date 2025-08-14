@@ -37,7 +37,7 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
   // 获取动画化的背景色
   const animatedBackgroundColor = hoverAnimation.interpolate({
     inputRange: [0, 1],
-    outputRange: ['rgba(255, 255, 255, 1)', 'rgba(251, 146, 60, 1)'], // 白色到桔红色
+    outputRange: ['rgba(255, 255, 255, 1)', 'rgba(255, 107, 53, 1)'], // 白色到指定桔红色
   });
 
   // 获取动画化的文字颜色
@@ -96,18 +96,20 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
             backgroundColor: animatedBackgroundColor,
           }
         ]}
-        onPointerEnter={() => Platform.OS === 'web' && setIsHovered(true)}
-        onPointerLeave={() => Platform.OS === 'web' && setIsHovered(false)}
       >
         <Pressable
           onPress={onPress}
           disabled={disabled}
+          onHoverIn={() => Platform.OS === 'web' && setIsHovered(true)}
+          onHoverOut={() => Platform.OS === 'web' && setIsHovered(false)}
           style={[
             {
               flex: 1,
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: 'transparent', // 背景透明，让外层动画背景显示
+              minHeight: '100%', // 确保Pressable占满整个按钮高度
+              minWidth: '100%',  // 确保Pressable占满整个按钮宽度
             }
           ]}
         >
