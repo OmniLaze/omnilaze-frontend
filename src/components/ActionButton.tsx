@@ -89,44 +89,41 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
 
   return (
     <WrapperComponent {...wrapperProps}>
-      <Pressable
-        onPress={onPress}
-        disabled={disabled}
-        onHoverIn={() => setIsHovered(true)}
-        onHoverOut={() => setIsHovered(false)}
+      <Animated.View
         style={[
           getButtonStyle(),
-          // 移除原有的hover样式，因为我们用动画替代
+          {
+            backgroundColor: animatedBackgroundColor,
+          }
         ]}
       >
-        <Animated.View
+        <Pressable
+          onPress={onPress}
+          disabled={disabled}
+          onHoverIn={() => setIsHovered(true)}
+          onHoverOut={() => setIsHovered(false)}
           style={[
             {
-              backgroundColor: animatedBackgroundColor,
               borderRadius: 12,
               paddingHorizontal: 24,
               paddingVertical: 14,
               minWidth: 120,
               alignItems: 'center',
               alignSelf: 'flex-start',
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
+              backgroundColor: 'transparent', // 背景透明，让外层动画背景显示
             }
           ]}
-        />
-        <Animated.Text style={[
-          getTextStyle(),
-          {
-            color: animatedTextColor,
-            zIndex: 1, // 确保文字在动画背景之上
-          }
-        ]}>
-          {title}
-        </Animated.Text>
-      </Pressable>
+        >
+          <Animated.Text style={[
+            getTextStyle(),
+            {
+              color: animatedTextColor,
+            }
+          ]}>
+            {title}
+          </Animated.Text>
+        </Pressable>
+      </Animated.View>
     </WrapperComponent>
   );
 };
