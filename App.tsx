@@ -359,9 +359,29 @@ function OmnilazeAppContent() {
     const SNAP_THRESHOLD = 200; // 使用单个问题高度作为吸附阈值
     const FOCUS_HYSTERESIS = 60; // 焦点切换滞后，避免在中间抖动
     
-    // 🎯 当前问题页位置调整 - 包含缓冲容器偏移
-    const CURRENT_PAGE_OFFSET = 167; // 向上偏移167px，让当前问题页不那么靠上
-    const getCurrentPagePosition = () => bufferContainerHeight + completedQuestionsHeight - CURRENT_PAGE_OFFSET;
+    // 🎯 计算移动端页眉高度
+    const getMobileHeaderHeight = () => {
+      if (Platform.OS === 'web' && width > 768) {
+        return 0; // 桌面端没有MobileHeader
+      }
+      // 移动端MobileHeader高度计算
+      const statusBarHeight = Platform.OS === 'android' ? 24 : 44; // 状态栏高度
+      const headerPaddingTop = 6;
+      const headerContentHeight = 28; // 图标按钮高度
+      const headerPaddingBottom = 10;
+      return statusBarHeight + headerPaddingTop + headerContentHeight + headerPaddingBottom;
+    };
+    
+    const mobileHeaderHeight = getMobileHeaderHeight();
+    
+    // 🎯 当前问题页位置调整 - 考虑页眉高度和编辑舒适度
+    const EDIT_COMFORT_OFFSET = 60; // 编辑时的舒适偏移，确保问题在页眉下方合适位置
+    const getCurrentPagePosition = () => {
+      const basePosition = bufferContainerHeight + completedQuestionsHeight;
+      // 移动端需要额外考虑页眉高度
+      const mobileOffset = (Platform.OS !== 'web' || width <= 768) ? mobileHeaderHeight + EDIT_COMFORT_OFFSET : 167;
+      return basePosition - mobileOffset;
+    };
     
     // 🔥 修复：允许更大的滚动范围，不限制向下滚动
     const maxScrollPosition = Math.max(getCurrentPagePosition() + pageHeight, bufferContainerHeight + completedQuestionsHeight + pageHeight); // 允许滚动到更下方
@@ -373,13 +393,14 @@ function OmnilazeAppContent() {
       bufferContainerHeight,
       SNAP_THRESHOLD,
       FOCUS_HYSTERESIS,
-      CURRENT_PAGE_OFFSET,
+      mobileHeaderHeight,
+      EDIT_COMFORT_OFFSET,
       getCurrentPagePosition,
       maxScrollPosition,
       minScrollPosition,
       dynamicContentHeight
     };
-  }, [height, completedQuestionsHeight]);
+  }, [height, completedQuestionsHeight, width]);
 
   // 移除不再使用的流动函数
   
@@ -943,7 +964,7 @@ function OmnilazeAppContent() {
     console.log('📍 吸附位置计算:', {
       completedPagePosition,
       currentPagePosition,
-      getCurrentPagePositionCalc: `${bufferContainerHeight} + ${completedQuestionsHeight} - ${scrollDimensions.CURRENT_PAGE_OFFSET} = ${currentPagePosition}`
+      getCurrentPagePositionCalc: `${bufferContainerHeight} + ${completedQuestionsHeight} - (${scrollDimensions.mobileHeaderHeight} + ${scrollDimensions.EDIT_COMFORT_OFFSET}) = ${currentPagePosition}`
     });
     
     // 计算中点，用于判断吸附方向
@@ -1364,25 +1385,42 @@ function OmnilazeAppContent() {
       const stepData = STEP_CONTENT[editingStep];
       if (stepData) {
         handleQuestionTransition(stepData.message, true); // 编辑模式总是有用户输入
-        // 🔧 修复：编辑模式时，温和地滚动到当前问题页面，但不强制
-        // 只有当用户明显偏离当前问题页面时才滚动
+        
+        // 🎯 智能编辑模式滚动 - 考虑页眉高度和用户体验
         const currentPagePos = getCurrentPagePosition();
         const currentScrollPos = (scrollPosition as any)?.__getValue?.() ?? 0;
         const distanceFromCurrentPage = Math.abs(currentScrollPos - currentPagePos);
         
-        // 只有当距离当前问题页面超过200px时才自动滚动
-        if (distanceFromCurrentPage > 200) {
-          setTimeout(() => {
-            scrollToPage('current');
-          }, 300); // 延迟滚动，避免与其他动画冲突
-        } else {
-          // 如果已经接近当前问题页面，只设置焦点模式
+        console.log('📝 编辑模式滚动计算:', {
+          editingStep,
+          currentPagePos,
+          currentScrollPos,
+          distanceFromCurrentPage,
+          mobileHeaderHeight: scrollDimensions.mobileHeaderHeight,
+          editComfortOffset: scrollDimensions.EDIT_COMFORT_OFFSET
+        });
+        
+        // 🔧 编辑模式优化：无论距离多远，都滚动到最佳编辑位置
+        // 确保编辑的问题在页眉下方，处于舒适的编辑位置
+        setTimeout(() => {
+          // 🎯 强制设置focusMode为current，确保编辑的问题不会变灰色
           setFocusMode('current');
           saveFocusMode('current');
-        }
+          
+          // 🎯 滚动到经过页眉高度优化的位置
+          scrollViewRef.current?.scrollTo({
+            y: currentPagePos,
+            animated: true,
+          });
+          
+          console.log('✅ 编辑模式滚动完成:', {
+            targetPosition: currentPagePos,
+            focusMode: 'current'
+          });
+        }, 200); // 稍微延迟，确保DOM更新完成
       }
     }
-  }, [editingStep, isStateRestored]);
+  }, [editingStep, isStateRestored, getCurrentPagePosition, scrollDimensions]); // 添加scrollDimensions依赖
 
   // 确保已完成答案的动画状态正确设置
   useEffect(() => {
