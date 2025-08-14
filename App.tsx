@@ -1409,41 +1409,63 @@ function OmnilazeAppContent() {
       if (stepData) {
         handleQuestionTransition(stepData.message, true); // 编辑模式总是有用户输入
         
-        // 🎯 智能编辑模式滚动 - 考虑页眉高度和用户体验
-        const currentPagePos = getCurrentPagePosition();
+        // 🎯 智能编辑模式滚动 - 相对滚动算法
+        // 1. 获取当前滚动位置
         const currentScrollPos = (scrollPosition as any)?.__getValue?.() ?? 0;
-        const distanceFromCurrentPage = Math.abs(currentScrollPos - currentPagePos);
         
-        console.log('📝 编辑模式滚动计算:', {
+        // 2. 计算移动端页眉高度
+        const mobileHeaderHeight = scrollDimensions.mobileHeaderHeight;
+        
+        // 3. 计算当前头像距离页眉下边缘的实际距离
+        // 头像在当前问题页面中的偏移（paddingTop: 12px + paddingTop: 8px）
+        const avatarOffsetInCurrentPage = 12 + 8; // CurrentQuestion页面内的头像偏移
+        const currentPageBasePosition = bufferContainerHeight + completedQuestionsHeight; // 当前问题页面顶部
+        const currentAvatarAbsolutePosition = currentPageBasePosition + avatarOffsetInCurrentPage; // 头像绝对位置
+        const currentAvatarToHeaderDistance = currentAvatarAbsolutePosition - currentScrollPos - mobileHeaderHeight;
+        
+        // 4. 设定理想距离
+        const IDEAL_AVATAR_TO_HEADER_DISTANCE = 20; // 头像距离页眉下边缘的理想距离
+        
+        // 5. 计算需要滚动的相对距离
+        const scrollDelta = currentAvatarToHeaderDistance - IDEAL_AVATAR_TO_HEADER_DISTANCE;
+        const targetScrollPosition = currentScrollPos + scrollDelta;
+        
+        console.log('📝 编辑模式相对滚动计算:', {
           editingStep,
-          currentPagePos,
           currentScrollPos,
-          distanceFromCurrentPage,
-          mobileHeaderHeight: scrollDimensions.mobileHeaderHeight,
-          avatarToHeaderDistance: scrollDimensions.AVATAR_TO_HEADER_DISTANCE
+          mobileHeaderHeight,
+          currentPageBasePosition,
+          avatarOffsetInCurrentPage,
+          currentAvatarAbsolutePosition,
+          currentAvatarToHeaderDistance,
+          IDEAL_AVATAR_TO_HEADER_DISTANCE,
+          scrollDelta,
+          targetScrollPosition,
+          calculation: `需要滚动: ${currentAvatarToHeaderDistance} - ${IDEAL_AVATAR_TO_HEADER_DISTANCE} = ${scrollDelta}px`
         });
         
-        // 🔧 编辑模式优化：无论距离多远，都滚动到最佳编辑位置
-        // 确保编辑的问题在页眉下方，处于舒适的编辑位置
+        // 6. 执行相对滚动
         setTimeout(() => {
           // 🎯 强制设置focusMode为current，确保编辑的问题不会变灰色
           setFocusMode('current');
           saveFocusMode('current');
           
-          // 🎯 滚动到经过页眉高度优化的位置
+          // 🎯 相对滚动到计算出的目标位置
           scrollViewRef.current?.scrollTo({
-            y: currentPagePos,
+            y: targetScrollPosition,
             animated: true,
           });
           
-          console.log('✅ 编辑模式滚动完成:', {
-            targetPosition: currentPagePos,
+          console.log('✅ 编辑模式相对滚动完成:', {
+            from: currentScrollPos,
+            to: targetScrollPosition,
+            delta: scrollDelta,
             focusMode: 'current'
           });
         }, 200); // 稍微延迟，确保DOM更新完成
       }
     }
-  }, [editingStep, isStateRestored, getCurrentPagePosition, scrollDimensions]); // 添加scrollDimensions依赖
+  }, [editingStep, isStateRestored, scrollDimensions, bufferContainerHeight, completedQuestionsHeight]); // 更新依赖
 
   // 确保已完成答案的动画状态正确设置
   useEffect(() => {
