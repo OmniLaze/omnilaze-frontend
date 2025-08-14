@@ -241,15 +241,6 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
 
   return (
     <WrapperComponent {...wrapperProps}>
-      {/* 调试信息 */}
-      {process.env.NODE_ENV === 'development' && (
-        <Text style={{ fontSize: 12, color: 'gray', marginBottom: 10 }}>
-          调试: hasShownSummary={hasShownSummary.toString()}, 
-          showGoToPaymentButton={showGoToPaymentButton.toString()}, 
-          summaryTextLength={summaryDisplayedText.length},
-          manualTextLength={manualDisplayText.length}
-        </Text>
-      )}
       
       {/* 总结文字显示区域 - 优先显示打字机效果，备用显示手动文字 */}
       <Animated.View style={{ opacity: 1, marginBottom: 16 }}>
