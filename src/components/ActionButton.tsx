@@ -104,12 +104,9 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
           onHoverOut={() => setIsHovered(false)}
           style={[
             {
-              borderRadius: 12,
-              paddingHorizontal: 24,
-              paddingVertical: 14,
-              minWidth: 120,
+              flex: 1,
               alignItems: 'center',
-              alignSelf: 'flex-start',
+              justifyContent: 'center',
               backgroundColor: 'transparent', // 背景透明，让外层动画背景显示
             }
           ]}
