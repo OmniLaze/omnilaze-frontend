@@ -52,6 +52,60 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
 
   // 防重复触发：下单消息流程闸门
   const [orderFlowRunning, setOrderFlowRunning] = useState(false);
+  
+  // 防重复触发：订单状态推进流程闸门
+  const [orderStatusFlowRunning, setOrderStatusFlowRunning] = useState(false);
+
+  // 处理订单状态推进流程
+  const handleOrderStatusFlow = () => {
+    if (orderStatusFlowRunning) return;
+    
+    setOrderStatusFlowRunning(true);
+    
+    // 1秒后开始订单状态推进
+    setTimeout(() => {
+      // 第一步：将"正在挑选..."推入历史消息
+      pushOrderMessage("正在挑选", 'assistant');
+      
+      // 显示"点好了，预计送达时间为12:00-12:20"
+      typeText("点好了，预计送达时间为12:00-12:20", {
+        instant: false,
+        streaming: false,
+        speed: 30,
+        onComplete: () => {
+          // 1秒后推进到下一个状态
+          setTimeout(() => {
+            // 第二步：将当前消息推入历史
+            pushOrderMessage("点好了，预计送达时间为12:00-12:20", 'assistant');
+            
+            // 显示"正在持续跟进送达情况，记得接听电话..."
+            typeText("正在持续跟进送达情况，记得接听电话", {
+              instant: false,
+              streaming: false,
+              speed: 30,
+              onComplete: () => {
+                // 2秒后推进到最终状态
+                setTimeout(() => {
+                  // 第三步：将当前消息推入历史
+                  pushOrderMessage("正在持续跟进送达情况，记得接听电话", 'delivery');
+                  
+                  // 显示最终消息
+                  typeText("已送达，骑手未提供存放位置图片，请在周围找找～", {
+                    instant: false,
+                    streaming: false,
+                    speed: 30,
+                    onComplete: () => {
+                      setOrderStatusFlowRunning(false);
+                    }
+                  });
+                }, 2000); // 2秒等待
+              }
+            });
+          }, 1000); // 1秒等待
+        }
+      });
+    }, 1000); // 1秒等待
+  };
 
   // 创建订单
   const handleCreateOrder = async () => {
@@ -209,6 +263,8 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
                 setIsSearchingRestaurant(false);
                 changeEmotion('✅');
                 setOrderFlowRunning(false);
+                // 开始订单状态推进流程
+                handleOrderStatusFlow();
               } catch (error) {
                 setIsSearchingRestaurant(false);
                 changeEmotion('😰');
@@ -252,6 +308,8 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
               setIsSearchingRestaurant(false);
               changeEmotion('✅');
               setOrderFlowRunning(false);
+              // 开始订单状态推进流程
+              handleOrderStatusFlow();
             } catch (error) {
               setIsSearchingRestaurant(false);
               changeEmotion('😰');
@@ -272,6 +330,7 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
   return {
     handleCreateOrder,
     handleSubmitOrder,
-    handleConfirmOrder
+    handleConfirmOrder,
+    handleOrderStatusFlow
   };
 };
