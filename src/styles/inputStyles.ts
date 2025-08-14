@@ -22,7 +22,7 @@ const createShadowStyle = (shadowColor: string, shadowOffset: {width: number, he
 // 创建动态输入样式函数
 export const createInputStyles = (theme: any = COLORS) => StyleSheet.create({
   inputSection: {
-    marginTop: 8, // 从16减少到8
+    marginTop: width > 768 ? 16 : 8, // 响应式设计：桌面端16px，移动端8px
     marginBottom: 20,
     marginLeft: 0, // 移除左边距，因为现在头像独立放置
   },
