@@ -241,7 +241,7 @@ export const DeliveryTimeStep: React.FC<DeliveryTimeStepProps> = ({
         </Animated.View>
       )}
 
-      {/* 确认按钮 - 移动端右下角定位 */}
+      {/* 确认按钮 - 移动端使用内联样式，不与全局按钮冲突 */}
       <View style={createStyles(theme).buttonContainer}>
         <ActionButton
           onPress={handleConfirm}
@@ -260,8 +260,6 @@ const createStyles = (theme: any) => StyleSheet.create({
     marginTop: width > 768 ? 16 : 8, // 与其他组件保持一致的响应式间距
     marginLeft: 0,
     maxWidth: 500,
-    paddingBottom: 80, // 为右下角按钮留出空间
-    position: 'relative',
   },
   quickOption: {
     backgroundColor: theme.WHITE,
@@ -342,9 +340,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     padding: 20,
   },
   buttonContainer: {
-    position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 20 : 10,
-    right: 20,
-    zIndex: 10,
+    marginTop: 20,
+    alignItems: 'center',
   },
 });

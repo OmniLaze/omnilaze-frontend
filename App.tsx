@@ -33,6 +33,7 @@ import { InviteModalWithFreeDrink } from './src/components/InviteModalWithFreeDr
 import { FormInputContainer, FormActionButtonContainer } from './src/components/FormContainers';
 import ColorPalette from './src/components/ColorPalette';
 import { OrderHistorySidebar } from './src/components/OrderHistorySidebar';
+import { FloatingConfirmButton } from './src/components/FloatingConfirmButton';
 import { convertToChineseDisplay } from './src/data/checkboxOptions';
 import { OrderMessageLog, OrderLogItem } from './src/components/OrderMessageLog';
 
@@ -1867,6 +1868,34 @@ function OmnilazeAppContent() {
           </View>
         </Animated.View>
       </ScrollView>
+
+      {/* 全局悬浮确认按钮 - 基于选择状态条件显示，固定在右下角 */}
+      <FloatingConfirmButton
+        currentStep={currentStep}
+        editingStep={editingStep}
+        address={address}
+        selectedFoodType={selectedFoodType}
+        selectedAllergies={selectedAllergies}
+        selectedPreferences={selectedPreferences}
+        deliveryTime={deliveryTime}
+        budget={budget}
+        onConfirm={() => {
+          if (editingStep !== null) {
+            formSteps.handleFinishEditing();
+          } else {
+            switch (currentStep) {
+              case 0:
+                formSteps.handleAddressConfirm();
+                break;
+              default:
+                formSteps.handleNext();
+                break;
+            }
+          }
+        }}
+        isOrderCompleted={isOrderCompleted}
+        isAuthenticated={isAuthenticated}
+      />
 
       {/* 移除过渡问题组件 - 不再需要动画渲染 */}
 

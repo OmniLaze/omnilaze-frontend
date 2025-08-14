@@ -247,40 +247,10 @@ export const FormActionButtonContainer: React.FC<FormActionButtonContainerProps>
   handleNext,
   inputSectionAnimation
 }) => {
-  const { width } = Dimensions.get('window');
-  const isMobile = width <= 768;
-  const topGap = isMobile ? LAYOUT.BUTTON_HEIGHT / 2 : 0; // 移动端与上方输入组件拉开 1/2 个按钮高度
-  // 编辑模式下的按钮
-  if (editingStep !== null) {
-    return (
-      <View style={styles.buttonContainer}>
-        <ActionButton
-          onPress={handleFinishEditing}
-          title="确认"
-          disabled={!canProceed}
-          isActive={canProceed}
-          animationValue={inputSectionAnimation}
-        />
-      </View>
-    );
-  }
+  // 现在使用全局悬浮按钮，FormActionButtonContainer大部分情况下不显示按钮
+  // 只在特殊情况下显示内联按钮
   
-  // 地址确认按钮
-  if (currentStep === 0) {
-    return (
-      <View style={styles.buttonContainer}>
-        <ActionButton
-          onPress={handleAddressConfirm}
-          title="确认"
-          disabled={!address.trim() || address.trim().length < 5}
-          isActive={!!address.trim() && address.trim().length >= 5}
-          animationValue={inputSectionAnimation}
-        />
-      </View>
-    );
-  }
-  
-  // 用餐时间步骤 - 组件内部有自己的确认按钮
+  // 用餐时间步骤 - 组件内部有自己的确认按钮（暂时保留）
   if (currentStep === 4) {
     return null;
   }
@@ -290,20 +260,7 @@ export const FormActionButtonContainer: React.FC<FormActionButtonContainerProps>
     return null;
   }
   
-  // 通用下一步按钮
-  if (canProceed) {
-    return (
-      <View style={styles.buttonContainer}>
-        <ActionButton
-          onPress={handleNext}
-          title="确认"
-          variant="next"
-          animationValue={inputSectionAnimation}
-        />
-      </View>
-    );
-  }
-  
+  // 其他所有情况都由全局悬浮按钮处理
   return null;
 };
 
