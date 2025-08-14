@@ -243,7 +243,7 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
     <WrapperComponent {...wrapperProps}>
       
       {/* 总结文字显示区域 - 优先显示打字机效果，备用显示手动文字 */}
-      <Animated.View style={{ opacity: 1, marginBottom: 16 }}>
+      <Animated.View style={{ opacity: 1, marginBottom: 12 }}>
         <Text style={[questionStyles.currentQuestionText, { minHeight: 20 }]}>
           {summaryDisplayedText || manualDisplayText || "正在加载..."}
           {summaryIsTyping && (
