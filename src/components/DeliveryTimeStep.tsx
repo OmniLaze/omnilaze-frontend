@@ -7,8 +7,12 @@ import {
   ScrollView,
   Animated,
   Platform,
+  Dimensions,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { useTheme } from '../contexts/ColorThemeContext';
+
+const { width } = Dimensions.get('window');
 
 interface DeliveryTimeStepProps {
   onConfirm: (deliveryTime: string) => void;
@@ -19,6 +23,7 @@ export const DeliveryTimeStep: React.FC<DeliveryTimeStepProps> = ({
   onConfirm,
   initialValue = '',
 }) => {
+  const { theme } = useTheme();
   const [selectedOption, setSelectedOption] = useState<'asap' | 'scheduled' | null>(
     initialValue === 'ASAP' ? 'asap' : initialValue ? 'scheduled' : null
   );
@@ -118,85 +123,79 @@ export const DeliveryTimeStep: React.FC<DeliveryTimeStepProps> = ({
   const isConfirmDisabled = !selectedOption || (selectedOption === 'scheduled' && !selectedTime);
 
   return (
-    <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
+    <Animated.View style={[createStyles(theme).container, { opacity: fadeAnim }]}>
       
       {/* 快速选项 */}
       <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
         <TouchableOpacity
           style={[
-            styles.quickOption,
-            selectedOption === 'asap' && styles.quickOptionSelected,
+            createStyles(theme).quickOption,
+            selectedOption === 'asap' && createStyles(theme).quickOptionSelected,
           ]}
           onPress={() => handleOptionSelect('asap')}
           activeOpacity={0.8}
         >
-          <View style={styles.quickOptionContent}>
+          <View style={createStyles(theme).quickOptionContent}>
             <Feather 
               name="zap" 
               size={24} 
-              color={selectedOption === 'asap' ? '#fff' : '#FF6B35'} 
+              color={selectedOption === 'asap' ? theme.PRIMARY : '#666'} 
             />
-            <View style={styles.quickOptionText}>
+            <View style={createStyles(theme).quickOptionText}>
               <Text style={[
-                styles.quickOptionTitle,
-                selectedOption === 'asap' && styles.quickOptionTitleSelected
+                createStyles(theme).quickOptionTitle,
+                selectedOption === 'asap' && createStyles(theme).quickOptionTitleSelected
               ]}>
                 越快越好
               </Text>
               <Text style={[
-                styles.quickOptionSubtitle,
-                selectedOption === 'asap' && styles.quickOptionSubtitleSelected
+                createStyles(theme).quickOptionSubtitle,
+                selectedOption === 'asap' && createStyles(theme).quickOptionSubtitleSelected
               ]}>
                 约45分钟送达
               </Text>
             </View>
           </View>
-          {selectedOption === 'asap' && (
-            <Feather name="check-circle" size={20} color="#fff" />
-          )}
         </TouchableOpacity>
       </Animated.View>
 
       {/* 时间选择选项 */}
       <TouchableOpacity
         style={[
-          styles.quickOption,
-          selectedOption === 'scheduled' && styles.quickOptionSelected,
+          createStyles(theme).quickOption,
+          selectedOption === 'scheduled' && createStyles(theme).quickOptionSelected,
         ]}
         onPress={() => handleOptionSelect('scheduled')}
         activeOpacity={0.8}
       >
-        <View style={styles.quickOptionContent}>
+        <View style={createStyles(theme).quickOptionContent}>
           <Feather 
             name="clock" 
             size={24} 
-            color={selectedOption === 'scheduled' ? '#fff' : '#FF6B35'} 
+            color={selectedOption === 'scheduled' ? theme.PRIMARY : '#666'} 
           />
-          <View style={styles.quickOptionText}>
+          <View style={createStyles(theme).quickOptionText}>
             <Text style={[
-              styles.quickOptionTitle,
-              selectedOption === 'scheduled' && styles.quickOptionTitleSelected
+              createStyles(theme).quickOptionTitle,
+              selectedOption === 'scheduled' && createStyles(theme).quickOptionTitleSelected
             ]}>
               预约时间
             </Text>
             <Text style={[
-              styles.quickOptionSubtitle,
-              selectedOption === 'scheduled' && styles.quickOptionSubtitleSelected
+              createStyles(theme).quickOptionSubtitle,
+              selectedOption === 'scheduled' && createStyles(theme).quickOptionSubtitleSelected
             ]}>
               {selectedTime || '选择送达时间'}
             </Text>
           </View>
         </View>
-        {selectedOption === 'scheduled' && selectedTime && (
-          <Feather name="check-circle" size={20} color="#fff" />
-        )}
       </TouchableOpacity>
 
       {/* 时间选择器 */}
       {selectedOption === 'scheduled' && (
         <Animated.View 
           style={[
-            styles.timePickerContainer,
+            createStyles(theme).timePickerContainer,
             {
               opacity: fadeAnim,
               transform: [{
@@ -211,23 +210,23 @@ export const DeliveryTimeStep: React.FC<DeliveryTimeStepProps> = ({
           <ScrollView 
             horizontal 
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.timeScrollContent}
+            contentContainerStyle={createStyles(theme).timeScrollContent}
           >
             {availableTimes.length > 0 ? (
               availableTimes.map((time) => (
                 <TouchableOpacity
                   key={time}
                   style={[
-                    styles.timeSlot,
-                    selectedTime === time && styles.timeSlotSelected,
+                    createStyles(theme).timeSlot,
+                    selectedTime === time && createStyles(theme).timeSlotSelected,
                   ]}
                   onPress={() => handleTimeSelect(time)}
                   activeOpacity={0.7}
                 >
                   <Text
                     style={[
-                      styles.timeSlotText,
-                      selectedTime === time && styles.timeSlotTextSelected,
+                      createStyles(theme).timeSlotText,
+                      selectedTime === time && createStyles(theme).timeSlotTextSelected,
                     ]}
                   >
                     {time}
@@ -235,7 +234,7 @@ export const DeliveryTimeStep: React.FC<DeliveryTimeStepProps> = ({
                 </TouchableOpacity>
               ))
             ) : (
-              <Text style={styles.noTimesText}>今日已无可预约时间</Text>
+              <Text style={createStyles(theme).noTimesText}>今日已无可预约时间</Text>
             )}
           </ScrollView>
         </Animated.View>
@@ -244,16 +243,16 @@ export const DeliveryTimeStep: React.FC<DeliveryTimeStepProps> = ({
       {/* 确认按钮 */}
       <TouchableOpacity
         style={[
-          styles.confirmButton,
-          isConfirmDisabled && styles.confirmButtonDisabled,
+          createStyles(theme).confirmButton,
+          isConfirmDisabled && createStyles(theme).confirmButtonDisabled,
         ]}
         onPress={handleConfirm}
         disabled={isConfirmDisabled}
         activeOpacity={0.8}
       >
         <Text style={[
-          styles.confirmButtonText,
-          isConfirmDisabled && styles.confirmButtonTextDisabled,
+          createStyles(theme).confirmButtonText,
+          isConfirmDisabled && createStyles(theme).confirmButtonTextDisabled,
         ]}>
           确认时间
         </Text>
@@ -262,42 +261,27 @@ export const DeliveryTimeStep: React.FC<DeliveryTimeStepProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
-    flex: 1,
-    padding: 20,
-  },
-  question: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#1a1a1a',
-    marginBottom: 24,
+    marginTop: width > 768 ? 16 : 8, // 与其他组件保持一致的响应式间距
+    marginLeft: 0,
+    maxWidth: 500,
   },
   quickOption: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    flexDirection: 'row',
+    backgroundColor: theme.WHITE,
+    borderRadius: width > 768 ? 12 : 8,
+    borderWidth: 1.8,
+    borderColor: '#EEEAE7', // 与ImageCheckbox保持一致的浅灰边框
+    padding: width > 768 ? 12 : 12,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 2,
-    borderColor: '#f0f0f0',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
+    justifyContent: width > 768 ? 'space-between' : 'flex-start',
+    flexDirection: width > 768 ? 'column' : 'row',
+    position: 'relative',
+    elevation: 2,
+    marginBottom: 12,
   },
   quickOptionSelected: {
-    backgroundColor: '#FF6B35',
-    borderColor: '#FF6B35',
+    borderColor: theme.PRIMARY, // 只改变边框颜色，与ImageCheckbox一致
   },
   quickOptionContent: {
     flexDirection: 'row',
@@ -309,20 +293,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   quickOptionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1a1a1a',
+    fontSize: width > 768 ? 21 : 16,
+    fontWeight: '500',
+    color: theme.TEXT_PRIMARY,
     marginBottom: 2,
   },
   quickOptionTitleSelected: {
-    color: '#fff',
+    color: theme.PRIMARY, // 与ImageCheckbox一致，选中时文字变主色
+    fontWeight: '600',
   },
   quickOptionSubtitle: {
     fontSize: 14,
     color: '#666',
   },
   quickOptionSubtitleSelected: {
-    color: '#ffe0d6',
+    color: theme.PRIMARY, // 与ImageCheckbox一致
   },
   timePickerContainer: {
     marginTop: 16,
@@ -332,27 +317,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   timeSlot: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: theme.WHITE,
+    borderRadius: width > 768 ? 12 : 8,
+    borderWidth: 1.8,
+    borderColor: '#EEEAE7',
     paddingVertical: 10,
     paddingHorizontal: 16,
     marginHorizontal: 4,
-    borderWidth: 2,
-    borderColor: '#f0f0f0',
     minWidth: 70,
     alignItems: 'center',
+    elevation: 2,
   },
   timeSlotSelected: {
-    backgroundColor: '#FF6B35',
-    borderColor: '#FF6B35',
+    borderColor: theme.PRIMARY,
   },
   timeSlotText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#1a1a1a',
+    color: theme.TEXT_PRIMARY,
   },
   timeSlotTextSelected: {
-    color: '#fff',
+    color: theme.PRIMARY,
+    fontWeight: '600',
   },
   noTimesText: {
     fontSize: 14,
@@ -360,7 +346,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   confirmButton: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: theme.PRIMARY,
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',
