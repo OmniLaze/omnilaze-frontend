@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Animated, Modal, TouchableOpacity, Text, StyleSheet, Dimensions } from 'react-native';
+import { View, Animated, Modal, TouchableOpacity, Text, StyleSheet, Dimensions, Platform } from 'react-native';
 import { ActionButton } from './ActionButton';
 import { useTheme } from '../contexts/ColorThemeContext';
 import { createQuestionStyles } from '../styles/globalStyles';
@@ -253,17 +253,25 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
         </Text>
       </Animated.View>
       
-      {/* "去支付"按钮 - 总结文字完成后显示，但支付完成后隐藏 */}
+      {/* "去支付"悬浮按钮 - 总结文字完成后显示，但支付完成后隐藏 */}
       {showGoToPaymentButton && !isPaymentCompleted && (
-        <View style={styles.goToPaymentContainer}>
-          <TouchableOpacity
-            style={styles.goToPaymentButton}
+        <Animated.View 
+          style={[
+            styles.floatingPaymentContainer,
+            {
+              opacity: 1,
+            }
+          ]}
+          pointerEvents="auto"
+        >
+          <ActionButton
             onPress={handleGoToPayment}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.goToPaymentButtonText}>去支付</Text>
-          </TouchableOpacity>
-        </View>
+            title="去支付"
+            disabled={false}
+            isActive={true}
+            variant="confirm"
+          />
+        </Animated.View>
       )}
       
       {/* 支付弹窗 */}
@@ -311,30 +319,12 @@ const createStyles = (theme: any) => {
     container: {
       marginTop: width > 768 ? 16 : 8, // 移动端减少顶部间距，与其他组件保持一致
     },
-    goToPaymentContainer: {
-      alignItems: 'center',
-      marginTop: 16,
+    floatingPaymentContainer: {
+      position: 'absolute',
+      bottom: Platform.OS === 'ios' ? 20 : 10,
+      right: 20,
+      zIndex: 1000, // 确保在最上层，悬浮在所有内容之上
     },
-  goToPaymentButton: {
-    backgroundColor: theme.PRIMARY,
-    paddingHorizontal: 32,
-    paddingVertical: 12,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  goToPaymentButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
