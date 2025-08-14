@@ -1929,8 +1929,9 @@ function OmnilazeAppContent() {
                     </CurrentQuestion>
                   )}
                   
-                  {/* 支付成功后：总结性文字变为"老"问题（无头像） */}
-                  {(isSearchingRestaurant || isOrderCompleted) && (
+                  {/* 支付成功后：不再显示OrderConfirmationComponent，改为显示历史消息 */}
+                  {/* 注释掉重复的OrderConfirmationComponent渲染 */}
+                  {/* {(isSearchingRestaurant || isOrderCompleted) && (
                     <CurrentQuestion
                       displayedText="" // 不显示主流程的问题文本
                       isTyping={false}
@@ -1946,9 +1947,9 @@ function OmnilazeAppContent() {
                       hideAvatar={true} // 支付后隐藏头像，变为"老"问题
                     >
                       {/* 渲染订单确认组件（已完成状态） */}
-                      {renderCurrentInput()}
-                    </CurrentQuestion>
-                  )}
+                      {/* {renderCurrentInput()} */}
+                    {/* </CurrentQuestion>
+                  )} */}
                   
                   {/* 支付成功后显示"正在挑选..."问题（新的当前问题，带头像） */}
                   {isSearchingRestaurant && (
