@@ -1693,7 +1693,7 @@ function OmnilazeAppContent() {
           style={[
             {
               minHeight: 200,
-              paddingTop: Platform.OS === 'web' ? 100 : 16,
+              paddingTop: Platform.OS === 'web' ? 100 : 24, // 移动端调整为24px，确保第一个问题距离页眉只有一行距离
               paddingHorizontal: 16,
               paddingBottom: 20,
               justifyContent: 'flex-start',
