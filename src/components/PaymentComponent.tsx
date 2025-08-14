@@ -14,6 +14,11 @@ interface PaymentComponentProps {
   selectedAllergies: string[];
   selectedPreferences: string[];
   selectedFoodType: string[];
+  
+  // 新增：动画参数用于一致的样式
+  currentQuestionAnimation?: Animated.Value;
+  shakeAnimation?: Animated.Value;
+  emotionAnimation?: Animated.Value;
 }
 
 import { Animated } from 'react-native';
@@ -29,32 +34,11 @@ export const PaymentComponent: React.FC<PaymentComponentProps> = ({
   selectedAllergies,
   selectedPreferences,
   selectedFoodType,
+  currentQuestionAnimation,
+  shakeAnimation,
+  emotionAnimation,
 }) => {
-  // 处理支付完成
-  const handlePaymentComplete = (success: boolean, orderText?: string) => {
-    if (success && orderText) {
-      // 调用父组件的确认订单函数，传递订单文字
-      onConfirmOrder(orderText);
-    }
-  };
-  
-  // 预算选择后，直接显示订单确认组件
-  if (!isTyping && budget) {
-    return (
-      <OrderConfirmationComponent
-        address={address}
-        deliveryTime={deliveryTime}
-        selectedAllergies={selectedAllergies}
-        selectedPreferences={selectedPreferences}
-        selectedFoodType={selectedFoodType}
-        budget={budget}
-        isFreeOrder={isFreeOrder}
-        animationValue={animationValue}
-        onConfirmOrder={() => {}}  // 空函数，实际逻辑在onPaymentComplete中
-        onPaymentComplete={handlePaymentComplete}
-      />
-    );
-  }
-  
+  // 预算选择后，不再直接显示订单确认组件
+  // 让预算步骤正常完成，推进到下一步（订单确认步骤）
   return null;
 };

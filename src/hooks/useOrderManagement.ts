@@ -178,63 +178,97 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
     }
   };
 
-  // 确认下单后：只显示第一段订单确认消息，使用统一样式
+  // 确认下单后：简化的流程处理
   const handleConfirmOrder = async (orderText?: string) => {
     if (orderFlowRunning) return;
-    setOrderFlowRunning(true);
-    setIsSearchingRestaurant(true);
-    changeEmotion('🔍');
     
-    // 立即标记支付步骤为完成，隐藏PaymentComponent
-    setCompletedAnswers((prev: any) => ({
-      ...prev,
-      [5]: { type: 'payment', value: '已确认支付' } // 预算是第5步
-    }));
-    
-    // 如果有订单文字，显示第一段订单确认消息
-    if (orderText) {
-      typeText(orderText, {
-        instant: false,
-        streaming: false,
-        speed: 30,
-        onComplete: async () => {
-          try {
-            // 将第一段固定到消息日志（头像：assistant）
-            pushOrderMessage(orderText, 'assistant');
-            // 清空打字区
-            typeText('', { instant: true });
-
-            // 创建订单
-            await handleCreateOrder();
-
-            // 订单创建完成，设置状态
-            setIsOrderCompleted(true);
-            setIsSearchingRestaurant(false);
-            changeEmotion('✅');
-            setOrderMessage(orderText);
-            setOrderFlowRunning(false);
-          } catch (error) {
-            setIsSearchingRestaurant(false);
-            changeEmotion('😰');
-            setInputError('订单创建失败，请重试');
-            setOrderFlowRunning(false);
-          }
-        }
-      });
-    } else {
-      // 没有订单文字时的旧流程（备用）
+    // 如果没有订单文字，说明是支付成功的回调
+    if (!orderText) {
+      // 支付成功，创建订单并完成流程
+      setOrderFlowRunning(true);
       try {
-        await handleCreateOrder();
+        // 立即标记支付步骤为完成
+        setCompletedAnswers((prev: any) => ({
+          ...prev,
+          [5]: { type: 'payment', value: '已确认支付' }
+        }));
+        
+        // 显示"正在挑选..."问题
+        setIsSearchingRestaurant(true);
+        typeText("正在挑选", { // 移除省略号，由LoadingDots组件处理
+          instant: false,
+          streaming: false,
+          speed: 30,
+          onComplete: () => {
+            console.log('正在挑选文字显示完成，开始创建订单');
+            // 在显示完成后再创建订单
+            setTimeout(async () => {
+              try {
+                await handleCreateOrder();
+                setIsOrderCompleted(true);
+                setIsSearchingRestaurant(false);
+                changeEmotion('✅');
+                setOrderFlowRunning(false);
+              } catch (error) {
+                setIsSearchingRestaurant(false);
+                changeEmotion('😰');
+                setInputError('订单创建失败，请重试');
+                setOrderFlowRunning(false);
+              }
+            }, 500);
+          }
+        });
       } catch (error) {
         setIsSearchingRestaurant(false);
         changeEmotion('😰');
         setInputError('订单创建失败，请重试');
-      } finally {
         setOrderFlowRunning(false);
       }
+      return;
+    }
+    
+    // 如果有订单文字，说明是支付成功后的订单创建阶段
+    setOrderFlowRunning(true);
+    try {
+      // 立即标记支付步骤为完成
+      setCompletedAnswers((prev: any) => ({
+        ...prev,
+        [5]: { type: 'payment', value: '已确认支付' }
+      }));
+      
+      // 显示"正在挑选..."问题
+      setIsSearchingRestaurant(true);
+      typeText("正在挑选", { // 移除省略号，由LoadingDots组件处理
+        instant: false,
+        streaming: false,
+        speed: 30,
+        onComplete: () => {
+          console.log('正在挑选文字显示完成，开始创建订单');
+          // 在显示完成后再创建订单
+          setTimeout(async () => {
+            try {
+              await handleCreateOrder();
+              setIsOrderCompleted(true);
+              setIsSearchingRestaurant(false);
+              changeEmotion('✅');
+              setOrderFlowRunning(false);
+            } catch (error) {
+              setIsSearchingRestaurant(false);
+              changeEmotion('😰');
+              setInputError('订单创建失败，请重试');
+              setOrderFlowRunning(false);
+            }
+          }, 500);
+        }
+      });
+    } catch (error) {
+      setIsSearchingRestaurant(false);
+      changeEmotion('😰');
+      setInputError('订单创建失败，请重试');
+      setOrderFlowRunning(false);
     }
   };
-
+  
   return {
     handleCreateOrder,
     handleSubmitOrder,

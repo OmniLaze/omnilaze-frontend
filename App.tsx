@@ -82,10 +82,10 @@ function OmnilazeAppContent() {
       
       // 2. 检测移动设备
       const isMobileDevice = () => {
-        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test((navigator?.userAgent || '')) ||
                window.innerWidth <= 768 ||
                ('ontouchstart' in window) ||
-               (navigator.maxTouchPoints && navigator.maxTouchPoints > 0);
+               (navigator?.maxTouchPoints && navigator.maxTouchPoints > 0);
       };
 
       // 3. 强制移动端布局适配
@@ -231,13 +231,14 @@ function OmnilazeAppContent() {
 
   // 获取移动端头部标题
   const getStepTitle = (step: number) => {
-    const titles = ['配送地址', '食物类型', '忌口说明', '口味偏好', '用餐时间', '预算设置'];
+    const titles = ['配送地址', '食物类型', '忌口说明', '口味偏好', '用餐时间', '预算设置', '订单确认'];
     // 步骤0: 配送地址
     // 步骤1: 食物类型
     // 步骤2: 忌口说明
     // 步骤3: 口味偏好  
     // 步骤4: 用餐时间
     // 步骤5: 预算设置
+    // 步骤6: 订单确认
     return titles[step] || '懒得点外卖';
   };
 
@@ -566,12 +567,13 @@ function OmnilazeAppContent() {
       }
     }
     
-    // 免单模式在预算步骤后结束流程
+    // 免单模式在预算步骤后推进到订单确认步骤
     if (isFreeOrder && currentStepIndex === 4) {
+      // 免单流程跳过预算，直接到订单确认
+      nextStep = 6; // 跳到订单确认步骤
       if (process.env.NODE_ENV === 'development') {
-        console.log('🆓 免单流程完成，不再推进步骤');
+        console.log('🆓 免单流程跳过预算，直接到订单确认步骤');
       }
-      return;
     }
     
     if (nextStep < STEP_CONTENT.length) {
@@ -1254,7 +1256,8 @@ function OmnilazeAppContent() {
       currentStep < STEP_CONTENT.length && 
       !completedAnswers[currentStep] && 
       !isTyping && 
-      !displayedText
+      !displayedText &&
+      currentStep !== 6 // 步骤6（订单确认）由OrderConfirmationComponent自己处理
     );
     
     console.log('🔍 检查是否应该显示问题:', {
@@ -1274,6 +1277,13 @@ function OmnilazeAppContent() {
     
     if (shouldShowQuestion) {
       const stepData = formSteps.getCurrentStepData();
+      
+      // 特殊处理：步骤6（订单确认）不显示问题文本，直接显示组件
+      if (stepData.inputType === 'orderConfirmation') {
+        console.log('📋 步骤6（订单确认），跳过问题文本显示，直接显示组件');
+        // 不调用handleQuestionTransition，让OrderConfirmationComponent自己处理文本显示
+        return;
+      }
       
       // 统一检查用户输入状态
       let hasUserInput = false;
@@ -1421,6 +1431,8 @@ function OmnilazeAppContent() {
         otherPreferenceText={otherPreferenceText}
         isAddressConfirmed={isAddressConfirmed}
         isFreeOrder={isFreeOrder}
+        isSearchingRestaurant={isSearchingRestaurant} // 新增参数
+        isOrderCompleted={isOrderCompleted} // 新增参数
         handleAddressChange={formSteps.handleAddressChange}
         handleSelectAddress={formSteps.handleSelectAddress}
         handleDeliveryTimeConfirm={formSteps.handleDeliveryTimeConfirm}
@@ -1435,6 +1447,9 @@ function OmnilazeAppContent() {
         inputSectionAnimation={inputSectionAnimation}
         inputError={inputError}
         isTyping={isTyping}
+        currentQuestionAnimation={currentQuestionAnimation}
+        shakeAnimation={shakeAnimation}
+        emotionAnimation={emotionAnimation}
         renderActionButton={renderActionButton}
       />
     );
@@ -1516,6 +1531,7 @@ function OmnilazeAppContent() {
           onNewOrderPress={handleNewOrder}
           currentStep={currentStep}
           previousStep={previousStep}
+          isOrderCompleted={isOrderCompleted}
         />
       )}
 
@@ -1684,7 +1700,7 @@ function OmnilazeAppContent() {
               {/* Current Question - 正常流程、搜索状态、订单完成状态显示 */}
               {isAuthenticated && editingStep === null && (
                 // 如果正在搜索餐厅或订单已完成，只显示相应文本，不显示其他内容
-                (isSearchingRestaurant || isOrderCompleted) ? (
+                (isSearchingRestaurant || isOrderCompleted) && currentStep !== 6 ? (
                   <CurrentQuestion
                     displayedText={displayedText}
                     isTyping={isTyping}
@@ -1701,7 +1717,7 @@ function OmnilazeAppContent() {
                     {/* 搜索状态或订单完成状态时不显示任何输入组件或按钮 */}
                   </CurrentQuestion>
                 ) : (
-                  (currentStep < STEP_CONTENT.length && !completedAnswers[currentStep]) && (
+                  (currentStep < STEP_CONTENT.length && !completedAnswers[currentStep] && currentStep !== 6) && (
                     <CurrentQuestion
                       displayedText={displayedText}
                       isTyping={isTyping}
@@ -1759,6 +1775,94 @@ function OmnilazeAppContent() {
                   </Animated.View>
                 </CurrentQuestion>
               )}
+
+              {/* 步骤6（订单确认）- 特殊渲染 */}
+              {isAuthenticated && editingStep === null && currentStep === 6 && (
+                <>
+                  {/* 支付前：显示订单确认组件（带头像） */}
+                  {!isSearchingRestaurant && !isOrderCompleted && (
+                    <CurrentQuestion
+                      displayedText="" // 不显示主流程的问题文本
+                      isTyping={false}
+                      showCursor={false}
+                      cursorOpacity={new Animated.Value(0)}
+                      streamingOpacity={new Animated.Value(1)}
+                      isStreaming={false}
+                      inputError={inputError}
+                      currentStep={currentStep}
+                      currentQuestionAnimation={currentQuestionAnimation}
+                      shakeAnimation={shakeAnimation}
+                      emotionAnimation={emotionAnimation}
+                      hideAvatar={false} // 支付前显示头像
+                    >
+                      {/* 渲染订单确认组件 */}
+                      {renderCurrentInput()}
+                    </CurrentQuestion>
+                  )}
+                  
+                  {/* 支付成功后：总结性文字变为"老"问题（无头像） */}
+                  {(isSearchingRestaurant || isOrderCompleted) && (
+                    <CurrentQuestion
+                      displayedText="" // 不显示主流程的问题文本
+                      isTyping={false}
+                      showCursor={false}
+                      cursorOpacity={new Animated.Value(0)}
+                      streamingOpacity={new Animated.Value(1)}
+                      isStreaming={false}
+                      inputError={inputError}
+                      currentStep={currentStep}
+                      currentQuestionAnimation={currentQuestionAnimation}
+                      shakeAnimation={shakeAnimation}
+                      emotionAnimation={emotionAnimation}
+                      hideAvatar={true} // 支付后隐藏头像，变为"老"问题
+                    >
+                      {/* 渲染订单确认组件（已完成状态） */}
+                      {renderCurrentInput()}
+                    </CurrentQuestion>
+                  )}
+                  
+                  {/* 支付成功后显示"正在挑选..."问题（新的当前问题，带头像） */}
+                  {isSearchingRestaurant && (
+                    <CurrentQuestion
+                      displayedText={displayedText}
+                      isTyping={isTyping}
+                      showCursor={showCursor}
+                      cursorOpacity={cursorOpacity}
+                      streamingOpacity={streamingOpacity}
+                      isStreaming={isStreaming()}
+                      inputError={inputError}
+                      currentStep={currentStep}
+                      currentQuestionAnimation={currentQuestionAnimation}
+                      shakeAnimation={shakeAnimation}
+                      emotionAnimation={emotionAnimation}
+                      hideAvatar={false} // "正在挑选..."是新的当前问题，显示头像
+                    >
+                      {/* 正在挑选状态时不显示任何输入组件或按钮 */}
+                    </CurrentQuestion>
+                  )}
+                  
+                  {/* 订单完成后显示最终消息（新的当前问题，带头像） */}
+                  {isOrderCompleted && (
+                    <CurrentQuestion
+                      displayedText={displayedText}
+                      isTyping={isTyping}
+                      showCursor={showCursor}
+                      cursorOpacity={cursorOpacity}
+                      streamingOpacity={streamingOpacity}
+                      isStreaming={isStreaming()}
+                      inputError={inputError}
+                      currentStep={currentStep}
+                      currentQuestionAnimation={currentQuestionAnimation}
+                      shakeAnimation={shakeAnimation}
+                      emotionAnimation={emotionAnimation}
+                      hideAvatar={false} // 最终消息是当前问题，显示头像
+                    >
+                      {/* 订单完成状态时不显示任何输入组件或按钮 */}
+                    </CurrentQuestion>
+                  )}
+                </>
+              )}
+
             </Animated.View>
           </View>
         </Animated.View>

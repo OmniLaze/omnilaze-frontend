@@ -162,7 +162,7 @@ export class AliyunOneClickLogin {
    */
   static isSupported(): boolean {
     // 检查是否在移动端浏览器
-    const userAgent = navigator.userAgent.toLowerCase();
+    const userAgent = (navigator?.userAgent || '').toLowerCase();
     const isMobile = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
     
     // 检查网络环境（一键登录需要移动网络）
@@ -180,7 +180,7 @@ export class AliyunOneClickLogin {
     reason?: string;
     suggestion?: string;
   } {
-    const userAgent = navigator.userAgent.toLowerCase();
+    const userAgent = (navigator?.userAgent || '').toLowerCase();
     const isMobile = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
     
     if (!isMobile) {

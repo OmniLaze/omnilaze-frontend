@@ -18,6 +18,7 @@ interface MobileHeaderProps {
   onNewOrderPress?: () => void;
   currentStep: number;
   previousStep?: number;
+  isOrderCompleted?: boolean;
 }
 
 export const MobileHeader: React.FC<MobileHeaderProps> = ({
@@ -30,12 +31,17 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
   onHistoryPress,
   onNewOrderPress,
   currentStep,
-  previousStep
+  previousStep,
+  isOrderCompleted = false
 }) => {
   const { theme } = useTheme();
   const avatarStyles = createAvatarStyles(theme);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  // "+"按钮的摇摆动画
+  const plusButtonShakeAnim = useRef(new Animated.Value(0)).current;
+  const [showPlusButton, setShowPlusButton] = useState(false);
 
   // UserMenu状态
   const [showDropdown, setShowDropdown] = useState(false);
@@ -46,6 +52,47 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
   if (Platform.OS === 'web' && width > 768) {
     return null;
   }
+
+  // 当订单完成时触发"+"按钮的摇摆动画和显示
+  useEffect(() => {
+    if (isOrderCompleted && !showPlusButton) {
+      setShowPlusButton(true);
+      
+      // 开始摇摆动画，持续2秒
+      const shakeAnimation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(plusButtonShakeAnim, {
+            toValue: 1,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(plusButtonShakeAnim, {
+            toValue: -1,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(plusButtonShakeAnim, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+        ]),
+        { iterations: 3 } // 大约2秒的摇摆
+      );
+      
+      shakeAnimation.start(() => {
+        // 动画结束后静止显示
+        plusButtonShakeAnim.setValue(0);
+      });
+    }
+  }, [isOrderCompleted, showPlusButton]);
+
+  // 当订单状态重置时（比如开始新订单），隐藏"+"按钮
+  useEffect(() => {
+    if (!isOrderCompleted && showPlusButton) {
+      setShowPlusButton(false);
+    }
+  }, [isOrderCompleted, showPlusButton]);
 
   // 当步骤改变时的动画
   useEffect(() => {
@@ -155,6 +202,11 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
       fontSize: 18,
       color: theme.TEXT_SECONDARY,
       fontWeight: '400' as const,
+    },
+    plusButtonText: {
+      fontSize: 20,
+      color: '#FF6B35', // 橘红色
+      fontWeight: '600' as const, // 更粗
     },
     centerContent: {
       alignItems: 'center' as const,
@@ -363,13 +415,25 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
           >
             <Text style={headerStyles.iconButtonText}>☰</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={headerStyles.iconButton}
-            onPress={onNewOrderPress}
-            activeOpacity={0.7}
-          >
-            <Text style={headerStyles.iconButtonText}>+</Text>
-          </TouchableOpacity>
+          {/* 只在订单完成后显示"+"按钮 */}
+          {showPlusButton && (
+            <Animated.View style={{
+              transform: [{
+                rotate: plusButtonShakeAnim.interpolate({
+                  inputRange: [-1, 1],
+                  outputRange: ['-5deg', '5deg'],
+                }),
+              }],
+            }}>
+              <TouchableOpacity 
+                style={headerStyles.iconButton}
+                onPress={onNewOrderPress}
+                activeOpacity={0.7}
+              >
+                <Text style={headerStyles.plusButtonText}>+</Text>
+              </TouchableOpacity>
+            </Animated.View>
+          )}
         </View>
 
         {/* 中间：进度点 + 标题组合 - 固定宽度 */}

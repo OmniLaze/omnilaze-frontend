@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Animated, Image, Platform, Dimensions } from 'react-native';
 import { createQuestionStyles, createAvatarStyles } from '../styles/globalStyles';
 import { useTheme } from '../contexts/ColorThemeContext';
+import { LoadingDots } from './LoadingDots';
 
 interface CurrentQuestionProps {
   displayedText: string;
@@ -16,6 +17,7 @@ interface CurrentQuestionProps {
   shakeAnimation: Animated.Value;
   emotionAnimation?: Animated.Value;
   children?: React.ReactNode;
+  hideAvatar?: boolean; // 新增：控制是否隐藏头像
 }
 
 export const CurrentQuestion: React.FC<CurrentQuestionProps> = ({
@@ -31,6 +33,7 @@ export const CurrentQuestion: React.FC<CurrentQuestionProps> = ({
   shakeAnimation,
   emotionAnimation,
   children,
+  hideAvatar = false,
 }) => {
   const { theme } = useTheme();
   
@@ -39,6 +42,40 @@ export const CurrentQuestion: React.FC<CurrentQuestionProps> = ({
   const avatarStyles = createAvatarStyles(theme);
   const { width } = Dimensions.get('window');
   const isMobileLayout = Platform.OS !== 'web' || (Platform.OS === 'web' && width <= 768);
+  
+  // 渲染文本内容，对"正在挑选"特殊处理
+  const renderQuestionText = () => {
+    if (displayedText === "正在挑选") {
+      return (
+        <LoadingDots
+          text="正在挑选"
+          style={questionStyles.currentQuestionText}
+          dotStyle={questionStyles.currentQuestionText}
+          speed={500}
+        />
+      );
+    } else {
+      return (
+        <Text style={questionStyles.currentQuestionText}>
+          {displayedText}
+          {isTyping && showCursor && (
+            <Animated.Text
+              style={[
+                questionStyles.cursor,
+                {
+                  opacity: cursorOpacity || 1,
+                  fontSize: isStreaming ? 16 : 18,
+                  color: isStreaming ? 'rgba(255,255,255,0.8)' : questionStyles.cursor.color,
+                },
+              ]}
+            >
+              |
+            </Animated.Text>
+          )}
+        </Text>
+      );
+    }
+  };
   
   return (
     <Animated.View
@@ -62,38 +99,40 @@ export const CurrentQuestion: React.FC<CurrentQuestionProps> = ({
               paddingHorizontal: 20,
               paddingTop: 8,
             }}>
-              {/* 顶部头像（左对齐） */}
-              <Animated.View
-                style={{
-                  alignSelf: 'flex-start',
-                  marginBottom: 12,
-                  marginLeft: 0,
-                  transform: [
-                    { scale: emotionAnimation || new Animated.Value(1) },
-                  ],
-                }}
-              >
-                <View style={[
-                  avatarStyles.avatarSimple,
-                  {
-                    ...(Platform.OS === 'web'
-                      ? { boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)' }
-                      : {
-                          shadowColor: '#000',
-                          shadowOffset: { width: 0, height: 2 },
-                          shadowOpacity: 0.1,
-                          shadowRadius: 4,
-                          elevation: 3,
-                        }
-                    ),
-                  },
-                ]}>
-                  <Image
-                    source={require('../../assets/icon.png')}
-                    style={avatarStyles.avatarImage}
-                  />
-                </View>
-              </Animated.View>
+              {/* 顶部头像（左对齐）- 仅在不隐藏头像时显示 */}
+              {!hideAvatar && (
+                <Animated.View
+                  style={{
+                    alignSelf: 'flex-start',
+                    marginBottom: 12,
+                    marginLeft: 0,
+                    transform: [
+                      { scale: emotionAnimation || new Animated.Value(1) },
+                    ],
+                  }}
+                >
+                  <View style={[
+                    avatarStyles.avatarSimple,
+                    {
+                      ...(Platform.OS === 'web'
+                        ? { boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)' }
+                        : {
+                            shadowColor: '#000',
+                            shadowOffset: { width: 0, height: 2 },
+                            shadowOpacity: 0.1,
+                            shadowRadius: 4,
+                            elevation: 3,
+                          }
+                      ),
+                    },
+                  ]}>
+                    <Image
+                      source={require('../../assets/icon.png')}
+                      style={avatarStyles.avatarImage}
+                    />
+                  </View>
+                </Animated.View>
+              )}
 
               {/* 问题与输入 */}
               <View style={[questionStyles.questionHeader, { marginBottom: 0 }]}>
@@ -109,23 +148,7 @@ export const CurrentQuestion: React.FC<CurrentQuestionProps> = ({
                     ]}
                   >
                     <Animated.View style={{ opacity: streamingOpacity || 1 }}>
-                      <Text style={questionStyles.currentQuestionText}>
-                        {displayedText}
-                        {isTyping && showCursor && (
-                          <Animated.Text
-                            style={[
-                              questionStyles.cursor,
-                              {
-                                opacity: cursorOpacity || 1,
-                                fontSize: isStreaming ? 16 : 18,
-                                color: isStreaming ? 'rgba(255,255,255,0.8)' : questionStyles.cursor.color,
-                              },
-                            ]}
-                          >
-                            |
-                          </Animated.Text>
-                        )}
-                      </Text>
+                      {renderQuestionText()}
                     </Animated.View>
                   </Animated.View>
                   {children}
@@ -160,38 +183,40 @@ export const CurrentQuestion: React.FC<CurrentQuestionProps> = ({
                 alignItems: 'flex-start',
                 flexDirection: 'row',
               }}>
-                {/* 头像区域（左侧） */}
-                <Animated.View
-                  style={[
-                    {
-                      marginRight: 18,
-                      alignSelf: 'flex-start',
-                      marginTop: 0,
-                      transform: [{ scale: emotionAnimation || new Animated.Value(1) }],
-                    },
-                  ]}
-                >
-                  <View style={[
-                    avatarStyles.avatarSimple,
-                    {
-                      ...(Platform.OS === 'web'
-                        ? { boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)' }
-                        : {
-                            shadowColor: '#000',
-                            shadowOffset: { width: 0, height: 2 },
-                            shadowOpacity: 0.1,
-                            shadowRadius: 4,
-                            elevation: 3,
-                          }
-                      ),
-                    },
-                  ]}>
-                    <Image
-                      source={require('../../assets/icon.png')}
-                      style={avatarStyles.avatarImage}
-                    />
-                  </View>
-                </Animated.View>
+                {/* 头像区域（左侧）- 仅在不隐藏头像时显示 */}
+                {!hideAvatar && (
+                  <Animated.View
+                    style={[
+                      {
+                        marginRight: 18,
+                        alignSelf: 'flex-start',
+                        marginTop: 0,
+                        transform: [{ scale: emotionAnimation || new Animated.Value(1) }],
+                      },
+                    ]}
+                  >
+                    <View style={[
+                      avatarStyles.avatarSimple,
+                      {
+                        ...(Platform.OS === 'web'
+                          ? { boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)' }
+                          : {
+                              shadowColor: '#000',
+                              shadowOffset: { width: 0, height: 2 },
+                              shadowOpacity: 0.1,
+                              shadowRadius: 4,
+                              elevation: 3,
+                            }
+                        ),
+                      },
+                    ]}>
+                      <Image
+                        source={require('../../assets/icon.png')}
+                        style={avatarStyles.avatarImage}
+                      />
+                    </View>
+                  </Animated.View>
+                )}
 
                 {/* 问题和输入内容区域 */}
                 <View style={{ flex: 1 }}>
@@ -209,23 +234,7 @@ export const CurrentQuestion: React.FC<CurrentQuestionProps> = ({
                         ]}
                       >
                         <Animated.View style={{ opacity: streamingOpacity || 1 }}>
-                          <Text style={questionStyles.currentQuestionText}>
-                            {displayedText}
-                            {isTyping && showCursor && (
-                              <Animated.Text
-                                style={[
-                                  questionStyles.cursor,
-                                  {
-                                    opacity: cursorOpacity || 1,
-                                    fontSize: isStreaming ? 16 : 18,
-                                    color: isStreaming ? 'rgba(255,255,255,0.8)' : questionStyles.cursor.color,
-                                  },
-                                ]}
-                              >
-                                |
-                              </Animated.Text>
-                            )}
-                          </Text>
+                          {renderQuestionText()}
                         </Animated.View>
                       </Animated.View>
                       {children}

@@ -423,6 +423,10 @@ export const useValidation = () => {
         }
         return { isValid: true };
         
+      case 6: // 订单确认
+        // 订单确认步骤总是有效的，因为它不需要用户输入
+        return { isValid: true };
+        
       default:
         return { isValid: true };
     }
@@ -438,10 +442,10 @@ export const useValidation = () => {
 
 export const useAnimations = () => {
   const [questionAnimations] = useState(() => 
-    Array.from({ length: 5 }, () => new Animated.Value(1))
+    Array.from({ length: 7 }, () => new Animated.Value(1))
   );
   const [answerAnimations] = useState(() => 
-    Array.from({ length: 5 }, () => new Animated.Value(0))
+    Array.from({ length: 7 }, () => new Animated.Value(0))
   );
   const [currentQuestionAnimation] = useState(new Animated.Value(0));
   const [mapAnimation] = useState(new Animated.Value(0));

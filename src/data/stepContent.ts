@@ -30,5 +30,10 @@ export const STEP_CONTENT: StepContent[] = [
     message: "好的，这一顿打算花多少钱？",
     showBudgetInput: true,
     inputType: "budget"
+  },
+  {
+    message: "", // 空文本，因为总结文字由OrderConfirmationComponent直接管理
+    showOrderConfirmation: true,
+    inputType: "orderConfirmation"
   }
 ];

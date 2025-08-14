@@ -3,7 +3,7 @@ import { View, Animated, Dimensions } from 'react-native';
 import { AddressAutocomplete } from './AddressAutocomplete';
 import { ImageCheckbox } from './ImageCheckbox';
 import { BudgetInput } from './BudgetInput';
-import { PaymentComponent } from './PaymentComponent';
+import { OrderConfirmationComponent } from './OrderConfirmationComponent';
 import { ActionButton } from './ActionButton';
 import { DeliveryTimeStep } from './DeliveryTimeStep';
 import { ALLERGY_OPTIONS, PREFERENCE_OPTIONS, FOOD_TYPE_OPTIONS } from '../data/checkboxOptions';
@@ -28,6 +28,10 @@ interface FormInputContainerProps {
   isAddressConfirmed: boolean;
   isFreeOrder: boolean;
   
+  // Order status - 新增
+  isSearchingRestaurant?: boolean;
+  isOrderCompleted?: boolean;
+  
   // Form handlers
   handleAddressChange: (text: string) => void;
   handleSelectAddress: (suggestion: AddressSuggestion) => void;
@@ -48,6 +52,11 @@ interface FormInputContainerProps {
   inputError: string;
   isTyping: boolean;
   
+  // Question animations for consistent styling
+  currentQuestionAnimation?: Animated.Value;
+  shakeAnimation?: Animated.Value;
+  emotionAnimation?: Animated.Value;
+  
   // Button handlers
   renderActionButton: () => React.ReactNode;
 }
@@ -66,6 +75,8 @@ export const FormInputContainer: React.FC<FormInputContainerProps> = ({
   otherPreferenceText,
   isAddressConfirmed,
   isFreeOrder,
+  isSearchingRestaurant = false, // 新增参数
+  isOrderCompleted = false, // 新增参数
   handleAddressChange,
   handleSelectAddress,
   handleDeliveryTimeConfirm,
@@ -80,7 +91,10 @@ export const FormInputContainer: React.FC<FormInputContainerProps> = ({
   inputSectionAnimation,
   inputError,
   isTyping,
-  renderActionButton
+  currentQuestionAnimation,
+  shakeAnimation,
+  emotionAnimation,
+  renderActionButton,
 }) => {
   // 🔧 性能优化：使用 useMemo 缓存预算选项，避免重复计算
   const budgetOptions = useMemo(() => {
@@ -145,20 +159,6 @@ export const FormInputContainer: React.FC<FormInputContainerProps> = ({
           errorMessage={inputError}
           budgetOptions={budgetOptions}
         />
-        {budget && (
-          <PaymentComponent
-            budget={budget}
-            animationValue={inputSectionAnimation}
-            onConfirmOrder={handleConfirmOrder}
-            isTyping={isTyping}
-            isFreeOrder={isFreeOrder}
-            address={address}
-            deliveryTime={deliveryTime}
-            selectedAllergies={selectedAllergies}
-            selectedPreferences={selectedPreferences}
-            selectedFoodType={selectedFoodType}
-          />
-        )}
       </View>
     );
   }
@@ -172,6 +172,33 @@ export const FormInputContainer: React.FC<FormInputContainerProps> = ({
         onSelectionChange={setSelectedAllergies}
         animationValue={inputSectionAnimation}
         onOtherTextChange={setOtherAllergyText}
+      />
+    );
+  }
+  
+  
+  // 订单确认显示
+  if (stepData.showOrderConfirmation) {
+    return (
+      <OrderConfirmationComponent
+        address={address}
+        deliveryTime={deliveryTime}
+        selectedAllergies={selectedAllergies}
+        selectedPreferences={selectedPreferences}
+        selectedFoodType={selectedFoodType}
+        budget={budget}
+        isFreeOrder={isFreeOrder}
+        animationValue={inputSectionAnimation}
+        onConfirmOrder={handleConfirmOrder}
+        onPaymentComplete={(success, orderText) => {
+          if (success && orderText) {
+            handleConfirmOrder(orderText);
+          }
+        }}
+        isPaymentCompleted={isSearchingRestaurant || isOrderCompleted} // 传递支付完成状态
+        currentQuestionAnimation={currentQuestionAnimation}
+        shakeAnimation={shakeAnimation}
+        emotionAnimation={emotionAnimation}
       />
     );
   }
@@ -258,8 +285,8 @@ export const FormActionButtonContainer: React.FC<FormActionButtonContainerProps>
     return null;
   }
   
-  // 预算步骤特殊处理 - 选择了预算后不显示确认按钮
-  if (currentStep === 5 && budget) {
+  // 订单确认步骤 - 组件内部有自己的确认和支付按钮
+  if (currentStep === 6) {
     return null;
   }
   

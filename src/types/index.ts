@@ -1,5 +1,5 @@
 export interface Answer {
-  type: 'address' | 'phone' | 'budget' | 'allergy' | 'preference' | 'foodType' | 'payment' | 'deliveryTime';
+  type: 'address' | 'phone' | 'budget' | 'allergy' | 'preference' | 'foodType' | 'payment' | 'deliveryTime' | 'orderConfirmation';
   value: string;
 }
 
@@ -18,7 +18,8 @@ export interface StepContent {
   showDeliveryTimeInput?: boolean;
   showCompleted?: boolean;
   showPayment?: boolean;
-  inputType: 'address' | 'phone' | 'budget' | 'allergy' | 'preference' | 'foodType' | 'deliveryTime' | 'completed' | 'payment';
+  showOrderConfirmation?: boolean;
+  inputType: 'address' | 'phone' | 'budget' | 'allergy' | 'preference' | 'foodType' | 'deliveryTime' | 'completed' | 'payment' | 'orderConfirmation';
 }
 
 export interface ValidationResult {

@@ -164,6 +164,7 @@ export const useFormSteps = (props: UseFormStepsProps) => {
       }
       case 4: return { type: 'deliveryTime', value: deliveryTime === 'ASAP' ? '越快越好' : deliveryTime };
       case 5: return { type: 'budget', value: budget };
+      case 6: return { type: 'orderConfirmation', value: '已确认' };
       default: return null;
     }
   };
@@ -184,6 +185,9 @@ export const useFormSteps = (props: UseFormStepsProps) => {
         return answer.value ? convertToChineseDisplay(answer.value) : '无特殊偏好';
       case 'foodType': 
         return answer.value ? convertToChineseDisplay(answer.value) : '未选择';
+      case 'orderConfirmation':
+        // 订单确认步骤的答案显示为完成标识
+        return '订单已确认';
       default: return answer.value;
     }
   };

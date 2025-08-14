@@ -206,13 +206,13 @@ export const OrderHistorySidebar: React.FC<OrderHistorySidebarProps> = ({
   // 获取食物类型显示
   const getFoodTypeDisplay = (order: Order): string => {
     const foodType = order.foodType || order.form_data?.foodType || order.formData?.foodType || [];
-    if (!foodType || foodType.length === 0) return '🍽️ 未指定';
+    if (!foodType || foodType.length === 0) return '未指定';
     
     if (Array.isArray(foodType)) {
-      if (foodType.includes('drink')) return '🧋 奶茶';
-      if (foodType.includes('food')) return '🍱 正餐';
+      if (foodType.includes('drink')) return '奶茶';
+      if (foodType.includes('food')) return '正餐';
     }
-    return '🍽️ 未指定';
+    return '未指定';
   };
   
   // 获取送达时间显示
@@ -288,43 +288,13 @@ export const OrderHistorySidebar: React.FC<OrderHistorySidebarProps> = ({
                     activeOpacity={0.6}
                     onPress={() => handleOrderPress(order)}
                   >
-                    <View style={styles.orderHeader}>
-                      <Text style={styles.orderNumber}>#{order.orderNumber}</Text>
-                      <View style={styles.statusContainer}>
-                        {(order.status === 'processing' || order.status === 'delivering') && (
-                          <ActivityIndicator 
-                            size="small" 
-                            color={getStatusColor(order.status)} 
-                            style={styles.statusSpinner}
-                          />
-                        )}
-                        <Text style={[styles.statusText, { color: getStatusColor(order.status) }]}>
-                          {getStatusText(order.status)}
-                        </Text>
-                      </View>
-                    </View>
-                    
-                    <Text style={styles.orderTime}>{formatDate(order.createdAt)}</Text>
-                    <Text style={styles.orderAddress} numberOfLines={2}>{order.address}</Text>
-                    
-                    <View style={styles.orderDetails}>
-                      <View style={styles.orderMeta}>
-                        <Text style={styles.detailText}>
-                          {getFoodTypeDisplay(order)}
-                        </Text>
-                        <Text style={styles.detailText}>
-                          {getDeliveryTimeDisplay(order)}
-                        </Text>
-                      </View>
-                      <View style={styles.orderRight}>
-                        <Text style={styles.amountText}>¥{getOrderAmount(order)}</Text>
-                        {order.arrivalImageUrl && (
-                          <Image 
-                            source={{ uri: order.arrivalImageUrl }} 
-                            style={styles.arrivalThumbnail}
-                          />
-                        )}
-                      </View>
+                    <View style={styles.orderContent}>
+                      <Text style={styles.foodTypeName}>
+                        {getFoodTypeDisplay(order)}
+                      </Text>
+                      <Text style={styles.orderTimeSimple}>
+                        {formatDate(order.createdAt)}
+                      </Text>
                     </View>
                   </TouchableOpacity>
                 ))
@@ -419,81 +389,27 @@ const createStyles = (theme: any) => StyleSheet.create({
     lineHeight: 24,
   },
   orderCard: {
-    backgroundColor: 'transparent', // 透明背景
-    paddingVertical: 20,
+    backgroundColor: 'transparent',
+    paddingVertical: 16,
     paddingHorizontal: 8,
-    marginBottom: 4,
+    marginBottom: 0,
     borderBottomWidth: 1,
     borderBottomColor: theme.BORDER || 'rgba(0, 0, 0, 0.06)',
   },
-  orderHeader: {
+  orderContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  orderNumber: {
-    fontSize: 15,
-    fontWeight: '400',
-    color: theme.TEXT_PRIMARY,
-    flex: 1,
-  },
-  statusContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: 12,
   },
-  statusSpinner: {
-    marginRight: 6,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '400',
-    letterSpacing: 0.3,
-  },
-  orderTime: {
-    fontSize: 12,
-    color: theme.TEXT_SECONDARY,
-    marginBottom: 6,
-    fontWeight: '300',
-  },
-  orderAddress: {
-    fontSize: 14,
-    color: theme.TEXT_PRIMARY,
-    marginBottom: 12,
-    lineHeight: 20,
-    fontWeight: '300',
-  },
-  orderDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginTop: 4,
-  },
-  orderMeta: {
-    flex: 1,
-  },
-  detailText: {
-    fontSize: 12,
-    color: theme.TEXT_SECONDARY,
-    fontWeight: '300',
-    marginBottom: 2,
-  },
-  amountText: {
+  foodTypeName: {
     fontSize: 16,
+    fontWeight: '400',
     color: theme.TEXT_PRIMARY,
-    fontWeight: '500',
-    textAlign: 'right',
+    flex: 1,
   },
-  orderRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  arrivalThumbnail: {
-    width: 32,
-    height: 32,
-    borderRadius: 4,
-    backgroundColor: theme.BORDER || 'rgba(0, 0, 0, 0.06)',
+  orderTimeSimple: {
+    fontSize: 14,
+    color: theme.TEXT_SECONDARY,
+    fontWeight: '300',
   },
 });
