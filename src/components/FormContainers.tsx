@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Animated, Dimensions } from 'react-native';
+import { View, Animated, Dimensions, StyleSheet, Platform } from 'react-native';
 import { AddressAutocomplete } from './AddressAutocomplete';
 import { ImageCheckbox } from './ImageCheckbox';
 import { BudgetInput } from './BudgetInput';
@@ -253,7 +253,7 @@ export const FormActionButtonContainer: React.FC<FormActionButtonContainerProps>
   // 编辑模式下的按钮
   if (editingStep !== null) {
     return (
-      <View style={{ marginTop: topGap }}>
+      <View style={styles.buttonContainer}>
         <ActionButton
           onPress={handleFinishEditing}
           title="确认"
@@ -268,7 +268,7 @@ export const FormActionButtonContainer: React.FC<FormActionButtonContainerProps>
   // 地址确认按钮
   if (currentStep === 0) {
     return (
-      <View style={{ marginTop: topGap }}>
+      <View style={styles.buttonContainer}>
         <ActionButton
           onPress={handleAddressConfirm}
           title="确认"
@@ -293,7 +293,7 @@ export const FormActionButtonContainer: React.FC<FormActionButtonContainerProps>
   // 通用下一步按钮
   if (canProceed) {
     return (
-      <View style={{ marginTop: topGap }}>
+      <View style={styles.buttonContainer}>
         <ActionButton
           onPress={handleNext}
           title="确认"
@@ -306,3 +306,13 @@ export const FormActionButtonContainer: React.FC<FormActionButtonContainerProps>
   
   return null;
 };
+
+// 移动端优化：按钮右下角定位样式
+const styles = StyleSheet.create({
+  buttonContainer: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 20 : 10,
+    right: 20,
+    zIndex: 10,
+  },
+});

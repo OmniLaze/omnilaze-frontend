@@ -279,20 +279,6 @@ export const ImageCheckbox: React.FC<ImageCheckboxProps> = ({
                   {option.label}
                 </Text>
               </View>
-              
-              <View style={[
-                styles.checkbox,
-                (pressedId === option.id) && styles.checkboxPressed,
-                isSelected && styles.checkedBox
-              ]}>
-                {isSelected && (
-                  <SimpleIcon 
-                    name="check" 
-                    size={width > 768 ? 18 : 14} 
-                    color={COLORS.WHITE} 
-                  />
-                )}
-              </View>
               </Pressable>
             </Animated.View>
           );
@@ -419,32 +405,6 @@ const createStyles = (theme: any) => StyleSheet.create({
     color: theme.PRIMARY,
     fontWeight: '600',
   },
-  checkbox: {
-    width: width > 768 ? 22 : 18,
-    height: width > 768 ? 22 : 18,
-    borderRadius: 4,
-    borderWidth: 2.5,
-    borderColor: '#EEEAE7', // 与卡片边框保持一致
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: theme.WHITE,
-    position: width > 768 ? 'static' : 'absolute',
-    right: width > 768 ? 'auto' : 12,
-  },
-  checkedBox: {
-    backgroundColor: theme.PRIMARY,
-    borderColor: theme.PRIMARY,
-  },
-  checkboxPressed: Platform.select({
-    web: {
-      borderColor: '#D1D5DB',
-      backgroundColor: '#F3F4F6',
-    },
-    default: {
-      borderColor: '#D1D5DB',
-      backgroundColor: '#F3F4F6',
-    }
-  }) as any,
   disabledCard: {
     opacity: 0.8,
     backgroundColor: '#f8f9fa',

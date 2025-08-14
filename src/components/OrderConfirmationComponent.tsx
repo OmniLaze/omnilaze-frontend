@@ -310,11 +310,14 @@ const createStyles = (theme: any) => {
   return StyleSheet.create({
     container: {
       marginTop: width > 768 ? 16 : 8, // 移动端减少顶部间距，与其他组件保持一致
+      paddingBottom: 80, // 为右下角按钮留出空间
+      position: 'relative',
     },
     goToPaymentContainer: {
-    alignItems: 'center',
-    marginTop: 16,
-    paddingLeft: 0, // 不需要特殊对齐，CurrentQuestion组件会处理
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 20 : 10,
+    right: 20,
+    zIndex: 10,
   },
   goToPaymentButton: {
     backgroundColor: theme.PRIMARY,

@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ColorThemeContext';
+import { ActionButton } from './ActionButton';
 
 const { width } = Dimensions.get('window');
 
@@ -240,23 +241,16 @@ export const DeliveryTimeStep: React.FC<DeliveryTimeStepProps> = ({
         </Animated.View>
       )}
 
-      {/* 确认按钮 */}
-      <TouchableOpacity
-        style={[
-          createStyles(theme).confirmButton,
-          isConfirmDisabled && createStyles(theme).confirmButtonDisabled,
-        ]}
-        onPress={handleConfirm}
-        disabled={isConfirmDisabled}
-        activeOpacity={0.8}
-      >
-        <Text style={[
-          createStyles(theme).confirmButtonText,
-          isConfirmDisabled && createStyles(theme).confirmButtonTextDisabled,
-        ]}>
-          确认时间
-        </Text>
-      </TouchableOpacity>
+      {/* 确认按钮 - 移动端右下角定位 */}
+      <View style={createStyles(theme).buttonContainer}>
+        <ActionButton
+          onPress={handleConfirm}
+          title="确认"
+          disabled={isConfirmDisabled}
+          isActive={!isConfirmDisabled}
+          animationValue={fadeAnim}
+        />
+      </View>
     </Animated.View>
   );
 };
@@ -266,6 +260,8 @@ const createStyles = (theme: any) => StyleSheet.create({
     marginTop: width > 768 ? 16 : 8, // 与其他组件保持一致的响应式间距
     marginLeft: 0,
     maxWidth: 500,
+    paddingBottom: 80, // 为右下角按钮留出空间
+    position: 'relative',
   },
   quickOption: {
     backgroundColor: theme.WHITE,
@@ -345,23 +341,10 @@ const createStyles = (theme: any) => StyleSheet.create({
     color: '#999',
     padding: 20,
   },
-  confirmButton: {
-    backgroundColor: theme.PRIMARY,
-    borderRadius: 16,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 'auto',
-    marginBottom: Platform.OS === 'ios' ? 20 : 10,
-  },
-  confirmButtonDisabled: {
-    backgroundColor: '#e0e0e0',
-  },
-  confirmButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  confirmButtonTextDisabled: {
-    color: '#999',
+  buttonContainer: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 20 : 10,
+    right: 20,
+    zIndex: 10,
   },
 });
