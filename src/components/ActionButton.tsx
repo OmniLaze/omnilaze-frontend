@@ -23,7 +23,29 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
   const { theme } = useTheme();
   const buttonStyles = createButtonStyles(theme);
   const [isHovered, setIsHovered] = React.useState(false);
+  const [hoverAnimation] = React.useState(new Animated.Value(0));
   
+  // 处理悬停动画
+  React.useEffect(() => {
+    Animated.timing(hoverAnimation, {
+      toValue: isHovered ? 1 : 0,
+      duration: 200,
+      useNativeDriver: false, // 需要操作背景色，不能使用native driver
+    }).start();
+  }, [isHovered, hoverAnimation]);
+
+  // 获取动画化的背景色
+  const animatedBackgroundColor = hoverAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['rgba(255, 255, 255, 1)', 'rgba(251, 146, 60, 1)'], // 白色到桔红色
+  });
+
+  // 获取动画化的文字颜色
+  const animatedTextColor = hoverAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['#374151', '#ffffff'], // 深灰色到白色
+  });
+
   const getButtonStyle = () => {
     if (variant === 'next') {
       return buttonStyles.nextSimpleButton;
@@ -72,9 +94,38 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
         disabled={disabled}
         onHoverIn={() => setIsHovered(true)}
         onHoverOut={() => setIsHovered(false)}
-        style={[getButtonStyle(), (Platform.OS === 'web' && isHovered) && buttonStyles.hoverSimpleButton]}
+        style={[
+          getButtonStyle(),
+          // 移除原有的hover样式，因为我们用动画替代
+        ]}
       >
-        <Text style={getTextStyle()}>{title}</Text>
+        <Animated.View
+          style={[
+            {
+              backgroundColor: animatedBackgroundColor,
+              borderRadius: 12,
+              paddingHorizontal: 24,
+              paddingVertical: 14,
+              minWidth: 120,
+              alignItems: 'center',
+              alignSelf: 'flex-start',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }
+          ]}
+        />
+        <Animated.Text style={[
+          getTextStyle(),
+          {
+            color: animatedTextColor,
+            zIndex: 1, // 确保文字在动画背景之上
+          }
+        ]}>
+          {title}
+        </Animated.Text>
       </Pressable>
     </WrapperComponent>
   );
