@@ -18,11 +18,17 @@ const { width } = Dimensions.get('window');
 interface DeliveryTimeStepProps {
   onConfirm: (deliveryTime: string) => void;
   initialValue?: string;
+  // 新增：向父组件传递选择状态的回调
+  onSelectionChange?: (selection: {
+    selectedOption: 'asap' | 'scheduled' | null;
+    selectedTime: string;
+  }) => void;
 }
 
 export const DeliveryTimeStep: React.FC<DeliveryTimeStepProps> = ({
   onConfirm,
   initialValue = '',
+  onSelectionChange,
 }) => {
   const { theme } = useTheme();
   const [selectedOption, setSelectedOption] = useState<'asap' | 'scheduled' | null>(
@@ -86,6 +92,16 @@ export const DeliveryTimeStep: React.FC<DeliveryTimeStepProps> = ({
       useNativeDriver: true,
     }).start();
   }, []);
+
+  // 监听选择状态变化，通知父组件
+  useEffect(() => {
+    if (onSelectionChange) {
+      onSelectionChange({
+        selectedOption,
+        selectedTime,
+      });
+    }
+  }, [selectedOption, selectedTime, onSelectionChange]);
 
   const handleOptionSelect = (option: 'asap' | 'scheduled') => {
     setSelectedOption(option);
@@ -240,17 +256,6 @@ export const DeliveryTimeStep: React.FC<DeliveryTimeStepProps> = ({
           </ScrollView>
         </Animated.View>
       )}
-
-      {/* 确认按钮 - 移动端使用内联样式，不与全局按钮冲突 */}
-      <View style={createStyles(theme).buttonContainer}>
-        <ActionButton
-          onPress={handleConfirm}
-          title="确认"
-          disabled={isConfirmDisabled}
-          isActive={!isConfirmDisabled}
-          animationValue={fadeAnim}
-        />
-      </View>
     </Animated.View>
   );
 };
@@ -338,9 +343,5 @@ const createStyles = (theme: any) => StyleSheet.create({
     fontSize: 14,
     color: '#999',
     padding: 20,
-  },
-  buttonContainer: {
-    marginTop: 20,
-    alignItems: 'center',
   },
 });

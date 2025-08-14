@@ -16,8 +16,15 @@ interface FloatingConfirmButtonProps {
   deliveryTime: string;
   budget: string;
   
+  // 配送时间步骤特殊状态
+  deliveryTimeSelection?: {
+    selectedOption: 'asap' | 'scheduled' | null;
+    selectedTime: string;
+  };
+  
   // 操作回调
   onConfirm: () => void;
+  onDeliveryTimeConfirm?: (time: string) => void;
   
   // 特殊状态
   isOrderCompleted: boolean;
@@ -33,7 +40,9 @@ export const FloatingConfirmButton: React.FC<FloatingConfirmButtonProps> = ({
   selectedPreferences,
   deliveryTime,
   budget,
+  deliveryTimeSelection,
   onConfirm,
+  onDeliveryTimeConfirm,
   isOrderCompleted,
   isAuthenticated,
 }) => {
@@ -65,7 +74,17 @@ export const FloatingConfirmButton: React.FC<FloatingConfirmButtonProps> = ({
         return selectedPreferences.length > 0;
       
       case 4: // 配送时间步骤 
-        return false; // 配送时间步骤有自己的内联按钮
+        // 检查用户是否选择了配送选项
+        if (deliveryTimeSelection) {
+          const { selectedOption, selectedTime } = deliveryTimeSelection;
+          if (selectedOption === 'asap') {
+            return true; // 选择了"越快越好"
+          }
+          if (selectedOption === 'scheduled' && selectedTime) {
+            return true; // 选择了"预约时间"且选择了具体时间
+          }
+        }
+        return false;
       
       case 5: // 预算步骤
         return budget.trim().length > 0;
@@ -101,6 +120,7 @@ export const FloatingConfirmButton: React.FC<FloatingConfirmButtonProps> = ({
     selectedPreferences,
     deliveryTime,
     budget,
+    deliveryTimeSelection,
     isOrderCompleted,
     isAuthenticated,
     shouldShow
@@ -122,6 +142,22 @@ export const FloatingConfirmButton: React.FC<FloatingConfirmButtonProps> = ({
     }
   };
 
+  // 处理按钮点击
+  const handleButtonPress = () => {
+    if (currentStep === 4 && onDeliveryTimeConfirm && deliveryTimeSelection) {
+      // 配送时间步骤的特殊处理
+      const { selectedOption, selectedTime } = deliveryTimeSelection;
+      if (selectedOption === 'asap') {
+        onDeliveryTimeConfirm('ASAP');
+      } else if (selectedOption === 'scheduled' && selectedTime) {
+        onDeliveryTimeConfirm(selectedTime);
+      }
+    } else {
+      // 其他步骤使用通用确认逻辑
+      onConfirm();
+    }
+  };
+
   if (!shouldShow) {
     return null;
   }
@@ -137,7 +173,7 @@ export const FloatingConfirmButton: React.FC<FloatingConfirmButtonProps> = ({
       pointerEvents={shouldShow ? 'auto' : 'none'}
     >
       <ActionButton
-        onPress={onConfirm}
+        onPress={handleButtonPress}
         title={getButtonTitle()}
         disabled={false}
         isActive={true}
@@ -153,13 +189,5 @@ const styles = StyleSheet.create({
     bottom: Platform.OS === 'ios' ? 20 : 10,
     right: 20,
     zIndex: 1000, // 确保在最上层，悬浮在所有内容之上
-    elevation: 10, // Android阴影
-    shadowColor: '#000', // iOS阴影
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
   },
 });

@@ -36,6 +36,10 @@ interface FormInputContainerProps {
   handleAddressChange: (text: string) => void;
   handleSelectAddress: (suggestion: AddressSuggestion) => void;
   handleDeliveryTimeConfirm: (time: string) => void;
+  onDeliveryTimeSelectionChange?: (selection: {
+    selectedOption: 'asap' | 'scheduled' | null;
+    selectedTime: string;
+  }) => void;
   setBudget: (value: string) => void;
   setSelectedAllergies: (value: string[]) => void;
   setSelectedPreferences: (value: string[]) => void;
@@ -80,6 +84,7 @@ export const FormInputContainer: React.FC<FormInputContainerProps> = ({
   handleAddressChange,
   handleSelectAddress,
   handleDeliveryTimeConfirm,
+  onDeliveryTimeSelectionChange,
   setBudget,
   setSelectedAllergies,
   setSelectedPreferences,
@@ -125,6 +130,7 @@ export const FormInputContainer: React.FC<FormInputContainerProps> = ({
       <DeliveryTimeStep
         onConfirm={handleDeliveryTimeConfirm}
         initialValue={deliveryTime}
+        onSelectionChange={onDeliveryTimeSelectionChange}
       />
     );
   }

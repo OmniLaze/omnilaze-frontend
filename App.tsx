@@ -186,6 +186,15 @@ function OmnilazeAppContent() {
     setOrderMessagesLog((prev) => [...prev, { id, text, avatar }]);
   }, []);
   
+  // 配送时间选择状态（用于全局悬浮按钮）
+  const [deliveryTimeSelection, setDeliveryTimeSelection] = useState<{
+    selectedOption: 'asap' | 'scheduled' | null;
+    selectedTime: string;
+  }>({
+    selectedOption: null,
+    selectedTime: '',
+  });
+  
   // 解构需要的状态和函数
   const {
     // 认证状态
@@ -1437,6 +1446,7 @@ function OmnilazeAppContent() {
         handleAddressChange={formSteps.handleAddressChange}
         handleSelectAddress={formSteps.handleSelectAddress}
         handleDeliveryTimeConfirm={formSteps.handleDeliveryTimeConfirm}
+        onDeliveryTimeSelectionChange={setDeliveryTimeSelection}
         setBudget={setBudget}
         setSelectedAllergies={setSelectedAllergies}
         setSelectedPreferences={setSelectedPreferences}
@@ -1879,6 +1889,8 @@ function OmnilazeAppContent() {
         selectedPreferences={selectedPreferences}
         deliveryTime={deliveryTime}
         budget={budget}
+        deliveryTimeSelection={deliveryTimeSelection}
+        onDeliveryTimeConfirm={formSteps.handleDeliveryTimeConfirm}
         onConfirm={() => {
           if (editingStep !== null) {
             formSteps.handleFinishEditing();
