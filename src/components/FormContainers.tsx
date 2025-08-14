@@ -256,7 +256,7 @@ export const FormActionButtonContainer: React.FC<FormActionButtonContainerProps>
       <View style={{ marginTop: topGap }}>
         <ActionButton
           onPress={handleFinishEditing}
-          title="保存"
+          title="确认"
           disabled={!canProceed}
           isActive={canProceed}
           animationValue={inputSectionAnimation}
