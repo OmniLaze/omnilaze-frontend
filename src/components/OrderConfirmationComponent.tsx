@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Animated, Modal, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { View, Animated, Modal, TouchableOpacity, Text, StyleSheet, Dimensions } from 'react-native';
 import { ActionButton } from './ActionButton';
 import { useTheme } from '../contexts/ColorThemeContext';
 import { createQuestionStyles } from '../styles/globalStyles';
@@ -305,11 +305,13 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
   );
 };
 
-const createStyles = (theme: any) => StyleSheet.create({
-  container: {
-    marginTop: 16,
-  },
-  goToPaymentContainer: {
+const createStyles = (theme: any) => {
+  const { width } = Dimensions.get('window');
+  return StyleSheet.create({
+    container: {
+      marginTop: width > 768 ? 16 : 8, // 移动端减少顶部间距，与其他组件保持一致
+    },
+    goToPaymentContainer: {
     alignItems: 'center',
     marginTop: 16,
     paddingLeft: 0, // 不需要特殊对齐，CurrentQuestion组件会处理
@@ -392,3 +394,4 @@ const createStyles = (theme: any) => StyleSheet.create({
     fontSize: 16,
   },
 });
+};
