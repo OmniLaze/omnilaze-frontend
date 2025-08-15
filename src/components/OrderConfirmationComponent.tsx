@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Animated, Modal, TouchableOpacity, Text, StyleSheet, Dimensions, Platform } from 'react-native';
+import { View, Animated, Modal, TouchableOpacity, Text, StyleSheet, Image, ActivityIndicator, Platform } from 'react-native';
 import { ActionButton } from './ActionButton';
 import { useTheme } from '../contexts/ColorThemeContext';
 import { createQuestionStyles } from '../styles/globalStyles';
 import { useTypewriterEffect } from '../hooks';
+import { createPayment, queryPaymentStatus, redirectToWechatPayment, CreatePaymentResponse } from '../services/api';
 
 interface OrderConfirmationComponentProps {
   // 用户填写的所有信息
@@ -64,6 +65,11 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
   const { theme } = useTheme();
   const questionStyles = createQuestionStyles(theme);
   
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  
+  // 原有的UI控制状态
+  const [showGoToPaymentButton, setShowGoToPaymentButton] = useState(false);
+  const [showConfirmButton, setShowConfirmButton] = useState(false);
   const [hasShownSummary, setHasShownSummary] = useState(false);
   const [manualDisplayText, setManualDisplayText] = useState(''); // 备用文字显示
   
@@ -75,10 +81,18 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
     clearText: clearSummaryText
   } = useTypewriterEffect();
   
+  // 新增的微信支付状态
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [paymentData, setPaymentData] = useState<CreatePaymentResponse['data'] | null>(null);
+  const [paymentStatus, setPaymentStatus] = useState<'idle' | 'processing' | 'checking' | 'success' | 'failed'>('idle');
+  const [statusCheckInterval, setStatusCheckInterval] = useState<NodeJS.Timeout | null>(null);
+  
   console.log('📋 OrderConfirmationComponent 状态:', {
     hasShownSummary,
     summaryDisplayedTextLength: summaryDisplayedText.length,
-    summaryIsTyping
+    summaryIsTyping,
+    paymentStatus
   });
   
   // 格式化用户信息为订单确认文字
@@ -186,7 +200,127 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
       summaryDisplayedText: summaryDisplayedText.substring(0, 50) + '...',
       summaryIsTyping
     });
-  }, [hasShownSummary, summaryDisplayedText, summaryIsTyping]);
+  }, [hasShownSummary, showGoToPaymentButton, summaryDisplayedText, summaryIsTyping]);
+  
+  // 处理确认下单 - 现在只触发支付弹窗
+  const handleConfirmOrder = () => {
+    console.log('💳 触发支付弹窗');
+    setShowPaymentModal(true);
+  };
+  
+  // 处理"去支付"按钮点击
+  const handleGoToPayment = () => {
+    setShowGoToPaymentButton(false);
+    setShowPaymentModal(true);
+    setPaymentError(null);
+    setPaymentStatus('idle');
+  };
+  
+  // 创建支付订单
+  const handleCreatePayment = async () => {
+    if (isFreeOrder) {
+      // 免单订单直接成功
+      handlePaymentComplete(true);
+      return;
+    }
+    
+    setPaymentLoading(true);
+    setPaymentError(null);
+    setPaymentStatus('processing');
+    
+    try {
+      // TODO: 需要从订单创建响应中获取orderId
+      const orderId = 'temp-order-id'; // 这应该来自实际的订单创建
+      
+      const response = await createPayment({
+        orderId,
+        provider: 'wechatpay',
+        amount: parseFloat(budget),
+        paymentMethod: 'h5',
+      });
+      
+      if (response.success && response.data) {
+        setPaymentData(response.data);
+        
+        if (response.data.h5_url) {
+          // 微信H5支付：跳转到支付页面
+          const returnUrl = Platform.OS === 'web' 
+            ? `${window.location.origin}/payment/callback`
+            : 'omnilaze://payment/callback';
+          
+          redirectToWechatPayment(response.data.h5_url, returnUrl);
+          
+          // 开始轮询支付状态
+          startPaymentStatusCheck(response.data.payment_id);
+        } else if (response.data.qr_code) {
+          // 支付宝二维码支付（保留兼容）
+          // TODO: 显示二维码
+        }
+      } else {
+        setPaymentError(response.message || '创建支付失败');
+        setPaymentStatus('failed');
+      }
+    } catch (error) {
+      setPaymentError('支付创建失败，请重试');
+      setPaymentStatus('failed');
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+  
+  // 轮询支付状态
+  const startPaymentStatusCheck = (paymentId: string) => {
+    setPaymentStatus('checking');
+    
+    // 清除之前的轮询
+    if (statusCheckInterval) {
+      clearInterval(statusCheckInterval);
+    }
+    
+    // 每3秒查询一次支付状态
+    const interval = setInterval(async () => {
+      try {
+        const response = await queryPaymentStatus(paymentId);
+        
+        if (response.success && response.data) {
+          if (response.data.status === 'succeeded') {
+            // 支付成功
+            clearInterval(interval);
+            setPaymentStatus('success');
+            handlePaymentComplete(true);
+          } else if (response.data.status === 'failed') {
+            // 支付失败
+            clearInterval(interval);
+            setPaymentStatus('failed');
+            setPaymentError('支付失败，请重试');
+          }
+          // 其他状态继续轮询
+        }
+      } catch (error) {
+        console.error('查询支付状态失败:', error);
+      }
+    }, 3000);
+    
+    setStatusCheckInterval(interval);
+    
+    // 5分钟后停止轮询
+    setTimeout(() => {
+      clearInterval(interval);
+      if (paymentStatus === 'checking') {
+        setPaymentStatus('failed');
+        setPaymentError('支付超时，请检查支付状态');
+      }
+    }, 5 * 60 * 1000);
+  };
+  
+  // 清理轮询
+  useEffect(() => {
+    return () => {
+      if (statusCheckInterval) {
+        clearInterval(statusCheckInterval);
+      }
+    };
+  }, [statusCheckInterval]);
   
   // 处理支付完成
   const handlePaymentComplete = (success: boolean) => {
@@ -245,28 +379,96 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>支付确认</Text>
-            <Text style={styles.modalText}>
-              支付金额：¥{budget}
-            </Text>
-            <Text style={styles.modalNote}>
-              {isFreeOrder ? '免单订单' : '请在付款时备注完整手机号'}
-            </Text>
+            <Text style={styles.modalTitle}>微信支付</Text>
             
-            {/* 这里预留支付接口 */}
+            {paymentStatus === 'idle' && (
+              <>
+                <Text style={styles.modalText}>
+                  支付金额：¥{budget}
+                </Text>
+                <Text style={styles.modalNote}>
+                  {isFreeOrder ? '免单订单' : '点击下方按钮进行微信支付'}
+                </Text>
+              </>
+            )}
+            
+            {paymentStatus === 'processing' && (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={theme.PRIMARY} />
+                <Text style={styles.loadingText}>正在创建支付订单...</Text>
+              </View>
+            )}
+            
+            {paymentStatus === 'checking' && (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={theme.PRIMARY} />
+                <Text style={styles.loadingText}>正在等待支付结果...</Text>
+                <Text style={styles.modalNote}>请在弹出的页面完成支付</Text>
+              </View>
+            )}
+            
+            {paymentStatus === 'success' && (
+              <View style={styles.successContainer}>
+                <Text style={styles.successIcon}>✅</Text>
+                <Text style={styles.successText}>支付成功！</Text>
+              </View>
+            )}
+            
+            {paymentError && (
+              <Text style={styles.errorText}>{paymentError}</Text>
+            )}
+            
+            {/* 支付按钮 */}
             <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.confirmButton]}
-                onPress={() => handlePaymentComplete(true)}
-              >
-                <Text style={styles.confirmButtonText}>模拟支付成功</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => handlePaymentComplete(false)}
-              >
-                <Text style={styles.cancelButtonText}>取消</Text>
-              </TouchableOpacity>
+              {paymentStatus === 'idle' && (
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.confirmButton]}
+                  onPress={handleCreatePayment}
+                  disabled={paymentLoading}
+                >
+                  <Text style={styles.confirmButtonText}>
+                    {isFreeOrder ? '确认免单' : '去支付'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+              
+              {paymentStatus === 'checking' && (
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.confirmButton]}
+                  onPress={() => {
+                    // 重新打开支付页面
+                    if (paymentData?.h5_url) {
+                      redirectToWechatPayment(paymentData.h5_url);
+                    }
+                  }}
+                >
+                  <Text style={styles.confirmButtonText}>重新打开支付页面</Text>
+                </TouchableOpacity>
+              )}
+              
+              {paymentStatus === 'failed' && (
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.confirmButton]}
+                  onPress={handleCreatePayment}
+                >
+                  <Text style={styles.confirmButtonText}>重试</Text>
+                </TouchableOpacity>
+              )}
+              
+              {paymentStatus !== 'success' && (
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => {
+                    setShowPaymentModal(false);
+                    if (statusCheckInterval) {
+                      clearInterval(statusCheckInterval);
+                    }
+                    handlePaymentComplete(false);
+                  }}
+                >
+                  <Text style={styles.cancelButtonText}>取消</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </View>
@@ -337,6 +539,34 @@ const createStyles = (theme: any) => {
   cancelButtonText: {
     color: theme.TEXT_SECONDARY,
     fontSize: 16,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: theme.TEXT_PRIMARY,
+  },
+  successContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  successIcon: {
+    fontSize: 48,
+    marginBottom: 12,
+  },
+  successText: {
+    fontSize: 18,
+    color: theme.PRIMARY,
+    fontWeight: '600',
+  },
+  errorText: {
+    color: '#ff4444',
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 16,
   },
 });
 };
