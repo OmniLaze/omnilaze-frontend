@@ -581,13 +581,25 @@ export async function createOrder(userId: string, phoneNumber: string, formData:
       })
     });
 
-    const data = await response.json();
+    const raw = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.message || '创建订单失败');
+      throw new Error(raw.message || '创建订单失败');
     }
 
-    return data;
+    // 兼容后端返回 { success, code, message, data: { order_id, order_number } }
+    if (raw?.success && raw?.data) {
+      const { order_id, order_number, user_sequence_number } = raw.data
+      return {
+        success: true,
+        message: raw.message,
+        order_id,
+        order_number,
+        user_sequence_number,
+      } as CreateOrderResponse
+    }
+
+    return raw;
   } catch (error) {
     return {
       success: false,
@@ -997,16 +1009,181 @@ export const uploadOrderVoiceFeedback = async (
       throw new Error(data.message || '上传语音反馈失败');
     }
 
-    return {
-      success: true,
-      message: data.message || '语音反馈上传成功',
-      data: data.data
-    };
+    return data;
   } catch (error) {
-    console.error('上传语音反馈失败:', error);
     return {
       success: false,
-      message: error instanceof Error ? error.message : '网络错误，请重试'
+      message: handleApiError(error, '上传语音反馈')
     };
+  }
+}
+
+/**
+ * 支付相关API接口
+ */
+
+export interface CreatePaymentRequest {
+  orderId: string;
+  provider: 'alipay' | 'wechatpay';
+  amount: number;
+  paymentMethod?: 'h5' | 'jsapi' | 'native';
+  idempotencyKey?: string;
+}
+
+export interface CreatePaymentResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    payment_id: string;
+    provider: string;
+    qr_code?: string;      // 支付宝二维码
+    h5_url?: string;       // 微信H5支付链接
+    payment_method?: string;
+  };
+}
+
+export interface PaymentStatusResponse {
+  success: boolean;
+  message?: string;
+  data?: {
+    payment_id: string;
+    status: 'created' | 'processing' | 'succeeded' | 'failed' | 'refunded';
+    provider: string;
+    amount: number;
+    paid_at?: string;
+    transaction_id?: string;
+    wechat_trade_state?: string;
+    wechat_trade_state_desc?: string;
+  };
+}
+
+export interface RefundRequest {
+  amount?: number;
+  reason?: string;
+}
+
+export interface RefundResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    payment_id: string;
+    refund_id: string;
+    refund_amount: number;
+    status: string;
+  };
+}
+
+/**
+ * 创建支付订单
+ */
+export async function createPayment(request: CreatePaymentRequest): Promise<CreatePaymentResponse> {
+  try {
+    const response = await authFetch(buildApiUrl('/payments/create'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        order_id: request.orderId,
+        provider: request.provider,
+        amount: request.amount,
+        payment_method: request.paymentMethod,
+        idempotency_key: request.idempotencyKey,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || '创建支付失败');
+    }
+
+    return data;
+  } catch (error) {
+    return {
+      success: false,
+      message: handleApiError(error, '创建支付'),
+    };
+  }
+}
+
+/**
+ * 查询支付状态
+ */
+export async function queryPaymentStatus(paymentId: string): Promise<PaymentStatusResponse> {
+  try {
+    const response = await authFetch(buildApiUrl(`/payments/${paymentId}/status`), {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || '查询支付状态失败');
+    }
+
+    return data;
+  } catch (error) {
+    return {
+      success: false,
+      message: handleApiError(error, '查询支付状态'),
+    };
+  }
+}
+
+/**
+ * 申请退款
+ */
+export async function refundPayment(paymentId: string, request?: RefundRequest): Promise<RefundResponse> {
+  try {
+    const response = await authFetch(buildApiUrl(`/payments/${paymentId}/refund`), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request || {}),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || '申请退款失败');
+    }
+
+    return data;
+  } catch (error) {
+    return {
+      success: false,
+      message: handleApiError(error, '申请退款'),
+    };
+  }
+}
+
+/**
+ * 处理微信H5支付跳转
+ * 在新窗口打开支付链接或在当前页面跳转
+ */
+export function redirectToWechatPayment(h5Url: string, returnUrl?: string) {
+  if (!h5Url) {
+    console.error('H5 payment URL is required');
+    return;
+  }
+
+  // 添加返回URL参数，支付完成后返回
+  const paymentUrl = returnUrl 
+    ? `${h5Url}&redirect_url=${encodeURIComponent(returnUrl)}`
+    : h5Url;
+
+  if (Platform.OS === 'web') {
+    // Web平台：在新窗口打开
+    window.open(paymentUrl, '_blank');
+  } else {
+    // 移动平台：使用React Native Linking打开
+    import('react-native').then(({ Linking }) => {
+      Linking.openURL(paymentUrl);
+    });
   }
 };
