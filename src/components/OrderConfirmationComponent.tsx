@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Animated, Modal, TouchableOpacity, Text, StyleSheet, Image, ActivityIndicator, Platform } from 'react-native';
+import { View, Animated, Modal, TouchableOpacity, Text, StyleSheet, Image, ActivityIndicator, Platform, Dimensions } from 'react-native';
 import { ActionButton } from './ActionButton';
 import { useTheme } from '../contexts/ColorThemeContext';
 import { createQuestionStyles } from '../styles/globalStyles';
