@@ -303,6 +303,11 @@ function OmnilazeAppContent() {
     setCurrentStep(5); // 跳到预算步骤（步骤5）
     setBudget(''); // 清空预算
     
+    // 重置支付相关状态
+    setIsPaymentCompleted(false);
+    setShowGoToPaymentButton(false);
+    setShowPaymentModal(false);
+    
     // 清空显示文本，触发问题重新显示
     clearText();
     
@@ -316,7 +321,7 @@ function OmnilazeAppContent() {
     
     // 清空订单消息日志，防止显示之前的订单状态消息
     setOrderMessagesLog([]);
-  }, [authResult, completedAnswers, setCompletedAnswers, setCurrentStep, setIsOrderCompleted, setIsSearchingRestaurant, setOrderMessage, setEditingStep, setBudget, clearText, setOrderMessagesLog]);
+  }, [authResult, completedAnswers, setCompletedAnswers, setCurrentStep, setIsOrderCompleted, setIsSearchingRestaurant, setOrderMessage, setEditingStep, setBudget, clearText, setOrderMessagesLog, setIsPaymentCompleted, setShowGoToPaymentButton, setShowPaymentModal]);
   
   // 打开订单历史
   const handleOpenOrderHistory = useCallback(() => {
