@@ -661,6 +661,14 @@ function OmnilazeAppContent() {
       }
     }
     
+    // 新订单模式：预算步骤（步骤5）完成后直接跳到订单确认（步骤6）
+    if (currentStepIndex === 5) {
+      nextStep = 6; // 从预算跳到订单确认
+      if (process.env.NODE_ENV === 'development') {
+        console.log('💰 预算设置完成，跳转到订单确认步骤');
+      }
+    }
+    
     if (nextStep < STEP_CONTENT.length) {
       if (process.env.NODE_ENV === 'development') {
         console.log('🔄 步骤推进:', currentStepIndex, '->', nextStep);
