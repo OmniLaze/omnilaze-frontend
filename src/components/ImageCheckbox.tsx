@@ -10,7 +10,8 @@ const { width } = Dimensions.get('window');
 interface ImageCheckboxOption {
   id: string;
   label: string;
-  image: any; // 图片资源
+  image: any; // 默认图片资源
+  hoverImage?: any; // 悬停图片资源（可选）
 }
 
 interface ImageCheckboxProps {
@@ -258,7 +259,11 @@ export const ImageCheckbox: React.FC<ImageCheckboxProps> = ({
               >
                 <View style={styles.imageContainer}>
                   <Image 
-                    source={option.image} 
+                    source={
+                      (Platform.OS === 'web' && hoveredId === option.id && option.hoverImage) 
+                        ? option.hoverImage 
+                        : option.image
+                    } 
                     style={styles.optionImage}
                     resizeMode="contain"
                   />
