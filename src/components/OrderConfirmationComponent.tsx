@@ -58,13 +58,6 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
   emotionAnimation = new Animated.Value(1),
   onShouldShowPaymentButton,
 }) => {
-  console.log('📋 OrderConfirmationComponent 渲染开始，props:', {
-    address: address?.substring(0, 20) + '...',
-    budget,
-    selectedFoodType,
-    selectedPreferences,
-    selectedAllergies
-  });
 
   const { theme } = useTheme();
   const questionStyles = createQuestionStyles(theme);
@@ -91,13 +84,6 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
   const [paymentData, setPaymentData] = useState<CreatePaymentResponse['data'] | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'processing' | 'checking' | 'success' | 'failed'>('idle');
   const [statusCheckInterval, setStatusCheckInterval] = useState<NodeJS.Timeout | null>(null);
-  
-  console.log('📋 OrderConfirmationComponent 状态:', {
-    hasShownSummary,
-    summaryDisplayedTextLength: summaryDisplayedText.length,
-    summaryIsTyping,
-    paymentStatus
-  });
   
   // 格式化用户信息为订单确认文字
   const formatOrderConfirmationText = useCallback(() => {
@@ -148,8 +134,6 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
   
   // 组件挂载时自动显示总结文字
   useEffect(() => {
-    console.log('📋 OrderConfirmationComponent useEffect 触发:', { hasShownSummary, isPaymentCompleted });
-    
     // 如果支付已完成，直接显示静态文本，不运行打字机效果
     if (isPaymentCompleted) {
       const summaryText = formatOrderConfirmationText();
@@ -199,11 +183,6 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
   
   // 添加调试用的useEffect来监听状态变化
   useEffect(() => {
-    console.log('📋 OrderConfirmationComponent 状态变化:', {
-      hasShownSummary,
-      summaryDisplayedText: summaryDisplayedText.substring(0, 50) + '...',
-      summaryIsTyping
-    });
   }, [hasShownSummary, showGoToPaymentButton, summaryDisplayedText, summaryIsTyping]);
   
   // 处理确认下单 - 现在只触发支付弹窗

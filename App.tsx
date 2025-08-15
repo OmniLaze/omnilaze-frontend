@@ -402,14 +402,6 @@ function OmnilazeAppContent() {
       // scrollY = 页面实际位置 - (页眉高度 + 理想距离 - 头像在页面中的偏移)
       const targetScrollPosition = basePosition - (mobileHeaderHeight + AVATAR_TO_HEADER_DISTANCE - avatarOffsetFromPageTop);
       
-      console.log('🎯 头像位置精确计算:', {
-        basePosition,
-        mobileHeaderHeight,
-        AVATAR_TO_HEADER_DISTANCE,
-        avatarOffsetFromPageTop,
-        targetScrollPosition,
-        calculation: `${basePosition} - (${mobileHeaderHeight} + ${AVATAR_TO_HEADER_DISTANCE} - ${avatarOffsetFromPageTop}) = ${targetScrollPosition}`
-      });
       
       return targetScrollPosition;
     };
@@ -963,16 +955,16 @@ function OmnilazeAppContent() {
     }
     
     // 添加调试日志，每100px输出一次
-    if (offsetY % 100 < 5) {
-      console.log('📜 滚动中:', { 
-        offsetY: Math.round(offsetY),
-        maxScroll: Math.round(dynamicContentHeight - height),
-        isAtTop: offsetY < 10,
-        isAtBottom: offsetY > (dynamicContentHeight - height - 10),
-        editingStep,
-        focusMode: nextMode
-      });
-    }
+    // if (offsetY % 100 < 5) {
+    //   console.log('📜 滚动中:', { 
+    //     offsetY: Math.round(offsetY),
+    //     maxScroll: Math.round(dynamicContentHeight - height),
+    //     isAtTop: offsetY < 10,
+    //     isAtBottom: offsetY > (dynamicContentHeight - height - 10),
+    //     editingStep,
+    //     focusMode: nextMode
+    //   });
+    // }
   };
   
   // 滚动结束时的自动吸附 - 只在已完成问题页面和当前问题页面之间切换
@@ -1000,11 +992,11 @@ function OmnilazeAppContent() {
     // 2. 当前问题页面位置
     const currentPagePosition = getCurrentPagePosition();
     
-    console.log('📍 吸附位置计算:', {
-      completedPagePosition,
-      currentPagePosition,
-      getCurrentPagePositionCalc: `${bufferContainerHeight} + ${completedQuestionsHeight} - (${scrollDimensions.mobileHeaderHeight} + ${scrollDimensions.AVATAR_TO_HEADER_DISTANCE} - 20) = ${currentPagePosition}`
-    });
+    // console.log('📍 吸附位置计算:', {
+    //   completedPagePosition,
+    //   currentPagePosition,
+    //   getCurrentPagePositionCalc: `${bufferContainerHeight} + ${completedQuestionsHeight} - (${scrollDimensions.mobileHeaderHeight} + ${scrollDimensions.AVATAR_TO_HEADER_DISTANCE} - 20) = ${currentPagePosition}`
+    // });
     
     // 计算中点，用于判断吸附方向
     const midPoint = (completedPagePosition + currentPagePosition) / 2;

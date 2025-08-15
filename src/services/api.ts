@@ -245,6 +245,10 @@ async function fetchWithRetry(
  */
 export async function sendVerificationCode(phoneNumber: string): Promise<ApiResponse> {
   try {
+    if (typeof __DEV__ !== 'undefined' && __DEV__) {
+      // eslint-disable-next-line no-console
+      console.log('[API][DEV] sendVerificationCode URL:', buildApiUrl('/send-verification-code'));
+    }
     const response = await fetchWithRetry(
       () => enhancedFetch(buildApiUrl('/send-verification-code'), {
         method: 'POST',

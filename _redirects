@@ -8,7 +8,7 @@
 # 环境变量
 [build.environment]
   NODE_VERSION = "18"
-  REACT_APP_API_URL = "https://omnilaze-app-api.your-subdomain.workers.dev"
+  REACT_APP_API_URL = "https://localhost:3000"
 
 # 重定向规则（适用于 SPA）
 [[redirects]]
