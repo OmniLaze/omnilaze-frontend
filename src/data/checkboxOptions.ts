@@ -3,32 +3,32 @@ export const ALLERGY_OPTIONS = [
   {
     id: 'seafood',
     label: '海鲜类',
-    image: require('../../assets/allergies/海鲜类.png'),
+    image: require('../../assets/allergies/seafood-bf.png'),
   },
   {
     id: 'nuts',
     label: '坚果类', 
-    image: require('../../assets/allergies/坚果类.png'),
+    image: require('../../assets/allergies/nuts-bf.png'),
   },
   {
     id: 'eggs',
     label: '蛋类',
-    image: require('../../assets/allergies/蛋类.png'),
+    image: require('../../assets/allergies/eggs-bf.png'),
   },
   {
     id: 'soy',
     label: '大豆类',
-    image: require('../../assets/allergies/大豆类.png'),
+    image: require('../../assets/allergies/beans-bf.png'),
   },
   {
     id: 'dairy',
     label: '乳制品类',
-    image: require('../../assets/allergies/乳制品类.png'),
+    image: require('../../assets/allergies/dairy-bf.png'),
   },
   {
     id: 'other-allergy',
     label: '其他',
-    image: require('../../assets/food/其他.png'),
+    image: require('../../assets/food/other-bf.png'),
   },
   
 ];
@@ -38,32 +38,32 @@ export const PREFERENCE_OPTIONS = [
   {
     id: 'spicy',
     label: '香辣',
-    image: require('../../assets/preferences/香辣.png'),
+    image: require('../../assets/preferences/spicy-flavor-bf.png'),
   },
   {
     id: 'mild',
     label: '清淡',
-    image: require('../../assets/preferences/清淡.png'),
+    image: require('../../assets/preferences/light-flavor-bf.png'),
   },
   {
     id: 'sweet',
     label: '甜口',
-    image: require('../../assets/preferences/甜口.png'),
+    image: require('../../assets/preferences/sweet-flavor-bf.png'),
   },
   {
     id: 'sour-spicy',
     label: '酸辣',
-    image: require('../../assets/preferences/酸辣.png'),
+    image: require('../../assets/preferences/sour-spicy-flavor-bf.png'),
   },
   {
     id: 'salty',
     label: '咸鲜',
-    image: require('../../assets/preferences/咸鲜.png'),
+    image: require('../../assets/preferences/salty-fresh-flavor-bf.png'),
   },
   {
     id: 'other-preference',
     label: '其他',
-    image: require('../../assets/food/其他.png'),
+    image: require('../../assets/food/other-bf.png'),
   },
 ];
 
@@ -72,12 +72,12 @@ export const FOOD_TYPE_OPTIONS = [
   {
     id: 'meal',
     label: '吃饭',
-    image: require('../../assets/food/美食.png'),
+    image: require('../../assets/food/rice-bf.png'),
   },
   {
     id: 'drink',
     label: '喝奶茶',
-    image: require('../../assets/food/饮品.png'),
+    image: require('../../assets/food/milk-tea-bf.png'),
   },
 ];
 
