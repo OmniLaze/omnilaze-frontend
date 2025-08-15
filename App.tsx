@@ -216,13 +216,15 @@ function OmnilazeAppContent() {
     setIsSearchingRestaurant(false);
     setOrderMessage('');
     setEditingStep(null);
-    setCurrentStep(5); // 跳到预算步骤（步骤5）
+    // 从地址开始新流程，更符合直觉
+    setCurrentStep(0); // 回到步骤0（配送地址）
     setBudget(''); // 清空预算
     
-    // 重置支付相关状态
+    // 重置支付与模式相关状态
     setIsPaymentCompleted(false);
     setShowGoToPaymentButton(false);
     setShowPaymentModal(false);
+    setIsQuickOrderMode(false); // 新订单关闭快速下单模式
     
     // 清空显示文本，触发问题重新显示
     clearText();
@@ -1178,6 +1180,14 @@ function OmnilazeAppContent() {
         // 立即推进到第一步，并清空旧文本，保证问题立即切换
         setCurrentStep(0);
         try { clearText?.(); } catch {}
+        // 主动显示地址问题，避免首次进入时机缘冲突导致不显示
+        try {
+          const step0 = STEP_CONTENT[0];
+          if (step0) {
+            // 下一帧触发，确保状态已更新
+            setTimeout(() => handleQuestionTransition(step0.message, false), 0);
+          }
+        } catch {}
       }
     });
   }, [
