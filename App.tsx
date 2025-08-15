@@ -53,6 +53,7 @@ import {
   useFormSteps,
   useOrderManagement
 } from './src/hooks';
+import { useSafeTimeout } from './src/hooks/useSafeTimeout';
 import { ColorThemeProvider, useTheme } from './src/contexts/ColorThemeContext';
 
 // Data & Types
@@ -63,12 +64,30 @@ import type { AuthResult } from './src/types';
 import { createGlobalStyles, rightContentStyles, createProgressStyles, createQuestionStyles, createAvatarStyles, createAnswerStyles } from './src/styles/globalStyles';
 import { TIMING, DEV_CONFIG } from './src/constants';
 import { useWebAdaptation } from './src/platform/useWebAdaptation';
-import { useAnimatedValue } from './src/hooks/useAnimatedValue';
+// useAnimatedValue is imported above
 
 function OmnilazeAppContent() {
+  const { setSafeTimeout, clearTimeoutById } = useSafeTimeout();
   // Encapsulated web-only behaviors
   useWebAdaptation();
   // web 适配逻辑已移入 useWebAdaptation
+
+  // Local helper to track Animated.Value without private APIs
+  const useAnimatedValueRef = (animated: Animated.Value) => {
+    const ref = useRef<number>(0);
+    useEffect(() => {
+      let id: any;
+      try {
+        id = (animated as any).addListener?.(({ value }: { value: number }) => {
+          if (typeof value === 'number') ref.current = value;
+        });
+      } catch {}
+      return () => {
+        try { (animated as any).removeListener?.(id); } catch {}
+      };
+    }, [animated]);
+    return ref as React.MutableRefObject<number>;
+  };
 
   // 使用状态管理hook
   const appState = useAppState();
@@ -264,8 +283,8 @@ function OmnilazeAppContent() {
     triggerQuestionFlowAnimation
   } = useAnimations();
   // Track animated values without private APIs
-  const completedOffsetValueRef = useAnimatedValue(completedQuestionsOffset);
-  const inputSectionValueRef = useAnimatedValue(inputSectionAnimation);
+  const completedOffsetValueRef = useAnimatedValueRef(completedQuestionsOffset);
+  const inputSectionValueRef = useAnimatedValueRef(inputSectionAnimation);
   
   // 移除流动动画状态管理
   const [completedQuestionsHeight, setCompletedQuestionsHeight] = useState(300);
@@ -371,7 +390,7 @@ function OmnilazeAppContent() {
     inputSectionAnimation.setValue(1);
     
     // 强制触发问题显示
-    setTimeout(() => {
+    setSafeTimeout(() => {
       const validStep = currentStep >= STEP_CONTENT.length ? 0 : currentStep;
       if (isAuthenticated && validStep < STEP_CONTENT.length) {
         const stepData = formSteps.getCurrentStepData();
@@ -392,7 +411,7 @@ function OmnilazeAppContent() {
     currentQuestionAnimation.setValue(1);
     
     // 延迟100ms后重新触发问题显示
-    setTimeout(() => {
+    setSafeTimeout(() => {
       if (isAuthenticated && currentStep < STEP_CONTENT.length && !isOrderCompleted) {
         const stepData = formSteps.getCurrentStepData();
         if (stepData) {
@@ -505,7 +524,7 @@ function OmnilazeAppContent() {
     if (process.env.NODE_ENV === 'development') {
       console.log('⏰ 设置100ms延迟后执行onComplete回调');
     }
-    setTimeout(() => {
+    setSafeTimeout(() => {
       if (process.env.NODE_ENV === 'development') {
         console.log('🎯 执行onComplete回调');
       }
@@ -600,7 +619,7 @@ function OmnilazeAppContent() {
       setCurrentStep(nextStep);
       
       // 强制在下一个事件循环中显示新问题，不依赖useEffect
-      setTimeout(() => {
+      setSafeTimeout(() => {
         console.log('💡 强制显示新问题');
         const stepData = STEP_CONTENT[nextStep];
         if (stepData) {
@@ -611,7 +630,7 @@ function OmnilazeAppContent() {
           handleQuestionTransition(stepData.message, hasUserInput);
           
           // 🔧 关键修复：延迟显示输入框，确保所有状态（包括editingStep=null）都已同步
-          setTimeout(() => {
+          setSafeTimeout(() => {
             const currentInputValue: number = inputSectionValueRef?.current ?? 0;
             if (currentInputValue === 0) {
               console.log('🔧 强制触发输入框显示，修复编辑模式后的显示bug');
@@ -679,10 +698,10 @@ function OmnilazeAppContent() {
   useEffect(() => {
     if (isFreeOrder && currentStep === 1 && editingStep === null) {
       // 在食物类型步骤自动推进（已选择奶茶）- 减少延迟
-      const timer = setTimeout(() => {
+      const timer = setSafeTimeout(() => {
         formSteps.handleNext();
       }, 1000); // 减少到1秒，减少等待时间和潜在的时序冲突
-      return () => clearTimeout(timer);
+      return () => clearTimeoutById(timer);
     }
   }, [isFreeOrder, currentStep, editingStep]);
 
@@ -697,11 +716,11 @@ function OmnilazeAppContent() {
       });
       
       // 触发预算步骤的问题显示
-      const timer = setTimeout(() => {
+      const timer = setSafeTimeout(() => {
         handleQuestionTransition('好的，这一顿打算花多少钱？', !!budget.trim());
       }, 100);
       
-      return () => clearTimeout(timer);
+      return () => clearTimeoutById(timer);
     }
   }, [isQuickOrderMode, currentStep, isAuthenticated, isOrderCompleted, isSearchingRestaurant]);
 
@@ -809,7 +828,7 @@ function OmnilazeAppContent() {
   // 连续滚动状态管理
   const scrollViewRef = useRef<ScrollView>(null);
   const [scrollPosition, setScrollPosition] = useState(new Animated.Value(0));
-  const scrollPositionValueRef = useAnimatedValue(scrollPosition);
+  const scrollPositionValueRef = useAnimatedValueRef(scrollPosition);
   const [isScrolling, setIsScrolling] = useState(false);
   const [hasInitializedScroll, setHasInitializedScroll] = useState(false);
   
@@ -1039,7 +1058,7 @@ function OmnilazeAppContent() {
     });
     
     // 延迟设置初始位置，确保 ScrollView 已经渲染且打字机效果稳定
-    const timeoutId = setTimeout(() => {
+    const timeoutId = setSafeTimeout(() => {
       // 再次检查是否还在打字，避免干扰打字机效果
       if (!isTyping) {
         scrollViewRef.current?.scrollTo({
@@ -1051,7 +1070,7 @@ function OmnilazeAppContent() {
       }
     }, isTyping ? 500 : 200); // 如果正在打字，等待更长时间
     
-    return () => clearTimeout(timeoutId);
+    return () => clearTimeoutById(timeoutId);
   }, [isStateRestored, completedQuestionsHeight, isTyping]);
 
   // AI流式问题过渡函数 - 更丝滑的现代效果

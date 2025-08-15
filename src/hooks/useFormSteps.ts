@@ -3,6 +3,7 @@ import { Animated } from 'react-native';
 import { STEP_CONTENT } from '../data/stepContent';
 import { ALLERGY_OPTIONS, PREFERENCE_OPTIONS, FOOD_TYPE_OPTIONS, convertToChineseDisplay } from '../data/checkboxOptions';
 import type { Answer, AddressSuggestion, CompletedAnswers } from '../types';
+import { useSafeTimeout } from './useSafeTimeout';
 
 interface UseFormStepsProps {
   // State values
@@ -62,6 +63,7 @@ interface UseFormStepsProps {
 }
 
 export const useFormSteps = (props: UseFormStepsProps) => {
+  const { setSafeTimeout } = useSafeTimeout();
   const {
     address, budget, deliveryTime, selectedAllergies, selectedPreferences, selectedFoodType,
     otherAllergyText, otherPreferenceText, currentStep, editingStep, completedAnswers,
@@ -259,7 +261,7 @@ export const useFormSteps = (props: UseFormStepsProps) => {
     setIsAddressConfirmed(true);
     changeEmotion('✅');
     
-    setTimeout(() => {
+    setSafeTimeout(() => {
       handleNext();
     }, 300);
   };
@@ -272,7 +274,7 @@ export const useFormSteps = (props: UseFormStepsProps) => {
     // 直接使用传入的时间值进行验证和提交，避免状态更新延迟的问题
     const timeAnswer: Answer = { type: 'deliveryTime', value: time === 'ASAP' ? '越快越好' : time };
     
-    setTimeout(async () => {
+    setSafeTimeout(async () => {
       const success = await handleAnswerSubmission(currentStep, timeAnswer, {
         onComplete: () => handleStepProgression(currentStep)
       });

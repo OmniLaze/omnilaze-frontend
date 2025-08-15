@@ -7,6 +7,7 @@ import { sendVerificationCode, verifyCodeAndLogin, verifyInviteCodeAndCreateUser
 import { useAliyunOneClickLogin, AliyunOneClickLogin } from '../services/aliyunLogin';
 import { ENV_CONFIG } from '../config/env';
 import { DEV_CONFIG } from '../constants';
+import { useSafeTimeout } from '../hooks/useSafeTimeout';
 
 export interface AuthResult {
   success: boolean;
@@ -38,6 +39,7 @@ export const AuthComponent: React.FC<AuthComponentProps> = ({
   changeEmotion,
   resetTrigger,
 }) => {
+  const { setSafeTimeout } = useSafeTimeout();
   // 登录方式状态（默认短信；仅在显式启用且Web端时默认阿里云）
   const aliyunEnabled = ENV_CONFIG.ENABLE_ALIYUN_LOGIN && Platform.OS === 'web';
   const [authMode, setAuthMode] = useState<'aliyun' | 'sms'>(aliyunEnabled ? 'aliyun' : 'sms');
@@ -305,7 +307,7 @@ export const AuthComponent: React.FC<AuthComponentProps> = ({
         changeEmotion('✅');
         
         // 显示成功动画一段时间后再继续
-        setTimeout(() => {
+        setSafeTimeout(() => {
           // 判断是否为新用户
           const isUserNew = result.is_new_user || false;
           setIsNewUser(isUserNew);
