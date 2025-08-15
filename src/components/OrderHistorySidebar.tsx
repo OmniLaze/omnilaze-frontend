@@ -4,6 +4,7 @@ import { useTheme } from '../contexts/ColorThemeContext';
 import { getOrderHistory } from '../services/api';
 import { OrderDetailModal } from './OrderDetailModal';
 import { normalizeOrderData } from '../utils/orderDataMapper';
+import { eventBus } from '../utils/eventBus';
 
 interface Order {
   id: string;
@@ -111,19 +112,13 @@ export const OrderHistorySidebar: React.FC<OrderHistorySidebarProps> = ({
 
   // 监听订单历史更新事件
   useEffect(() => {
-    const handleOrderHistoryUpdate = () => {
+    const off = eventBus.on('orderHistoryUpdate', () => {
       if (userId) {
         loadOrderHistory();
       }
-    };
-
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      window.addEventListener('orderHistoryUpdate', handleOrderHistoryUpdate);
-      return () => {
-        window.removeEventListener('orderHistoryUpdate', handleOrderHistoryUpdate);
-      };
-    }
-  }, [userId, loadOrderHistory]); // 添加 loadOrderHistory 作为依赖
+    });
+    return off;
+  }, [userId, loadOrderHistory]);
 
   const getOrderAmount = (order: Order): string => {
     // 尝试多个可能的字段名和嵌套结构

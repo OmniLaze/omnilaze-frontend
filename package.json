@@ -17,15 +17,12 @@
     "expo": "~53.0.20",
     "expo-constants": "^17.1.7",
     "expo-font": "~13.3.2",
-    "expo-location": "^18.1.6",
     "expo-splash-screen": "~0.30.10",
     "expo-status-bar": "~2.2.3",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-native": "0.79.5",
-    "react-native-maps": "1.20.1",
-    "react-native-web": "^0.20.0",
-    "socket.io-client": "^4.8.1"
+    "react-native-web": "^0.20.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
@@ -34,7 +31,6 @@
     "typescript": "~5.8.3"
   },
   "private": true,
-  "packageManager": "yarn@4.9.1+sha512.f95ce356460e05be48d66401c1ae64ef84d163dd689964962c6888a9810865e39097a5e9de748876c2e0bf89b232d583c33982773e9903ae7a76257270986538",
   "expo": {
     "doctor": {
       "reactNativeDirectoryCheck": {

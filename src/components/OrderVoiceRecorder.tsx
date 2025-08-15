@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useTheme } from '../contexts/ColorThemeContext';
+import { ENV_CONFIG } from '../config/env';
 
 interface OrderVoiceRecorderProps {
   orderId: string;
@@ -155,7 +156,7 @@ export const OrderVoiceRecorder: React.FC<OrderVoiceRecorderProps> = ({
       formData.append('user_id', userId);
       formData.append('duration_sec', recordingTime.toString());
       
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/v1/orders/${orderId}/feedback/audio`, {
+      const response = await fetch(`${ENV_CONFIG.API_URL}/v1/orders/${orderId}/feedback/audio`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,

@@ -12,6 +12,7 @@ import {
   Easing,
   StyleSheet,
 } from 'react-native';
+import { useWindowDimensions } from 'react-native';
 
 const { height, width } = Dimensions.get('window');
 
@@ -61,99 +62,13 @@ import type { AuthResult } from './src/types';
 // Styles
 import { createGlobalStyles, rightContentStyles, createProgressStyles, createQuestionStyles, createAvatarStyles, createAnswerStyles } from './src/styles/globalStyles';
 import { TIMING, DEV_CONFIG } from './src/constants';
+import { useWebAdaptation } from './src/platform/useWebAdaptation';
+import { useAnimatedValue } from './src/hooks/useAnimatedValue';
 
 function OmnilazeAppContent() {
-  // 修复React Native Web字体缩放问题 + 移动端强制适配
-  useEffect(() => {
-    // Guard against non-web environments where document/window don't exist
-    if (Platform.OS !== 'web') {
-      return;
-    }
-    if (typeof document === 'undefined' || typeof window === 'undefined') {
-      return;
-    }
-    try {
-      // 1. 强制viewport设置
-        const existingViewport = document.querySelector('meta[name="viewport"]');
-        if (existingViewport) {
-          existingViewport.setAttribute('content', 
-            'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover'
-          );
-        }
-      
-      // 2. 检测移动设备
-      const isMobileDevice = () => {
-        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test((navigator?.userAgent || '')) ||
-               window.innerWidth <= 768 ||
-               ('ontouchstart' in window) ||
-               (navigator?.maxTouchPoints && navigator.maxTouchPoints > 0);
-      };
-
-      // 3. 强制移动端布局适配
-      if (isMobileDevice()) {
-        document.documentElement.classList.add('force-mobile');
-        document.body.classList.add('force-mobile-layout');
-        
-        // 添加移动端专用CSS规则
-        const mobileStyle = document.createElement('style');
-        mobileStyle.id = 'mobile-adaptation';
-        mobileStyle.textContent = `
-          html.force-mobile, body.force-mobile-layout {
-            width: 100vw !important;
-            max-width: 100vw !important;
-            overflow-x: hidden !important;
-          }
-          
-          .force-mobile-layout * {
-            max-width: 100vw !important;
-            box-sizing: border-box !important;
-          }
-          
-          /* 强制移动端字体大小 */
-          .force-mobile div[style*="font-size: 20px"] { font-size: 17px !important; }
-          .force-mobile div[style*="font-size: 24px"] { font-size: 17px !important; }
-          .force-mobile div[style*="font-size: 28px"] { font-size: 19px !important; }
-          
-          /* 移动端触摸优化 */
-          .force-mobile-layout {
-            -webkit-touch-callout: none;
-            -webkit-tap-highlight-color: transparent;
-            touch-action: manipulation;
-          }
-        `;
-        
-        // 移除旧的样式，添加新的
-        const oldStyle = document.getElementById('mobile-adaptation');
-        if (oldStyle) oldStyle.remove();
-        document.head.appendChild(mobileStyle);
-      }
-      
-      // 4. 强制设置文本大小调整
-      document.documentElement.style.setProperty('-webkit-text-size-adjust', '100%', 'important');
-      document.documentElement.style.setProperty('-moz-text-size-adjust', '100%', 'important');  
-      document.documentElement.style.setProperty('text-size-adjust', '100%', 'important');
-      document.body.style.setProperty('-webkit-text-size-adjust', '100%', 'important');
-      document.body.style.setProperty('-moz-text-size-adjust', '100%', 'important');
-      document.body.style.setProperty('text-size-adjust', '100%', 'important');
-      
-      // 5. 监听窗口大小变化
-      const handleResize = () => {
-        if (window.innerWidth <= 768) {
-          document.body.classList.add('force-mobile-layout');
-        } else {
-          document.body.classList.remove('force-mobile-layout');
-        }
-      };
-
-      window.addEventListener('resize', handleResize);
-      
-      console.log('🔧 已应用移动端强制适配 + 字体缩放修复');
-      
-      return () => window.removeEventListener('resize', handleResize);
-    } catch (err) {
-      console.warn('Web adaptation skipped due to missing browser APIs:', err);
-    }
-  }, []);
+  // Encapsulated web-only behaviors
+  useWebAdaptation();
+  // web 适配逻辑已移入 useWebAdaptation
 
   // 使用状态管理hook
   const appState = useAppState();
@@ -173,11 +88,12 @@ function OmnilazeAppContent() {
   } = useTheme();
   
   // 创建动态样式
-  const globalStyles = createGlobalStyles(theme);
-  const progressStyles = createProgressStyles(theme);
-  const questionStyles = createQuestionStyles(theme);
-  const avatarStyles = createAvatarStyles(theme);
-  const answerStyles = createAnswerStyles(theme);
+  const { width: winW, height: winH } = useWindowDimensions();
+  const globalStyles = createGlobalStyles(theme, { width: winW, height: winH });
+  const progressStyles = createProgressStyles(theme, { width: winW, height: winH });
+  const questionStyles = createQuestionStyles(theme, { width: winW, height: winH });
+  const avatarStyles = createAvatarStyles(theme, { width: winW, height: winH });
+  const answerStyles = createAnswerStyles(theme, { width: winW, height: winH });
 
   // 订单消息日志：用于固定展示分段消息，每段只显示一次
   const [orderMessagesLog, setOrderMessagesLog] = useState<OrderLogItem[]>([]);
@@ -345,6 +261,9 @@ function OmnilazeAppContent() {
     changeEmotion,
     triggerQuestionFlowAnimation
   } = useAnimations();
+  // Track animated values without private APIs
+  const completedOffsetValueRef = useAnimatedValue(completedQuestionsOffset);
+  const inputSectionValueRef = useAnimatedValue(inputSectionAnimation);
   
   // 移除流动动画状态管理
   const [completedQuestionsHeight, setCompletedQuestionsHeight] = useState(300);
@@ -486,7 +405,7 @@ function OmnilazeAppContent() {
   useEffect(() => {
     // 如果不是订单完成状态，且有文本显示，确保输入框也显示
     if (!isOrderCompleted && displayedText && !isTyping && editingStep === null) {
-      const currentInputValue: number = (inputSectionAnimation as any)?.__getValue?.() ?? 0;
+      const currentInputValue: number = inputSectionValueRef?.current ?? 0;
       
       if (currentInputValue !== 1) {
         inputSectionAnimation.setValue(1);
@@ -563,7 +482,7 @@ function OmnilazeAppContent() {
       const newPushOffset = currentPushOffset + pushUpDistance;
       
       Animated.timing(completedQuestionsOffset, {
-        toValue: (completedQuestionsOffset as any)?.__getValue?.() - pushUpDistance,
+        toValue: (completedOffsetValueRef?.current ?? 0) - pushUpDistance,
         duration: 400,
         useNativeDriver: true,
         easing: Easing.out(Easing.quad)
@@ -691,7 +610,7 @@ function OmnilazeAppContent() {
           
           // 🔧 关键修复：延迟显示输入框，确保所有状态（包括editingStep=null）都已同步
           setTimeout(() => {
-            const currentInputValue: number = (inputSectionAnimation as any)?.__getValue?.() ?? 0;
+            const currentInputValue: number = inputSectionValueRef?.current ?? 0;
             if (currentInputValue === 0) {
               console.log('🔧 强制触发输入框显示，修复编辑模式后的显示bug');
               animateInputSection(1, 250);
@@ -888,6 +807,7 @@ function OmnilazeAppContent() {
   // 连续滚动状态管理
   const scrollViewRef = useRef<ScrollView>(null);
   const [scrollPosition, setScrollPosition] = useState(new Animated.Value(0));
+  const scrollPositionValueRef = useAnimatedValue(scrollPosition);
   const [isScrolling, setIsScrolling] = useState(false);
   const [hasInitializedScroll, setHasInitializedScroll] = useState(false);
   
@@ -1168,6 +1088,8 @@ function OmnilazeAppContent() {
       return; // 提前返回，不执行完整的认证流程
     }
     
+    // 切换到已认证流程前，清空旧的认证问题文本，避免挡住后续问题
+    try { clearText?.(); } catch {}
     setIsAuthenticated(true);
     setAuthResult(result);
     
@@ -1253,23 +1175,31 @@ function OmnilazeAppContent() {
     await handleAnswerSubmission(-1, phoneAnswer, {
       skipAnimation: true, // 认证不需要动画
       onComplete: () => {
-        // 立即推进到第一步，无延迟
+        // 立即推进到第一步，并清空旧文本，保证问题立即切换
         setCurrentStep(0);
+        try { clearText?.(); } catch {}
       }
     });
   }, [
-    handleAnswerSubmission, setIsAuthenticated, setAuthResult, setAddress, 
+    handleAnswerSubmission, setIsAuthenticated, setAuthResult, setAddress, clearText,
     setSelectedFoodType, setSelectedAllergies, setSelectedPreferences, setBudget,
     setOtherAllergyText, setOtherPreferenceText, setSelectedAddressSuggestion,
     setCompletedAnswers, answerAnimations, setIsQuickOrderMode, 
     setIsOrderCompleted, setIsSearchingRestaurant, setCurrentStep
   ]);
 
+  // 未认证阶段：当认证问题文本变化（如从手机号 -> 验证码 -> 邀请码）时，立即刷新显示
+  useEffect(() => {
+    if (!isAuthenticated) {
+      try { setTextDirectly(authQuestionText); } catch {}
+    }
+  }, [authQuestionText, isAuthenticated, setTextDirectly]);
+
   // 当打字机效果完成后显示输入框 - 立即触发版本
   useEffect(() => {
     if (displayedText && !isTyping && editingStep === null) {
       // 读取当前动画值（避免直接访问私有属性）
-      const currentInputValue: number = (inputSectionAnimation as any)?.__getValue?.() ?? 0;
+      const currentInputValue: number = inputSectionValueRef?.current ?? 0;
       if (currentInputValue === 0) {
         // 打字机完成后立即显示输入框，使用统一的动画函数
         if (process.env.NODE_ENV === 'development') {
@@ -1279,12 +1209,22 @@ function OmnilazeAppContent() {
       }
     }
   }, [displayedText, isTyping, editingStep]);
+
+  // 未认证时，确保输入区域可见（不依赖打字机状态）
+  useEffect(() => {
+    if (!isAuthenticated) {
+      const currentInputValue: number = inputSectionValueRef?.current ?? 0;
+      if (currentInputValue === 0) {
+        animateInputSection(1, 200);
+      }
+    }
+  }, [isAuthenticated, inputSectionAnimation, animateInputSection]);
   
   // 🔧 修复：编辑模式结束后的额外检查，避免输入框不显示的bug
   useEffect(() => {
     // 当编辑模式结束（editingStep从非null变为null）且有显示文本时，确保输入框显示
     if (editingStep === null && displayedText && !isTyping) {
-      const currentInputValue: number = (inputSectionAnimation as any)?.__getValue?.() ?? 0;
+      const currentInputValue: number = inputSectionValueRef?.current ?? 0;
       if (currentInputValue === 0) {
         if (process.env.NODE_ENV === 'development') {
           console.log('🔧 编辑模式结束后补充检查，强制显示输入框');
@@ -1312,6 +1252,13 @@ function OmnilazeAppContent() {
       completedAnswersForCurrentStep: completedAnswers[currentStep] ? '已存在' : '不存在'
     });
 
+    // 优先处理未认证态：即使状态尚未恢复，也先显示认证问题，避免首屏空白
+    if (editingStep === null && !isAuthenticated && !isTyping && !displayedText) {
+      console.log('🔐 显示认证问题(优先):', authQuestionText);
+      handleQuestionTransition(authQuestionText);
+      return;
+    }
+
     if (!isStateRestored) return;
     
     // 修复步骤超出范围的问题
@@ -1331,9 +1278,9 @@ function OmnilazeAppContent() {
       return; // 订单完成后不再显示其他问题
     }
     
-    // 未认证状态 - 显示认证问题
+    // 未认证状态 - 显示认证问题（状态恢复后再次兜底）
     if (editingStep === null && !isAuthenticated && !isTyping && !displayedText) {
-      console.log('🔐 显示认证问题:', authQuestionText);
+      console.log('🔐 显示认证问题(恢复后):', authQuestionText);
       handleQuestionTransition(authQuestionText);
       return;
     }
@@ -1410,6 +1357,26 @@ function OmnilazeAppContent() {
     }
   }, [displayedText, isTyping]);
 
+  // 刷新/状态恢复后：自动跳转到第一个未完成的步骤，避免出现“没有问题组件”或错位
+  useEffect(() => {
+    if (!isStateRestored || !isAuthenticated || isOrderCompleted) return;
+    if (editingStep !== null) return; // 编辑模式下不干预
+
+    // 查找第一个未完成的步骤
+    let nextStepIndex = -1;
+    for (let i = 0; i < STEP_CONTENT.length; i++) {
+      if (!completedAnswers[i]) { nextStepIndex = i; break; }
+    }
+
+    // 如果都完成了，停留在当前步骤（可能是订单确认）；否则跳到第一个未完成步骤
+    if (nextStepIndex >= 0 && currentStep !== nextStepIndex) {
+      console.log('🧭 恢复后定位到第一个未完成步骤:', nextStepIndex);
+      setCurrentStep(nextStepIndex);
+      // 清空历史文本，确保显示对应问题
+      clearText?.();
+    }
+  }, [isStateRestored, isAuthenticated, isOrderCompleted, editingStep, completedAnswers, currentStep, setCurrentStep, clearText]);
+
   // 编辑模式效果 - 使用统一的问题管理
   useEffect(() => {
     if (editingStep !== null && isStateRestored) {
@@ -1419,7 +1386,7 @@ function OmnilazeAppContent() {
         
         // 🎯 智能编辑模式滚动 - 相对滚动算法
         // 1. 获取当前滚动位置
-        const currentScrollPos = (scrollPosition as any)?.__getValue?.() ?? 0;
+        const currentScrollPos = scrollPositionValueRef?.current ?? 0;
         
         // 2. 计算移动端页眉高度
         const mobileHeaderHeight = scrollDimensions.mobileHeaderHeight;
@@ -1726,6 +1693,8 @@ function OmnilazeAppContent() {
               <>
                 {/* 已完成问题列表 */}
                 {Object.keys(effectiveCompletedAnswers)
+                  // 隐藏登录手机号条目（索引 -1），避免干扰后续问题展示
+                  .filter((k) => parseInt(k) >= 0)
                   .sort((a, b) => parseInt(a) - parseInt(b))
                   .map((stepIndex) => {
                     const index = parseInt(stepIndex);
@@ -1734,9 +1703,7 @@ function OmnilazeAppContent() {
                     // 移除过渡问题检查逻辑
                     
                     // 为手机号问题（index: -1）提供特殊处理
-                    const questionText = index === -1 ? 
-                      '你的手机号码是多少？' : 
-                      STEP_CONTENT[index]?.message || '';
+                    const questionText = STEP_CONTENT[index]?.message || '';
                     
                     return (
                       <Animated.View
@@ -1807,7 +1774,8 @@ function OmnilazeAppContent() {
               {/* 未认证状态 - 显示认证组件 */}
               {!isAuthenticated && (
                 <CurrentQuestion
-                  displayedText={displayedText}
+                  key="auth"
+                  displayedText={displayedText || authQuestionText}
                   isTyping={isTyping}
                   showCursor={showCursor}
                   cursorOpacity={cursorOpacity}
@@ -1837,6 +1805,7 @@ function OmnilazeAppContent() {
                 // 如果正在搜索餐厅或订单已完成，只显示相应文本，不显示其他内容
                 (isSearchingRestaurant || isOrderCompleted) && currentStep !== 6 ? (
                   <CurrentQuestion
+                    key={`state-${isSearchingRestaurant?'search':isOrderCompleted?'done':'idle'}-${currentStep}`}
                     displayedText={displayedText}
                     isTyping={isTyping}
                     showCursor={showCursor}
@@ -1854,6 +1823,7 @@ function OmnilazeAppContent() {
                 ) : (
                   (currentStep < STEP_CONTENT.length && !completedAnswers[currentStep] && currentStep !== 6) && (
                     <CurrentQuestion
+                      key={`step-${editingStep !== null ? `edit-${editingStep}` : currentStep}`}
                       displayedText={displayedText}
                       isTyping={isTyping}
                       showCursor={showCursor}
@@ -1886,6 +1856,7 @@ function OmnilazeAppContent() {
               {/* 编辑模式 - 当有编辑步骤时显示 */}
               {editingStep !== null && (
                 <CurrentQuestion
+                  key={`edit-${editingStep}`}
                   displayedText={displayedText}
                   isTyping={isTyping}
                   showCursor={showCursor}
@@ -2085,10 +2056,14 @@ function OmnilazeAppContent() {
   );
 }
 
+import { ErrorBoundary } from './src/components/ErrorBoundary';
+
 export default function OmnilazeApp() {
   return (
-    <ColorThemeProvider>
-      <OmnilazeAppContent />
-    </ColorThemeProvider>
+    <ErrorBoundary>
+      <ColorThemeProvider>
+        <OmnilazeAppContent />
+      </ColorThemeProvider>
+    </ErrorBoundary>
   );
 }

@@ -1,10 +1,10 @@
 import { StyleSheet, Dimensions, Platform } from 'react-native';
 import { COLORS, LAYOUT } from '../constants';
-
-const { width, height } = Dimensions.get('window');
+type Dims = { width: number; height: number };
+const fallbackDims: Dims = Dimensions.get('window');
 
 // 创建动态样式函数
-export const createGlobalStyles = (theme: any = COLORS) => StyleSheet.create({
+export const createGlobalStyles = (theme: any = COLORS, dims?: Dims) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.BACKGROUND,
@@ -19,9 +19,9 @@ export const createGlobalStyles = (theme: any = COLORS) => StyleSheet.create({
     maxWidth: 1200,
     alignSelf: 'center',
     width: '100%',
-    paddingHorizontal: width > 768 ? 48 : 16,
-    paddingVertical: width > 768 ? 32 : 16,
-    minHeight: height,
+    paddingHorizontal: (dims?.width ?? fallbackDims.width) > 768 ? 48 : 16,
+    paddingVertical: (dims?.width ?? fallbackDims.width) > 768 ? 32 : 16,
+    minHeight: dims?.height ?? fallbackDims.height,
   },
   contentContainer: {
     flexDirection: 'column',
@@ -34,19 +34,19 @@ export const createGlobalStyles = (theme: any = COLORS) => StyleSheet.create({
 // 保持默认导出以向后兼容
 export const globalStyles = createGlobalStyles();
 
-export const createProgressStyles = (theme: any = COLORS) => StyleSheet.create({
+export const createProgressStyles = (theme: any = COLORS, dims?: Dims) => StyleSheet.create({
   progressContainer: {
-    position: width > 768 ? 'absolute' : 'relative',
-    top: width > 768 ? 130 : 0,
-    left: width > 768 ? 100 : 0,
+    position: (dims?.width ?? fallbackDims.width) > 768 ? 'absolute' : 'relative',
+    top: (dims?.width ?? fallbackDims.width) > 768 ? 130 : 0,
+    left: (dims?.width ?? fallbackDims.width) > 768 ? 100 : 0,
     zIndex: 10,
-    width: width > 768 ? 120 : '100%',
-    marginBottom: width > 768 ? 0 : 16,
-    paddingHorizontal: width > 768 ? 0 : 16,
-    backgroundColor: width > 768 ? 'transparent' : theme.WHITE,
-    paddingVertical: width > 768 ? 0 : 12,
-    borderBottomWidth: width > 768 ? 0 : 1,
-    borderBottomColor: width > 768 ? 'transparent' : theme.BORDER,
+    width: (dims?.width ?? fallbackDims.width) > 768 ? 120 : '100%',
+    marginBottom: (dims?.width ?? fallbackDims.width) > 768 ? 0 : 16,
+    paddingHorizontal: (dims?.width ?? fallbackDims.width) > 768 ? 0 : 16,
+    backgroundColor: (dims?.width ?? fallbackDims.width) > 768 ? 'transparent' : theme.WHITE,
+    paddingVertical: (dims?.width ?? fallbackDims.width) > 768 ? 0 : 12,
+    borderBottomWidth: (dims?.width ?? fallbackDims.width) > 768 ? 0 : 1,
+    borderBottomColor: (dims?.width ?? fallbackDims.width) > 768 ? 'transparent' : theme.BORDER,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 20,
@@ -76,16 +76,16 @@ export const createProgressStyles = (theme: any = COLORS) => StyleSheet.create({
     fontWeight: '600',
   },
   progressSteps: {
-    gap: width > 768 ? 16 : 12,
-    flexDirection: width > 768 ? 'column' : 'row',
-    justifyContent: width > 768 ? 'flex-start' : 'space-between',
-    alignItems: width > 768 ? 'flex-start' : 'center',
+    gap: (dims?.width ?? fallbackDims.width) > 768 ? 16 : 12,
+    flexDirection: (dims?.width ?? fallbackDims.width) > 768 ? 'column' : 'row',
+    justifyContent: (dims?.width ?? fallbackDims.width) > 768 ? 'flex-start' : 'space-between',
+    alignItems: (dims?.width ?? fallbackDims.width) > 768 ? 'flex-start' : 'center',
   },
   stepItem: {
-    flexDirection: width > 768 ? 'row' : 'column',
+    flexDirection: (dims?.width ?? fallbackDims.width) > 768 ? 'row' : 'column',
     alignItems: 'center',
-    gap: width > 768 ? 12 : 4,
-    flex: width > 768 ? 0 : 1,
+    gap: (dims?.width ?? fallbackDims.width) > 768 ? 12 : 4,
+    flex: (dims?.width ?? fallbackDims.width) > 768 ? 0 : 1,
   },
   activeStep: {
     width: 12,
@@ -109,13 +109,13 @@ export const createProgressStyles = (theme: any = COLORS) => StyleSheet.create({
     borderRadius: 6,
   },
   activeStepText: {
-    fontSize: width > 768 ? 14 : 12,
+    fontSize: (dims?.width ?? fallbackDims.width) > 768 ? 14 : 12,
     fontWeight: '500',
     color: theme.PRIMARY,
     textAlign: 'center',
   },
   inactiveStepText: {
-    fontSize: width > 768 ? 14 : 12,
+    fontSize: (dims?.width ?? fallbackDims.width) > 768 ? 14 : 12,
     color: theme.TEXT_MUTED,
     textAlign: 'center',
   },
@@ -124,7 +124,7 @@ export const createProgressStyles = (theme: any = COLORS) => StyleSheet.create({
 // 保持默认导出以向后兼容
 export const progressStyles = createProgressStyles();
 
-export const createQuestionStyles = (theme: any = COLORS) => StyleSheet.create({
+export const createQuestionStyles = (theme: any = COLORS, dims?: Dims) => StyleSheet.create({
   completedQuestionContainer: {
     marginBottom: -4, // 减少已完成问题之间的间距
   },
@@ -132,9 +132,9 @@ export const createQuestionStyles = (theme: any = COLORS) => StyleSheet.create({
     backgroundColor: 'transparent',
     borderRadius: 0,
     padding: 0,
-    marginBottom: width > 768 ? 20 : 16, // 大幅减少底部间距
+    marginBottom: (dims?.width ?? fallbackDims.width) > 768 ? 20 : 16, // 大幅减少底部间距
     marginTop: 0, // 移除顶部间距，让两个区域紧贴
-    minHeight: width > 768 ? 200 : 150, // 保持原先的移动端最小高度
+    minHeight: (dims?.width ?? fallbackDims.width) > 768 ? 200 : 150, // 保持原先的移动端最小高度
   },
   completedQuestionRow: {
     backgroundColor: 'transparent',
@@ -147,16 +147,16 @@ export const createQuestionStyles = (theme: any = COLORS) => StyleSheet.create({
     marginBottom: 8, // 减少从16到8
   },
   questionText: {
-    fontSize: Platform.OS === 'web' ? (width > 768 ? 18 : 16) : 16,
+    fontSize: Platform.OS === 'web' ? ((dims?.width ?? fallbackDims.width) > 768 ? 18 : 16) : 16,
     color: theme.TEXT_PRIMARY, // 改为黑色，通过外层透明度控制弱化效果
-    lineHeight: Platform.OS === 'web' ? (width > 768 ? 26 : 22) : 22,
+    lineHeight: Platform.OS === 'web' ? ((dims?.width ?? fallbackDims.width) > 768 ? 26 : 22) : 22,
     flex: 1,
     // 移除opacity，通过外层容器控制透明度
   },
   currentQuestionText: {
-    fontSize: Platform.OS === 'web' ? (width > 768 ? 20 : 18) : 18,
+    fontSize: Platform.OS === 'web' ? ((dims?.width ?? fallbackDims.width) > 768 ? 20 : 18) : 18,
     color: theme.TEXT_PRIMARY,
-    lineHeight: Platform.OS === 'web' ? (width > 768 ? 28 : 24) : 24,
+    lineHeight: Platform.OS === 'web' ? ((dims?.width ?? fallbackDims.width) > 768 ? 28 : 24) : 24,
     flex: 1,
     fontWeight: '500',
   },
@@ -169,7 +169,7 @@ export const createQuestionStyles = (theme: any = COLORS) => StyleSheet.create({
   },
   errorText: {
     color: theme.ERROR,
-    fontSize: Platform.OS === 'web' ? (width > 768 ? 16 : 14) : 14,
+    fontSize: Platform.OS === 'web' ? ((dims?.width ?? fallbackDims.width) > 768 ? 16 : 14) : 14,
     marginTop: 4,
     marginLeft: 16,
   },
@@ -178,7 +178,7 @@ export const createQuestionStyles = (theme: any = COLORS) => StyleSheet.create({
 // 保持默认导出以向后兼容
 export const questionStyles = createQuestionStyles();
 
-export const createAvatarStyles = (theme: any = COLORS) => StyleSheet.create({
+export const createAvatarStyles = (theme: any = COLORS, _dims?: Dims) => StyleSheet.create({
   avatarSimple: {
     width: LAYOUT.AVATAR_SIZE,
     height: LAYOUT.AVATAR_SIZE,
@@ -203,7 +203,7 @@ export const createAvatarStyles = (theme: any = COLORS) => StyleSheet.create({
 // 保持默认导出以向后兼容
 export const avatarStyles = createAvatarStyles();
 
-export const createAnswerStyles = (theme: any = COLORS) => StyleSheet.create({
+export const createAnswerStyles = (theme: any = COLORS, dims?: Dims) => StyleSheet.create({
   completedAnswerText: {
     marginLeft: 0, // 移除左边距，因为不再需要为头像留空间
     marginTop: -2, // 减少间距，从2改为-2
@@ -211,10 +211,10 @@ export const createAnswerStyles = (theme: any = COLORS) => StyleSheet.create({
     opacity: 0.8, // 整体降低透明度
   },
   answerValue: {
-    fontSize: Platform.OS === 'web' ? (width > 768 ? 18 : 16) : 16,
+    fontSize: Platform.OS === 'web' ? (((dims?.width ?? fallbackDims.width) > 768) ? 18 : 16) : 16,
     color: theme.TEXT_PRIMARY, // 改为黑色，通过外层透明度控制弱化效果
     fontWeight: '400',
-    lineHeight: Platform.OS === 'web' ? (width > 768 ? 26 : 22) : 22,
+    lineHeight: Platform.OS === 'web' ? (((dims?.width ?? fallbackDims.width) > 768) ? 26 : 22) : 22,
     // 移除opacity，通过外层容器控制透明度
   },
   answerWithEdit: {
@@ -240,10 +240,10 @@ export const answerStyles = createAnswerStyles();
 export const rightContentStyles = StyleSheet.create({
   rightContent: {
     width: '100%',
-    minHeight: height * 1.2,
-    maxWidth: width > 768 ? 700 : '100%',
+    minHeight: fallbackDims.height * 1.2,
+    maxWidth: fallbackDims.width > 768 ? 700 : '100%',
     alignSelf: 'center',
-    paddingTop: width > 768 ? 90 : 16, // 减少移动端顶部内边距，因为现在进度条在文档流中
+    paddingTop: fallbackDims.width > 768 ? 90 : 16, // 减少移动端顶部内边距，因为现在进度条在文档流中
   },
 });
 
@@ -261,6 +261,6 @@ export const loadingStyles = StyleSheet.create({
     justifyContent: 'center',
   },
   loadingEmoji: {
-    fontSize: Platform.OS === 'web' ? (width > 768 ? 36 : 32) : 32,
+    fontSize: Platform.OS === 'web' ? (fallbackDims.width > 768 ? 36 : 32) : 32,
   },
 });

@@ -47,7 +47,7 @@ export const AuthComponent: React.FC<AuthComponentProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   
   // 阿里云一键登录Hook（仅在启用时使用）
-  const aliyunLogin = useAliyunOneClickLogin(process.env.REACT_APP_ALIYUN_APP_ID || 'demo');
+  const aliyunLogin = useAliyunOneClickLogin((process.env.EXPO_PUBLIC_ALIYUN_APP_ID as string) || 'demo');
   
   // 短信验证相关状态
   const [phoneNumber, setPhoneNumber] = useState('');

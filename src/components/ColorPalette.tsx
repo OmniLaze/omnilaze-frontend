@@ -537,10 +537,7 @@ const styles = StyleSheet.create({
     ` : undefined,
     backgroundSize: Platform.OS === 'web' ? '8px 8px' : undefined,
     // Remove invalid backgroundPosition for React Native Web compatibility
-    ...(Platform.OS === 'web' && {
-      // Use a single background position instead of multiple values
-      backgroundPosition: '0px 0px',
-    }),
+    // backgroundPosition is not supported by react-native-web style validator
   },
   sliderThumb: {
     width: 20,

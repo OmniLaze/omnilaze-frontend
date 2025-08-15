@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { createOrder, submitOrder, saveUserPreferences } from '../services/api';
 import { TIMING } from '../constants';
+import { eventBus } from '../utils/eventBus';
 import type { AuthResult } from '../types';
 
 interface UseOrderManagementProps {
@@ -233,21 +234,17 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
         
         // 通知订单历史更新 - 触发组件重新获取订单列表
         // 传递更详细的订单信息以便快速更新UI
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('orderHistoryUpdate', { 
-            detail: { 
-              orderId: result.order_id,
-              orderNumber: result.order_number,
-              orderData: {
-                ...orderData,
-                id: result.order_id,
-                orderNumber: result.order_number,
-                status: 'pending',
-                createdAt: new Date().toISOString()
-              }
-            } 
-          }));
-        }
+        eventBus.emit('orderHistoryUpdate', { 
+          orderId: result.order_id,
+          orderNumber: result.order_number,
+          orderData: {
+            ...orderData,
+            id: result.order_id,
+            orderNumber: result.order_number,
+            status: 'pending',
+            createdAt: new Date().toISOString()
+          }
+        });
         
         handleSubmitOrder(result.order_id!);
       } else {
