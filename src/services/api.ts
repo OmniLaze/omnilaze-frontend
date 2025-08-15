@@ -581,13 +581,25 @@ export async function createOrder(userId: string, phoneNumber: string, formData:
       })
     });
 
-    const data = await response.json();
+    const raw = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.message || '创建订单失败');
+      throw new Error(raw.message || '创建订单失败');
     }
 
-    return data;
+    // 兼容后端返回 { success, code, message, data: { order_id, order_number } }
+    if (raw?.success && raw?.data) {
+      const { order_id, order_number, user_sequence_number } = raw.data
+      return {
+        success: true,
+        message: raw.message,
+        order_id,
+        order_number,
+        user_sequence_number,
+      } as CreateOrderResponse
+    }
+
+    return raw;
   } catch (error) {
     return {
       success: false,
