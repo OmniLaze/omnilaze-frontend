@@ -28,6 +28,9 @@ interface FormInputContainerProps {
   isAddressConfirmed: boolean;
   isFreeOrder: boolean;
   
+  // User auth info
+  authResult?: any;
+  
   // Order status - 新增
   isSearchingRestaurant?: boolean;
   isOrderCompleted?: boolean;
@@ -85,6 +88,7 @@ export const FormInputContainer: React.FC<FormInputContainerProps> = ({
   otherPreferenceText,
   isAddressConfirmed,
   isFreeOrder,
+  authResult,
   isSearchingRestaurant = false, // 新增参数
   isOrderCompleted = false, // 新增参数
   handleAddressChange,
@@ -204,6 +208,7 @@ export const FormInputContainer: React.FC<FormInputContainerProps> = ({
         selectedFoodType={selectedFoodType}
         budget={budget}
         isFreeOrder={isFreeOrder}
+        authResult={authResult}
         animationValue={inputSectionAnimation}
         onConfirmOrder={handleConfirmOrder}
         onPaymentComplete={onPaymentComplete || ((success, orderText) => {

@@ -4,7 +4,7 @@ import { ActionButton } from './ActionButton';
 import { useTheme } from '../contexts/ColorThemeContext';
 import { createQuestionStyles } from '../styles/globalStyles';
 import { useTypewriterEffect } from '../hooks';
-import { createPayment, queryPaymentStatus, redirectToWechatPayment, CreatePaymentResponse } from '../services/api';
+import { createPayment, queryPaymentStatus, redirectToAlipayPayment, CreatePaymentResponse, createOrder, submitOrder } from '../services/api';
 
 interface OrderConfirmationComponentProps {
   // 用户填写的所有信息
@@ -15,6 +15,9 @@ interface OrderConfirmationComponentProps {
   selectedFoodType: string[];
   budget: string;
   isFreeOrder?: boolean;
+  
+  // 用户信息
+  authResult?: any; // 包含userId和phoneNumber
   
   // 动画和状态
   animationValue: Animated.Value;
@@ -43,6 +46,7 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
   selectedFoodType,
   budget,
   isFreeOrder = false,
+  authResult,
   animationValue,
   onConfirmOrder,
   onPaymentComplete,
@@ -81,7 +85,7 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
     clearText: clearSummaryText
   } = useTypewriterEffect();
   
-  // 新增的微信支付状态
+  // 新增的支付状态
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [paymentData, setPaymentData] = useState<CreatePaymentResponse['data'] | null>(null);
@@ -229,12 +233,44 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
     setPaymentStatus('processing');
     
     try {
-      // TODO: 需要从订单创建响应中获取orderId
-      const orderId = 'temp-order-id'; // 这应该来自实际的订单创建
+      // 先创建订单
+      const userId = authResult?.userId || authResult?.user_id || '';
+      const phoneNumber = authResult?.phoneNumber || authResult?.phone_number || '';
       
+      if (!userId || !phoneNumber) {
+        throw new Error('用户信息不完整，请重新登录');
+      }
+      
+      const orderData = {
+        address,
+        budget,
+        deliveryTime,
+        selectedAllergies,
+        selectedPreferences,
+        selectedFoodType,
+      };
+      
+      console.log('📦 创建订单:', { userId, phoneNumber, orderData });
+      const orderResponse = await createOrder(userId, phoneNumber, orderData);
+      
+      if (!orderResponse.success || !orderResponse.order_id) {
+        throw new Error(orderResponse.message || '订单创建失败');
+      }
+      
+      const orderId = orderResponse.order_id;
+      console.log('✅ 订单创建成功:', orderId);
+      
+      // 提交订单
+      const submitResponse = await submitOrder(orderId);
+      if (!submitResponse.success) {
+        console.warn('⚠️ 订单提交失败:', submitResponse.message);
+      }
+      
+      // 创建支付
+      console.log('💳 创建支付:', { orderId, amount: parseFloat(budget) });
       const response = await createPayment({
         orderId,
-        provider: 'wechatpay',
+        provider: 'alipay', // 改为支付宝
         amount: parseFloat(budget),
         paymentMethod: 'h5',
       });
@@ -243,12 +279,12 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
         setPaymentData(response.data);
         
         if (response.data.h5_url) {
-          // 微信H5支付：跳转到支付页面
+          // 支付宝H5支付：跳转到支付页面
           const returnUrl = Platform.OS === 'web' 
             ? `${window.location.origin}/payment/callback`
             : 'omnilaze://payment/callback';
           
-          redirectToWechatPayment(response.data.h5_url, returnUrl);
+          redirectToAlipayPayment(response.data.h5_url, returnUrl);
           
           // 开始轮询支付状态
           startPaymentStatusCheck(response.data.payment_id);
@@ -379,7 +415,7 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>微信支付</Text>
+            <Text style={styles.modalTitle}>支付宝支付</Text>
             
             {paymentStatus === 'idle' && (
               <>
@@ -387,7 +423,7 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
                   支付金额：¥{budget}
                 </Text>
                 <Text style={styles.modalNote}>
-                  {isFreeOrder ? '免单订单' : '点击下方按钮进行微信支付'}
+                  {isFreeOrder ? '免单订单' : '点击下方按钮进行支付宝支付'}
                 </Text>
               </>
             )}
@@ -438,7 +474,7 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
                   onPress={() => {
                     // 重新打开支付页面
                     if (paymentData?.h5_url) {
-                      redirectToWechatPayment(paymentData.h5_url);
+                      redirectToAlipayPayment(paymentData.h5_url);
                     }
                   }}
                 >

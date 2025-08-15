@@ -1187,3 +1187,27 @@ export function redirectToWechatPayment(h5Url: string, returnUrl?: string) {
     });
   }
 };
+
+/**
+ * 处理支付宝H5支付跳转
+ * 在新窗口打开支付链接或在当前页面跳转
+ */
+export function redirectToAlipayPayment(h5Url: string, returnUrl?: string) {
+  if (!h5Url) {
+    console.error('Alipay H5 payment URL is required');
+    return;
+  }
+
+  // 支付宝URL通常已经包含了return_url，不需要额外添加
+  const paymentUrl = h5Url;
+
+  if (Platform.OS === 'web') {
+    // Web平台：在当前窗口跳转（支付宝H5支付通常需要在同一窗口）
+    window.location.href = paymentUrl;
+  } else {
+    // 移动平台：使用React Native Linking打开
+    import('react-native').then(({ Linking }) => {
+      Linking.openURL(paymentUrl);
+    });
+  }
+};

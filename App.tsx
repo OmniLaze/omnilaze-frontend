@@ -1568,6 +1568,7 @@ function OmnilazeAppContent() {
         otherPreferenceText={otherPreferenceText}
         isAddressConfirmed={isAddressConfirmed}
         isFreeOrder={isFreeOrder}
+        authResult={authResult}
         isSearchingRestaurant={isSearchingRestaurant} // 新增参数
         isOrderCompleted={isOrderCompleted} // 新增参数
         handleAddressChange={formSteps.handleAddressChange}
