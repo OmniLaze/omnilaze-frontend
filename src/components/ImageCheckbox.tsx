@@ -260,11 +260,22 @@ export const ImageCheckbox: React.FC<ImageCheckboxProps> = ({
                 <View style={styles.imageContainer}>
                   <Image 
                     source={
-                      (Platform.OS === 'web' && hoveredId === option.id && option.hoverImage) 
-                        ? option.hoverImage 
+                      // 选中状态：始终显示 af 图片
+                      isSelected && option.hoverImage 
+                        ? option.hoverImage
+                        // 未选中但悬停状态：显示 af 图片  
+                        : (Platform.OS === 'web' && hoveredId === option.id && option.hoverImage)
+                        ? option.hoverImage
+                        // 默认状态：显示 bf 图片
                         : option.image
                     } 
-                    style={styles.optionImage}
+                    style={[
+                      styles.optionImage,
+                      // 为 rice 和 milk-tea 图片应用 0.85 倍缩放
+                      (option.id === 'meal' || option.id === 'drink') && {
+                        transform: [{ scale: 0.85 }]
+                      }
+                    ]}
                     resizeMode="contain"
                   />
                 </View>
