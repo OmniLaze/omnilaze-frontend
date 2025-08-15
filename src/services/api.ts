@@ -1169,8 +1169,8 @@ export function redirectToWechatPayment(h5Url: string, returnUrl?: string) {
     // Web平台：在新窗口打开
     window.open(paymentUrl, '_blank');
   } else {
-    // 移动平台：使用Linking打开
-    import('expo-linking').then(Linking => {
+    // 移动平台：使用React Native Linking打开
+    import('react-native').then(({ Linking }) => {
       Linking.openURL(paymentUrl);
     });
   }
