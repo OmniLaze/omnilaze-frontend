@@ -62,49 +62,47 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
     
     setOrderStatusFlowRunning(true);
     
-    // 1秒后开始订单状态推进
-    setTimeout(() => {
-      // 第一步：将"正在挑选..."推入历史消息
-      pushOrderMessage("正在挑选", 'assistant');
-      
-      // 显示"点好了，预计送达时间为12:00-12:20"
-      typeText("点好了，预计送达时间为12:00-12:20", {
-        instant: false,
-        streaming: false,
-        speed: 30,
-        onComplete: () => {
-          // 1秒后推进到下一个状态
-          setTimeout(() => {
-            // 第二步：将当前消息推入历史
-            pushOrderMessage("点好了，预计送达时间为12:00-12:20", 'assistant');
-            
-            // 显示"正在持续跟进送达情况，记得接听电话..."
-            typeText("正在持续跟进送达情况，记得接听电话", {
-              instant: false,
-              streaming: false,
-              speed: 30,
-              onComplete: () => {
-                // 2秒后推进到最终状态
-                setTimeout(() => {
-                  // 第三步：将当前消息推入历史
-                  pushOrderMessage("正在持续跟进送达情况，记得接听电话", 'delivery');
-                  
-                  // 显示最终消息
-                  typeText("已送达，骑手未提供存放位置图片，请在周围找找～", {
-                    instant: false,
-                    streaming: false,
-                    speed: 30,
-                    onComplete: () => {
-                      setOrderStatusFlowRunning(false);
-                    }
-                  });
-                }, 2000); // 2秒等待
-              }
-            });
-          }, 1000); // 1秒等待
-        }
-      });
-    }, 1000); // 1秒等待
+    // 立即开始订单状态推进（外部已经有延迟）
+    // 第一步：将"正在挑选..."推入历史消息
+    pushOrderMessage("正在挑选", 'assistant');
+    
+    // 显示"点好了，预计送达时间为12:00-12:20"
+    typeText("点好了，预计送达时间为12:00-12:20", {
+      instant: false,
+      streaming: false,
+      speed: 30,
+      onComplete: () => {
+        // 1秒后推进到下一个状态
+        setTimeout(() => {
+          // 第二步：将当前消息推入历史
+          pushOrderMessage("点好了，预计送达时间为12:00-12:20", 'assistant');
+          
+          // 显示"正在持续跟进送达情况，记得接听电话..."
+          typeText("正在持续跟进送达情况，记得接听电话", {
+            instant: false,
+            streaming: false,
+            speed: 30,
+            onComplete: () => {
+              // 2秒后推进到最终状态
+              setTimeout(() => {
+                // 第三步：将当前消息推入历史
+                pushOrderMessage("正在持续跟进送达情况，记得接听电话", 'delivery');
+                
+                // 显示最终消息
+                typeText("已送达，骑手未提供存放位置图片，请在周围找找～", {
+                  instant: false,
+                  streaming: false,
+                  speed: 30,
+                  onComplete: () => {
+                    setOrderStatusFlowRunning(false);
+                  }
+                });
+              }, 2000); // 2秒等待
+            }
+          });
+        }, 1000); // 1秒等待
+      }
+    });
   };
 
   // 新增：创建订单总结文本并推入历史
@@ -330,8 +328,10 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
                   budget
                 );
                 
-                // 开始订单状态推进流程
-                handleOrderStatusFlow();
+                // 1秒后开始订单状态推进流程（让"正在挑选"先显示一段时间）
+                setTimeout(() => {
+                  handleOrderStatusFlow();
+                }, 1000);
               } catch (error) {
                 setIsSearchingRestaurant(false);
                 changeEmotion('😰');
@@ -386,8 +386,10 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
                 budget
               );
               
-              // 开始订单状态推进流程
-              handleOrderStatusFlow();
+              // 1秒后开始订单状态推进流程（让"正在挑选"先显示一段时间）
+              setTimeout(() => {
+                handleOrderStatusFlow();
+              }, 1000);
             } catch (error) {
               setIsSearchingRestaurant(false);
               changeEmotion('😰');
