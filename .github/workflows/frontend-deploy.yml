@@ -1,0 +1,92 @@
+name: Frontend Deploy (S3 + CloudFront)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+    paths: ['omnilaze-frontend/**']
+
+concurrency:
+  group: frontend-deploy
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION || 'ap-southeast-1' }}
+  NODE_VERSION: '20'
+
+jobs:
+  deploy:
+    name: 🚀 Deploy Frontend to AWS
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: omnilaze-frontend
+    permissions:
+      id-token: write
+      contents: read
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🏗️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: omnilaze-frontend/package-lock.json
+
+      - name: 🔑 Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🔨 Build frontend
+        env:
+          REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL || 'https://backend.omnilaze.co' }}
+          REACT_APP_AMAP_KEY: ${{ secrets.REACT_APP_AMAP_KEY }}
+        run: |
+          # Use build command that allows overriding API URL via env
+          REACT_APP_API_URL="$REACT_APP_API_URL" npm run build
+
+      - name: 📤 Sync static assets (long cache)
+        run: |
+          aws s3 sync dist/ s3://${{ secrets.FRONTEND_S3_BUCKET || 'omnilaze-frontend' }}/ \
+            --delete \
+            --cache-control "public, max-age=31536000" \
+            --exclude "*.html" \
+            --exclude "*.json"
+
+      - name: 📤 Sync HTML/JSON (no cache)
+        run: |
+          aws s3 sync dist/ s3://${{ secrets.FRONTEND_S3_BUCKET || 'omnilaze-frontend' }}/ \
+            --cache-control "public, max-age=0, must-revalidate" \
+            --include "*.html" \
+            --include "*.json" \
+            --exclude "*"
+
+      - name: 🌍 Invalidate CloudFront
+        if: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID != '' }}
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"
+
+      - name: 📋 Deploy summary
+        run: |
+          echo "## 🎉 Frontend Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build**: React Native Web (Expo)" >> $GITHUB_STEP_SUMMARY
+          echo "- **API URL**: ${{ secrets.REACT_APP_API_URL || 'https://backend.omnilaze.co' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **S3 Bucket**: ${{ secrets.FRONTEND_S3_BUCKET || 'omnilaze-frontend' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **AWS Region**: ${{ env.AWS_REGION }}" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -n "${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}" ]; then
+            echo "- **CloudFront**: Cache invalidated" >> $GITHUB_STEP_SUMMARY
+          else
+            BUCKET="${{ secrets.FRONTEND_S3_BUCKET || 'omnilaze-frontend' }}"
+            echo "- **S3 Website URL**: http://$BUCKET.s3-website-${{ env.AWS_REGION }}.amazonaws.com" >> $GITHUB_STEP_SUMMARY
+          fi

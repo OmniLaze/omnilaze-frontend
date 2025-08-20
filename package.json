@@ -8,7 +8,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "build": "expo export -p web --output-dir dist",
-    "build:production": "REACT_APP_API_URL=https://omnilaze-universal-api.stevenxxzg.workers.dev expo export -p web --output-dir dist",
+    "build:production": "REACT_APP_API_URL=https://backend.omnilaze.co expo export -p web --output-dir dist",
     "build:aws": "REACT_APP_API_URL=https://backend.omnilaze.co expo export -p web --output-dir dist"
   },
   "dependencies": {
