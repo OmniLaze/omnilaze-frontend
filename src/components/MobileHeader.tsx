@@ -173,12 +173,19 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
     handleInvite();
   };
 
+  // 使 Header 整体高度缩短约 1/5（主要针对 Web）
+  const topSafe = Platform.OS === 'android'
+    ? (StatusBar.currentHeight || 0)
+    : (Platform.OS === 'ios' ? 44 : 30); // Web 再次收紧：36 -> 30
+  const extraTop = 3; // 再次收紧：5 -> 3
+  const bottomPad = 6; // 再次收紧：8 -> 6
+
   const headerStyles = {
     container: {
       backgroundColor: theme.BACKGROUND,
       // 留出系统状态栏空间，然后在其下方展示进度条
-      paddingTop: (Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 44) + 6,
-      paddingBottom: 10,
+      paddingTop: topSafe + extraTop,
+      paddingBottom: bottomPad,
       paddingHorizontal: 16,
       zIndex: 100,
     },
@@ -289,7 +296,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
       backgroundColor: theme.WHITE,
       borderRadius: 8,
       paddingVertical: 8,
-      minWidth: 120,
+      minWidth: 160,
       shadowColor: theme.SHADOW,
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.15,
@@ -512,7 +519,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
                   activeOpacity={0.7}
                 >
                   <SimpleIcon name="gift" size={16} color={COLORS.PRIMARY} />
-                  <Text style={headerStyles.menuItemText}>邀请</Text>
+                  <Text style={headerStyles.menuItemText} numberOfLines={1}>邀请</Text>
                 </TouchableOpacity>
                 
                 <View style={headerStyles.separator} />
@@ -523,7 +530,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
                   activeOpacity={0.7}
                 >
                   <SimpleIcon name="info" size={16} color={COLORS.PRIMARY} />
-                  <Text style={headerStyles.menuItemText}>关于我们</Text>
+                  <Text style={headerStyles.menuItemText} numberOfLines={1}>关于我们</Text>
                 </TouchableOpacity>
                 
                 <View style={headerStyles.separator} />
@@ -534,7 +541,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
                   activeOpacity={0.7}
                 >
                   <SimpleIcon name="exit" size={16} color="#ef4444" />
-                  <Text style={[headerStyles.menuItemText, { color: '#ef4444' }]}>登出</Text>
+                  <Text style={[headerStyles.menuItemText, { color: '#ef4444' }]} numberOfLines={1}>登出</Text>
                 </TouchableOpacity>
               </View>
             )}

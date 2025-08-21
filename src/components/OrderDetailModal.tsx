@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,8 @@ import {
   Platform,
   SafeAreaView,
   Image,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useTheme } from '../contexts/ColorThemeContext';
 import { OrderVoiceRecorder } from './OrderVoiceRecorder';
@@ -21,6 +23,21 @@ import {
   formatOrderStatus 
 } from '../utils/orderDataMapper';
 
+// Web-only: try to load motion.dev (Motion) react bindings
+let MotionDiv: any = null;
+let AnimatePresenceCmp: any = null;
+try {
+  // Only attempt on web
+  if (typeof window !== 'undefined') {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const motionReact = require('motion/react');
+    MotionDiv = motionReact.motion?.div || null;
+    AnimatePresenceCmp = motionReact.AnimatePresence || null;
+  }
+} catch (_) {
+  // Module not available; fallback to RN Modal animations
+}
+
 interface Order {
   id: string;
   orderNumber: string;
@@ -28,7 +45,7 @@ interface Order {
   budget?: string;
   amount?: string;
   totalAmount?: string;
-  status: 'pending' | 'processing' | 'delivering' | 'completed' | 'cancelled';
+  status: 'draft' | 'submitted' | 'processing' | 'delivering' | 'completed' | 'cancelled' | 'pending';
   createdAt: string;
   deliveryTime?: string;
   foodType?: string[];
@@ -70,6 +87,33 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
 }) => {
   const { theme } = useTheme();
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
+  // Inline long-press voice record (web)
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0); // seconds
+  const [isUploading, setIsUploading] = useState(false);
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [cancelMode, setCancelMode] = useState(false);
+  const pressStartYRef = useRef<number | null>(null);
+  const shouldUploadRef = useRef<boolean>(false);
+  const mediaRecorderRef = useRef<any>(null);
+  const nativeRecordingRef = useRef<any>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!isVisible) {
+      try { if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') mediaRecorderRef.current.stop(); } catch {}
+      (async () => { try { if (nativeRecordingRef.current) await nativeRecordingRef.current.stopAndUnloadAsync?.(); } catch {} })();
+      if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+      setIsRecording(false);
+      setRecordingTime(0);
+    }
+    return () => {
+      try { if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') mediaRecorderRef.current.stop(); } catch {}
+      (async () => { try { if (nativeRecordingRef.current) await nativeRecordingRef.current.stopAndUnloadAsync?.(); } catch {} })();
+      if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    };
+  }, [isVisible]);
 
   // 调试：打印完整的订单数据
   React.useEffect(() => {
@@ -248,109 +292,335 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
 
   const styles = createStyles(theme);
 
+  // 共享卡片内容（非 Hook）
+  const cardBody = (
+    <>
+      {/* 头部 */}
+      <View style={styles.header}>
+        <Text style={styles.title}>订单详情</Text>
+        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+          <Text style={styles.closeButtonText}>×</Text>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* 订单基本信息 */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>订单信息</Text>
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>订单号</Text>
+            <Text style={styles.value}>#{order.orderNumber}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>下单时间</Text>
+            <Text style={styles.value}>{formatDate(order.createdAt)}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>订单状态</Text>
+            <View style={[styles.valueContainerRight, { flexDirection: 'row', gap: 6 }]}>
+              <View style={[styles.statusPill, { backgroundColor: formatOrderStatus(order.status).bgColor }]}>
+                <Text style={[styles.statusText, { color: formatOrderStatus(order.status).color }]}>
+                  {formatOrderStatus(order.status).text}
+                </Text>
+              </View>
+              {feedbackSubmitted && (
+                <View style={styles.feedbackPill}>
+                  <Text style={styles.feedbackPillText}>已反馈</Text>
+                </View>
+              )}
+            </View>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>订单金额</Text>
+            <Text style={[styles.value, styles.amount]}>¥{getOrderAmount()}</Text>
+          </View>
+        </View>
+
+        {/* 配送信息 */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>配送信息</Text>
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>配送地址</Text>
+            <Text style={[styles.value, styles.address]}>{getAddress()}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>用餐时间</Text>
+            <Text style={styles.value}>{getDeliveryTime()}</Text>
+          </View>
+          {order.arrivalImageUrl && (
+            <View style={styles.arrivalImageSection}>
+              <Text style={styles.label}>到达照片</Text>
+              <TouchableOpacity style={styles.arrivalImageContainer}>
+                <Image 
+                  source={{ uri: order.arrivalImageUrl }} 
+                  style={styles.arrivalImage}
+                  resizeMode="cover"
+                />
+                {order.arrivalImageTakenAt && (
+                  <Text style={styles.arrivalImageTime}>
+                    拍摄时间: {new Date(order.arrivalImageTakenAt).toLocaleString('zh-CN')}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        {/* 点单详情 */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>点单详情</Text>
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>食物类型</Text>
+            <Text style={styles.value}>{getFoodType()}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>忌口说明</Text>
+            <Text style={styles.value}>{getAllergies()}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>口味偏好</Text>
+            <Text style={styles.value}>{getPreferences()}</Text>
+          </View>
+        </View>
+
+        {/* 语音反馈按钮 */}
+        <View style={[styles.section, { alignItems: 'center', paddingBottom: 8 }] }>
+          <TouchableOpacity 
+            activeOpacity={0.9}
+            disabled={feedbackSubmitted || isUploading}
+            onPressIn={async (e: any) => {
+              try {
+                if (Platform.OS !== 'web') {
+                  // Native (Expo) recording via expo-av (dynamic require)
+                  const { Audio } = require('expo-av');
+                  const perm = await Audio.requestPermissionsAsync();
+                  if (!perm?.granted) {
+                    Alert.alert('提示', '请授予麦克风权限');
+                    return;
+                  }
+                  await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+                  const recording = new Audio.Recording();
+                  await recording.prepareToRecordAsync(Audio.RECORDING_OPTIONS_PRESET_HIGH_QUALITY);
+                  await recording.startAsync();
+                  nativeRecordingRef.current = recording;
+                  setRecordingTime(0);
+                  setIsRecording(true);
+                  setCancelMode(false);
+                  shouldUploadRef.current = false;
+                  pressStartYRef.current = e?.nativeEvent?.pageY ?? null;
+                  timerRef.current = setInterval(async () => {
+                    setRecordingTime((s) => {
+                      const next = s + 1;
+                      if (next >= 30) {
+                        // auto stop
+                        (async () => {
+                          try { if (nativeRecordingRef.current) await nativeRecordingRef.current.stopAndUnloadAsync(); } catch {}
+                        })();
+                      }
+                      return Math.min(30, next);
+                    });
+                  }, 1000);
+                  return;
+                }
+                // Web recording
+                // start web recording
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const mr = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+                audioChunksRef.current = [];
+                mr.ondataavailable = (e) => { if (e.data && e.data.size > 0) audioChunksRef.current.push(e.data); };
+                mr.onstop = async () => {
+                  const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+                  stream.getTracks().forEach(t => t.stop());
+                  setIsRecording(false);
+                  if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+                  const shouldUpload = shouldUploadRef.current && recordingTime > 0;
+                  if (shouldUpload) {
+                    setIsUploading(true);
+                    try {
+                      const token = (require('../utils/cookieManager') as any).CookieManager.getItem('auth_token') || '';
+                      const { ENV_CONFIG } = require('../config/env');
+                      const form = new FormData();
+                      form.append('file', blob, 'voice.webm');
+                      form.append('duration_sec', String(recordingTime));
+                      const resp = await fetch(`${ENV_CONFIG.API_URL}/v1/orders/${order.id}/feedback/audio`, {
+                        method: 'POST',
+                        headers: { Authorization: token ? `Bearer ${token}` : '' },
+                        body: form,
+                      });
+                      const json = await resp.json();
+                      if (!(json && json.success)) throw new Error(json?.message || '上传失败');
+                      setFeedbackSubmitted(true);
+                    } catch (e: any) {
+                      Alert.alert('上传失败', e?.message || '网络错误');
+                    } finally {
+                      setIsUploading(false);
+                      setRecordingTime(0);
+                      setCancelMode(false);
+                    }
+                  }
+                };
+                mr.start();
+                mediaRecorderRef.current = mr;
+                setRecordingTime(0);
+                setIsRecording(true);
+                setCancelMode(false);
+                shouldUploadRef.current = false;
+                pressStartYRef.current = e?.nativeEvent?.pageY ?? null;
+                timerRef.current = setInterval(() => {
+                  setRecordingTime((s) => {
+                    if (s + 1 >= 30) {
+                      // auto stop at 30s
+                      try { mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording' && mediaRecorderRef.current.stop(); } catch {}
+                    }
+                    return Math.min(30, s + 1);
+                  });
+                }, 1000);
+              } catch (err) {
+                Alert.alert('无法开始录音', '请检查浏览器麦克风权限');
+              }
+            }}
+            onPressOut={() => {
+              try {
+                if (Platform.OS !== 'web') {
+                  (async () => {
+                    try {
+                      if (nativeRecordingRef.current) {
+                        await nativeRecordingRef.current.stopAndUnloadAsync();
+                        const uri = nativeRecordingRef.current.getURI?.();
+                        setIsRecording(false);
+                        if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+                        const shouldUpload = !cancelMode && recordingTime > 0;
+                        if (uri && shouldUpload) {
+                          setIsUploading(true);
+                          try {
+                            const token = (require('../utils/cookieManager') as any).CookieManager.getItem('auth_token') || '';
+                            const { ENV_CONFIG } = require('../config/env');
+                            const form = new FormData();
+                            form.append('file', { uri, name: 'voice.m4a', type: 'audio/m4a' } as any);
+                            form.append('duration_sec', String(recordingTime));
+                            const resp = await fetch(`${ENV_CONFIG.API_URL}/v1/orders/${order.id}/feedback/audio`, {
+                              method: 'POST',
+                              headers: { Authorization: token ? `Bearer ${token}` : '' },
+                              body: form,
+                            });
+                            const json = await resp.json();
+                            if (!(json && json.success)) throw new Error(json?.message || '上传失败');
+                            setFeedbackSubmitted(true);
+                          } catch (e: any) {
+                            Alert.alert('上传失败', e?.message || '网络错误');
+                          } finally {
+                            setIsUploading(false);
+                            setRecordingTime(0);
+                            setCancelMode(false);
+                          }
+                        }
+                      }
+                    } catch {}
+                  })();
+                  return;
+                }
+                // Mark upload intent and then stop
+                shouldUploadRef.current = !cancelMode;
+                if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') mediaRecorderRef.current.stop();
+              } catch {}
+            }}
+            onStartShouldSetResponder={() => true}
+            onResponderGrant={(ev: any) => { pressStartYRef.current = ev?.nativeEvent?.pageY ?? null; setCancelMode(false); }}
+            onResponderMove={(ev: any) => {
+              if (!isRecording) return;
+              const startY = pressStartYRef.current;
+              const currY = ev?.nativeEvent?.pageY ?? null;
+              if (startY != null && currY != null) {
+                const dy = startY - currY; // up is positive
+                setCancelMode(dy > 50);
+              }
+            }}
+            onResponderRelease={() => { /* handled by onPressOut */ }}
+            style={[
+              styles.holdRecordButton,
+              feedbackSubmitted ? styles.holdRecordButtonThanks : (isRecording ? (cancelMode ? styles.holdRecordButtonCancel : styles.holdRecordButtonActive) : null),
+            ]}
+          >
+            {isUploading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.holdRecordText}>
+                {feedbackSubmitted
+                  ? '感谢反馈'
+                  : isRecording
+                    ? (cancelMode
+                        ? `上滑取消  ${String(Math.floor(recordingTime/60)).padStart(2,'0')}:${String(recordingTime%60).padStart(2,'0')}`
+                        : `松开发送  ${String(Math.floor(recordingTime/60)).padStart(2,'0')}:${String(recordingTime%60).padStart(2,'0')}`)
+                    : '按住录音反馈（≤30s）'}
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </>
+  );
+
+  // Web（有 motion/react）使用中心卡片 + 过渡动画；否则使用原生 Modal
+  if (Platform.OS === 'web' && MotionDiv && AnimatePresenceCmp) {
+    return (
+      <AnimatePresenceCmp>
+        {isVisible && (
+          <MotionDiv
+            key="overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 10000,
+            }}
+            onClick={onClose}
+          >
+            <MotionDiv
+              key="card"
+              initial={{ opacity: 0, y: 24, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 12, scale: 0.98 }}
+              transition={{ duration: 0.22, easing: 'ease-out' as any }}
+              style={{
+                width: 'min(92vw, 560px)',
+                maxHeight: '80vh',
+                overflowY: 'auto',
+                background: theme.BACKGROUND,
+                borderRadius: 16,
+                boxShadow: '0 10px 30px rgba(0,0,0,0.12)',
+              }}
+              onClick={(e: any) => e.stopPropagation()}
+            >
+              {cardBody}
+            </MotionDiv>
+          </MotionDiv>
+        )}
+      </AnimatePresenceCmp>
+    );
+  }
+
   return (
     <Modal
       visible={isVisible}
       transparent={true}
-      animationType="slide"
+      animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
+      <TouchableOpacity activeOpacity={1} onPress={onClose} style={styles.overlay}>
         <SafeAreaView style={styles.container}>
-          <View style={styles.modal}>
-            {/* 头部 */}
-            <View style={styles.header}>
-              <Text style={styles.title}>订单详情</Text>
-              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                <Text style={styles.closeButtonText}>×</Text>
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-              {/* 订单基本信息 */}
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>订单信息</Text>
-                <View style={styles.infoRow}>
-                  <Text style={styles.label}>订单号</Text>
-                  <Text style={styles.value}>#{order.orderNumber}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Text style={styles.label}>下单时间</Text>
-                  <Text style={styles.value}>{formatDate(order.createdAt)}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Text style={styles.label}>订单状态</Text>
-                  <Text style={[styles.value, { color: getStatusColor(order.status) }]}>
-                    {getStatusText(order.status)}
-                  </Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Text style={styles.label}>订单金额</Text>
-                  <Text style={[styles.value, styles.amount]}>¥{getOrderAmount()}</Text>
-                </View>
-              </View>
-
-              {/* 配送信息 */}
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>配送信息</Text>
-                <View style={styles.infoRow}>
-                  <Text style={styles.label}>配送地址</Text>
-                  <Text style={[styles.value, styles.address]}>{getAddress()}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Text style={styles.label}>用餐时间</Text>
-                  <Text style={styles.value}>{getDeliveryTime()}</Text>
-                </View>
-                {order.arrivalImageUrl && (
-                  <View style={styles.arrivalImageSection}>
-                    <Text style={styles.label}>到达照片</Text>
-                    <TouchableOpacity style={styles.arrivalImageContainer}>
-                      <Image 
-                        source={{ uri: order.arrivalImageUrl }} 
-                        style={styles.arrivalImage}
-                        resizeMode="cover"
-                      />
-                      {order.arrivalImageTakenAt && (
-                        <Text style={styles.arrivalImageTime}>
-                          拍摄时间: {new Date(order.arrivalImageTakenAt).toLocaleString('zh-CN')}
-                        </Text>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-
-              {/* 点单详情 */}
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>点单详情</Text>
-                <View style={styles.infoRow}>
-                  <Text style={styles.label}>食物类型</Text>
-                  <Text style={styles.value}>{getFoodType()}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Text style={styles.label}>忌口说明</Text>
-                  <Text style={styles.value}>{getAllergies()}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Text style={styles.label}>口味偏好</Text>
-                  <Text style={styles.value}>{getPreferences()}</Text>
-                </View>
-              </View>
-
-              {/* 语音反馈按钮 */}
-              <View style={styles.section}>
-                <TouchableOpacity 
-                  style={styles.voiceFeedbackButton}
-                  onPress={() => setShowVoiceRecorder(true)}
-                >
-                  <Text style={styles.voiceFeedbackButtonText}>添加语音反馈</Text>
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
+          <View style={styles.modal} onStartShouldSetResponder={() => true}>
+            {cardBody}
           </View>
         </SafeAreaView>
-      </View>
-      
+      </TouchableOpacity>
+
       {/* 语音录制模态框 */}
       {showVoiceRecorder && order && (
         <Modal
@@ -366,7 +636,6 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
               onClose={() => setShowVoiceRecorder(false)}
               onSuccess={() => {
                 setShowVoiceRecorder(false);
-                // 可以在这里刷新订单数据或显示成功提示
               }}
             />
           </View>
@@ -380,18 +649,26 @@ const createStyles = (theme: any) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   container: {
     flex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modal: {
     backgroundColor: theme.BACKGROUND,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '90%',
-    minHeight: '60%',
+    borderRadius: 16,
+    width: Platform.OS === 'web' ? 'auto' : '92%',
+    maxWidth: 560,
+    maxHeight: '85%',
+    minHeight: '52%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 18,
+    elevation: 10,
   },
   header: {
     flexDirection: 'row',
@@ -451,6 +728,10 @@ const createStyles = (theme: any) => StyleSheet.create({
     flex: 2,
     textAlign: 'right',
   },
+  valueContainerRight: {
+    flex: 2,
+    alignItems: 'flex-end',
+  },
   amount: {
     fontSize: 16,
     fontWeight: '500',
@@ -477,6 +758,27 @@ const createStyles = (theme: any) => StyleSheet.create({
     color: theme.TEXT_SECONDARY,
     marginTop: 4,
   },
+  statusPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '500',
+    letterSpacing: 0.2,
+  },
+  feedbackPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: '#FFF3CD',
+  },
+  feedbackPillText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#B45309',
+  },
   voiceFeedbackButton: {
     backgroundColor: theme.PRIMARY,
     paddingVertical: 12,
@@ -489,6 +791,31 @@ const createStyles = (theme: any) => StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: '500',
+  },
+  // New: long-press record button styles
+  holdRecordButton: {
+    backgroundColor: theme.PRIMARY,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 180,
+  },
+  holdRecordButtonActive: {
+    backgroundColor: '#FF4444',
+  },
+  holdRecordButtonCancel: {
+    backgroundColor: '#6B7280',
+  },
+  holdRecordButtonThanks: {
+    backgroundColor: '#FFE8D0',
+  },
+  holdRecordText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
   voiceRecorderOverlay: {
     flex: 1,

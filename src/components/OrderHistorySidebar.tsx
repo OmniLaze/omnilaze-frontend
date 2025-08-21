@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator
 import { useTheme } from '../contexts/ColorThemeContext';
 import { getOrderHistory } from '../services/api';
 import { OrderDetailModal } from './OrderDetailModal';
-import { normalizeOrderData } from '../utils/orderDataMapper';
+import { normalizeOrderData, formatOrderStatus } from '../utils/orderDataMapper';
 import { eventBus } from '../utils/eventBus';
 
 interface Order {
@@ -13,7 +13,7 @@ interface Order {
   budget?: string;
   amount?: string; // 备用字段
   totalAmount?: string; // 备用字段
-  status: 'pending' | 'processing' | 'delivering' | 'completed' | 'cancelled';
+  status: 'draft' | 'submitted' | 'processing' | 'delivering' | 'completed' | 'cancelled' | 'pending';
   createdAt: string;
   deliveryTime?: string;
   foodType?: string[];
@@ -176,27 +176,9 @@ export const OrderHistorySidebar: React.FC<OrderHistorySidebarProps> = ({
     return `${month}月${day}日 ${hour}:${minute.toString().padStart(2, '0')}`;
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'pending': return '待处理';
-      case 'processing': return '处理中';
-      case 'delivering': return '配送中';
-      case 'completed': return '已完成';
-      case 'cancelled': return '已取消';
-      default: return '未知';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return '#FF6B35';
-      case 'processing': return '#4169E1';
-      case 'delivering': return '#32CD32';
-      case 'completed': return '#228B22';
-      case 'cancelled': return '#DC143C';
-      default: return theme.TEXT_SECONDARY;
-    }
-  };
+  const getStatusText = (status: string) => formatOrderStatus(status).text;
+  const getStatusColor = (status: string) => formatOrderStatus(status).color || theme.TEXT_SECONDARY;
+  const getStatusBgColor = (status: string) => formatOrderStatus(status).bgColor || theme.GRAY_100;
 
   // 获取食物类型显示
   const getFoodTypeDisplay = (order: Order): string => {
@@ -284,12 +266,25 @@ export const OrderHistorySidebar: React.FC<OrderHistorySidebarProps> = ({
                     onPress={() => handleOrderPress(order)}
                   >
                     <View style={styles.orderContent}>
-                      <Text style={styles.foodTypeName}>
-                        {getFoodTypeDisplay(order)}
-                      </Text>
-                      <Text style={styles.orderTimeSimple}>
-                        {formatDate(order.createdAt)}
-                      </Text>
+                      {/* 左：时间 */}
+                      <View style={styles.cellLeft}>
+                        <Text style={styles.orderTimeSimple}>{formatDate(order.createdAt)}</Text>
+                      </View>
+                      {/* 中：状态徽章 */}
+                      <View style={styles.cellMiddle}>
+                        <View style={[styles.statusPill, { backgroundColor: getStatusBgColor(order.status) }]}>
+                          <Text
+                            numberOfLines={1}
+                            style={[styles.statusText, { color: getStatusColor(order.status) }]}
+                          >
+                            {getStatusText(order.status)}
+                          </Text>
+                        </View>
+                      </View>
+                      {/* 右：金额 */}
+                      <View style={styles.cellRight}>
+                        <Text style={styles.amountText}>{getOrderAmount(order) === '未知' ? '—' : `¥${getOrderAmount(order)}`}</Text>
+                      </View>
                     </View>
                   </TouchableOpacity>
                 ))
@@ -385,7 +380,7 @@ const createStyles = (theme: any) => StyleSheet.create({
   },
   orderCard: {
     backgroundColor: 'transparent',
-    paddingVertical: 16,
+    paddingVertical: 12,
     paddingHorizontal: 8,
     marginBottom: 0,
     borderBottomWidth: 1,
@@ -395,6 +390,32 @@ const createStyles = (theme: any) => StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  cellLeft: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  cellMiddle: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cellRight: {
+    flex: 1,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  statusPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    minHeight: 22,
+    alignSelf: 'center',
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '500',
+    letterSpacing: 0.2,
   },
   foodTypeName: {
     fontSize: 16,
@@ -406,5 +427,10 @@ const createStyles = (theme: any) => StyleSheet.create({
     fontSize: 14,
     color: theme.TEXT_SECONDARY,
     fontWeight: '300',
+  },
+  amountText: {
+    fontSize: 14,
+    color: theme.TEXT_PRIMARY,
+    fontWeight: '400',
   },
 });
