@@ -295,12 +295,24 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
   // 共享卡片内容（非 Hook）
   const cardBody = (
     <>
-      {/* 头部 */}
+      {/* 头部：右侧展示状态 */}
       <View style={styles.header}>
         <Text style={styles.title}>订单详情</Text>
-        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-          <Text style={styles.closeButtonText}>×</Text>
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <View style={[styles.statusPill, { backgroundColor: formatOrderStatus(order.status).bgColor }]}>
+            <Text style={[styles.statusText, { color: formatOrderStatus(order.status).color }]}>
+              {formatOrderStatus(order.status).text}
+            </Text>
+          </View>
+          {feedbackSubmitted && (
+            <View style={styles.feedbackPill}>
+              <Text style={styles.feedbackPillText}>已反馈</Text>
+            </View>
+          )}
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <Text style={styles.closeButtonText}>×</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -315,21 +327,7 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
             <Text style={styles.label}>下单时间</Text>
             <Text style={styles.value}>{formatDate(order.createdAt)}</Text>
           </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>订单状态</Text>
-            <View style={[styles.valueContainerRight, { flexDirection: 'row', gap: 6 }]}>
-              <View style={[styles.statusPill, { backgroundColor: formatOrderStatus(order.status).bgColor }]}>
-                <Text style={[styles.statusText, { color: formatOrderStatus(order.status).color }]}>
-                  {formatOrderStatus(order.status).text}
-                </Text>
-              </View>
-              {feedbackSubmitted && (
-                <View style={styles.feedbackPill}>
-                  <Text style={styles.feedbackPillText}>已反馈</Text>
-                </View>
-              )}
-            </View>
-          </View>
+          {/* 状态已移动到标题右侧，这里不再显示 */}
           <View style={styles.infoRow}>
             <Text style={styles.label}>订单金额</Text>
             <Text style={[styles.value, styles.amount]}>¥{getOrderAmount()}</Text>
@@ -680,6 +678,10 @@ const createStyles = (theme: any) => StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.BORDER || 'rgba(0, 0, 0, 0.06)',
   },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   title: {
     fontSize: 20,
     fontWeight: '500',
@@ -762,6 +764,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
+    marginRight: 8,
   },
   statusText: {
     fontSize: 12,

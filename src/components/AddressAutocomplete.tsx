@@ -65,6 +65,7 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
   const [inputPosition, setInputPosition] = useState({ x: 0, y: 0, width: 0 });
   const debounceRef = useRef<NodeJS.Timeout>();
   const inputRef = useRef<View>(null);
+  const nativeIdRef = useRef<string>('addr-autocomplete-' + Math.random().toString(36).slice(2));
 
   const handleTextChange = (text: string) => {
     onChangeText(text);
@@ -74,11 +75,10 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
       clearTimeout(debounceRef.current);
     }
 
-    // 检查汉字数量（至少4个汉字）
+    // 检查输入：放宽触发条件（>=2个汉字 或 总长度>=4）
     const trimmedText = text.trim();
     const chineseCharCount = (trimmedText.match(/[\u4e00-\u9fff]/g) || []).length;
-    
-    if (!trimmedText || chineseCharCount < 4) {
+    if (!trimmedText || (chineseCharCount < 2 && trimmedText.length < 4)) {
       setSuggestions([]);
       setShowSuggestions(false);
       return;
@@ -121,11 +121,17 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
     setIsFocused(true);
     onFocus?.();
     
-    // 获取输入框位置信息用于下拉框定位
-    if (Platform.OS === 'web' && inputRef.current) {
-      inputRef.current.measure?.((x: number, y: number, width: number, height: number, pageX: number, pageY: number) => {
-        setInputPosition({ x: pageX, y: pageY + height, width });
-      });
+    // 获取输入框位置信息用于下拉框定位（Web 使用 DOM 计算更可靠）
+    if (Platform.OS === 'web') {
+      const el = document.getElementById(nativeIdRef.current);
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        setInputPosition({
+          x: rect.left,
+          y: rect.top + rect.height,
+          width: rect.width,
+        });
+      }
     }
     
     // 如果有输入内容但没有显示建议，重新搜索
@@ -148,6 +154,28 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
     setSuggestions([]);
     setShowSuggestions(false);
   };
+
+  // 当显示建议时，监听滚动和窗口大小变化，保持定位正确（Web）
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !showSuggestions) return;
+    const updatePos = () => {
+      const el = document.getElementById(nativeIdRef.current);
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      setInputPosition({
+        x: rect.left,
+        y: rect.top + rect.height,
+        width: rect.width,
+      });
+    };
+    updatePos();
+    window.addEventListener('scroll', updatePos, true);
+    window.addEventListener('resize', updatePos);
+    return () => {
+      window.removeEventListener('scroll', updatePos, true);
+      window.removeEventListener('resize', updatePos);
+    };
+  }, [showSuggestions]);
 
   const getWrapperStyle = () => {
     if (isDisabled) return [inputStyles.simpleInputWrapper, inputStyles.disabledSimpleInputWrapper];
@@ -214,7 +242,7 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
 
   return (
     <WrapperComponent {...wrapperProps}>
-      <View style={addressAutocompleteStyles.container} ref={inputRef}>
+      <View style={addressAutocompleteStyles.container} ref={inputRef} nativeID={nativeIdRef.current}>
         <View style={getWrapperStyle()}>
           <MaterialIcons 
             name={iconName}
@@ -257,7 +285,7 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
               <WebPortal isVisible={showSuggestions}>
                 <View 
                   style={{
-                    position: 'absolute',
+                    position: 'fixed',
                     left: inputPosition.x,
                     top: inputPosition.y,
                     width: inputPosition.width || 300,

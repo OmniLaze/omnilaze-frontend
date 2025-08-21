@@ -35,11 +35,14 @@ export const COLORS = {
   SHADOW: '#000',
 } as const;
 
-export const BUDGET_OPTIONS = ['20', '30', '40', '50'] as const;
+// 默认预算选项（兜底）
+export const BUDGET_OPTIONS = ['18', '24', '30', '50'] as const;
 
 // 根据食物类型的不同预算选项
-export const BUDGET_OPTIONS_FOOD = ['20', '30', '50', '100'] as const;
-export const BUDGET_OPTIONS_DRINK = ['15', '20', '30'] as const;
+// 吃饭：18、24、30、50
+export const BUDGET_OPTIONS_FOOD = ['18', '24', '30', '50'] as const;
+// 奶茶：10、15、20、30
+export const BUDGET_OPTIONS_DRINK = ['10', '15', '20', '30'] as const;
 
 export const STEP_TITLES = [
   "配送地址",   // 步骤0: 想在哪里收到你的外卖？

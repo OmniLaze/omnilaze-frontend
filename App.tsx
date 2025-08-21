@@ -16,6 +16,9 @@ import { useWindowDimensions } from 'react-native';
 
 const { height, width } = Dimensions.get('window');
 
+// 统一上移动画距离（像素）
+const FIXED_PUSH_DISTANCE = 85;
+
 // 导入全局CSS样式来移除焦点边框
 // Only load global CSS on web to avoid accessing document in native
 if (Platform.OS === 'web') {
@@ -287,8 +290,7 @@ function OmnilazeAppContent() {
   const inputSectionValueRef = useAnimatedValueRef(inputSectionAnimation);
   
   // 移除流动动画状态管理
-  const [completedQuestionsHeight, setCompletedQuestionsHeight] = useState(300);
-  const [singleQuestionHeight, setSingleQuestionHeight] = useState(80);
+  const [completedQuestionsHeight] = useState(300); // 固定默认高度，移除动态测量
   
   // 动画系统所需的 refs - 移除不再需要的 refs
   // 移除重复的 scrollViewRef 声明，使用下面的那个
@@ -368,10 +370,7 @@ function OmnilazeAppContent() {
   // 移除不再使用的流动函数
   
   // 监听已完成问题区域高度变化，更新滚动系统
-  useEffect(() => {
-    // 当已完成问题区域高度变化时，更新动态内容高度
-    // console.log('📏 已完成问题区域高度更新:', completedQuestionsHeight);
-  }, [completedQuestionsHeight]);
+  // 移除高度变更副作用（不再需要实时测量）
   
   // 强制重置订单状态（临时调试用）
   const resetOrderState = () => {
@@ -499,11 +498,15 @@ function OmnilazeAppContent() {
       if (process.env.NODE_ENV === 'development') {
         console.log('🎬 开始上推动画，为下一个问题腾出空间');
       }
-      const pushUpDistance = singleQuestionHeight + 10; // 上推一个问题的高度加上间距
+      // 使用统一的固定上移距离，简化逻辑，确保一致视觉
+      const pushUpDistance = FIXED_PUSH_DISTANCE;
       const newPushOffset = currentPushOffset + pushUpDistance;
+      if (process.env.NODE_ENV === 'development') {
+        console.log('📐 上移距离计算(固定):', { stepIndex, pushUpDistance });
+      }
       
       Animated.timing(completedQuestionsOffset, {
-        toValue: (completedOffsetValueRef?.current ?? 0) - pushUpDistance,
+        toValue: (completedOffsetValueRef?.current ?? 0) - pushUpDistance - 10,
         duration: 400,
         useNativeDriver: true,
         easing: Easing.out(Easing.quad)
@@ -535,7 +538,7 @@ function OmnilazeAppContent() {
       console.log('✅ handleAnswerSubmission 完成，返回 true');
     }
     return true;
-  }, [validateInput, triggerShake, changeEmotion, setCompletedAnswers, questionAnimations, answerAnimations, singleQuestionHeight, currentPushOffset, completedQuestionsOffset, setCurrentPushOffset, currentStep]);
+  }, [validateInput, triggerShake, changeEmotion, setCompletedAnswers, questionAnimations, answerAnimations, currentPushOffset, completedQuestionsOffset, setCurrentPushOffset, currentStep]);
 
   // 移除页面状态管理，改为流动式布局
 
@@ -724,25 +727,7 @@ function OmnilazeAppContent() {
     }
   }, [isQuickOrderMode, currentStep, isAuthenticated, isOrderCompleted, isSearchingRestaurant]);
 
-  // 测量已完成问题容器高度
-  const measureCompletedQuestionsHeight = (event?: any) => {
-    if (event && event.nativeEvent) {
-      const { height: measuredHeight } = event.nativeEvent.layout;
-      console.log('已完成问题容器高度:', measuredHeight);
-      // 修复：直接使用测量的高度，不重复添加 padding
-      // padding 应该通过 CSS 样式来控制，而不是在这里累积
-      setCompletedQuestionsHeight(measuredHeight);
-    }
-  };
-
-  // 测量单个问题组件高度
-  const measureSingleQuestionHeight = (event?: any) => {
-    if (event && event.nativeEvent) {
-      const { height } = event.nativeEvent.layout;
-      console.log('单个问题组件高度:', height);
-      setSingleQuestionHeight(height); // 保存测量到的高度
-    }
-  };
+  //（已移除）高度测量相关逻辑
 
 
   // ===========================================
@@ -1706,7 +1691,6 @@ function OmnilazeAppContent() {
               ...(Platform.OS === 'web' ? { transform: [{ translateY: completedQuestionsOffset }] } : {}),
             }
           ]}
-          onLayout={measureCompletedQuestionsHeight}
         >
           <View 
             style={{
@@ -1737,14 +1721,6 @@ function OmnilazeAppContent() {
                     return (
                       <Animated.View
                         key={index}
-                        onLayout={(event) => {
-                          // 测量每个已完成问题的实际位置，用于流动动画目标位置计算
-                          if (index === Object.keys(effectiveCompletedAnswers).length - 1) {
-                            const { height } = event.nativeEvent.layout;
-                            setSingleQuestionHeight(height + 16); // 包括margin
-                            console.log('📏 测量到单个问题高度:', height + 16);
-                          }
-                        }}
                         style={{
                           // 动态调节内容颜色 - 已完成问题页面的透明度
                           opacity: pageOpacity.completedPageOpacity,

@@ -442,14 +442,13 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5分钟缓存
 
 export async function searchAddresses(query: string): Promise<AddressSearchResponse> {
   try {
-    // 输入验证：至少4个汉字
+    // 输入验证：放宽条件（>=2个汉字 或 总长度>=4）
     const trimmedQuery = query.trim();
     const chineseCharCount = (trimmedQuery.match(/[\u4e00-\u9fff]/g) || []).length;
-    
-    if (!trimmedQuery || chineseCharCount < 4) {
+    if (!trimmedQuery || (chineseCharCount < 4)) {
       return {
         success: true,
-        message: '请至少输入4个汉字',
+        message: '请输入更完整的地址',
         predictions: []
       };
     }
