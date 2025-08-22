@@ -13,7 +13,8 @@ interface Order {
   budget?: string;
   amount?: string; // 备用字段
   totalAmount?: string; // 备用字段
-  status: 'draft' | 'submitted' | 'processing' | 'delivering' | 'completed' | 'cancelled' | 'pending';
+  status: 'unpaid' | 'paid' | 'delivering' | 'completed' | 'cancelled' | 'draft' | 'submitted' | 'processing' | 'pending';
+  displayStatus?: 'unpaid' | 'paid' | 'delivering' | 'completed'; // 新的统一显示状态
   createdAt: string;
   deliveryTime?: string;
   foodType?: string[];
@@ -176,9 +177,21 @@ export const OrderHistorySidebar: React.FC<OrderHistorySidebarProps> = ({
     return `${month}月${day}日 ${hour}:${minute.toString().padStart(2, '0')}`;
   };
 
-  const getStatusText = (status: string) => formatOrderStatus(status).text;
-  const getStatusColor = (status: string) => formatOrderStatus(status).color || theme.TEXT_SECONDARY;
-  const getStatusBgColor = (status: string) => formatOrderStatus(status).bgColor || theme.GRAY_100;
+  const getStatusText = (order: Order) => {
+    // 优先使用后端返回的displayStatus，如果没有则使用原始status
+    const statusToUse = order.displayStatus || order.status;
+    return formatOrderStatus(statusToUse).text;
+  };
+  
+  const getStatusColor = (order: Order) => {
+    const statusToUse = order.displayStatus || order.status;
+    return formatOrderStatus(statusToUse).color || theme.TEXT_SECONDARY;
+  };
+  
+  const getStatusBgColor = (order: Order) => {
+    const statusToUse = order.displayStatus || order.status;
+    return formatOrderStatus(statusToUse).bgColor || theme.GRAY_100;
+  };
 
   // 获取食物类型显示
   const getFoodTypeDisplay = (order: Order): string => {
@@ -272,12 +285,12 @@ export const OrderHistorySidebar: React.FC<OrderHistorySidebarProps> = ({
                       </View>
                       {/* 中：状态徽章 */}
                       <View style={styles.cellMiddle}>
-                        <View style={[styles.statusPill, { backgroundColor: getStatusBgColor(order.status) }]}>
+                        <View style={[styles.statusPill, { backgroundColor: getStatusBgColor(order) }]}>
                           <Text
                             numberOfLines={1}
-                            style={[styles.statusText, { color: getStatusColor(order.status) }]}
+                            style={[styles.statusText, { color: getStatusColor(order) }]}
                           >
-                            {getStatusText(order.status)}
+                            {getStatusText(order)}
                           </Text>
                         </View>
                       </View>

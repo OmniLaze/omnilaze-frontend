@@ -126,19 +126,22 @@ export function normalizeStatus(input: any): string {
 }
 
 export function formatOrderStatus(status: string): { text: string; color: string; bgColor?: string } {
-  // 与后端对齐：draft | submitted | processing | delivering | completed | cancelled
+  // 新的统一状态系统：只有4种状态
   const statusMap: Record<string, { text: string; color: string; bgColor?: string }> = {
-    // 兼容历史pending（旧数据），视为“已创建/待处理”
-    'submitted': { text: '已创建', color: '#4169E1', bgColor: '#E0F2FE' },
-    'draft': { text: '草稿', color: '#6B7280', bgColor: '#F3F4F6' },
-    'processing': { text: '处理中', color: '#4169E1', bgColor: '#E0F2FE' },
+    // 统一状态系统 - 只有4种状态
+    'unpaid': { text: '未支付', color: '#6B7280', bgColor: '#F3F4F6' },
+    'paid': { text: '已支付', color: '#4169E1', bgColor: '#E0F2FE' },
     'delivering': { text: '配送中', color: '#f59e0b', bgColor: '#FFF3CD' },
-    'completed': { text: '已完成', color: '#10b981', bgColor: '#D1FAE5' },
+    'completed': { text: '完成', color: '#10b981', bgColor: '#D1FAE5' },
+    
+    // 保留向后兼容的旧状态映射（逐步迁移）
+    'draft': { text: '未支付', color: '#6B7280', bgColor: '#F3F4F6' },
+    'submitted': { text: '未支付', color: '#6B7280', bgColor: '#F3F4F6' },
+    'processing': { text: '已支付', color: '#4169E1', bgColor: '#E0F2FE' },
     'cancelled': { text: '已取消', color: '#DC143C', bgColor: '#FDE2E2' },
   };
 
   const key = normalizeStatus(status);
-  // pending -> normalizeStatus => submitted，此处即命中 submitted
   return statusMap[key] || { text: '未知', color: '#999999', bgColor: '#F3F4F6' };
 }
 
@@ -205,8 +208,8 @@ export function normalizeOrderData(order: any): any {
     arrivalImageTakenAt: order.arrivalImageTakenAt || order.arrival_image_taken_at,
     arrivalImageSource: order.arrivalImageSource || order.arrival_image_source,
     
-    // 状态信息（默认与后端一致：draft）
-    status: normalizeStatus(order.status || 'draft'),
+    // 状态信息（优先使用后端的displayStatus）
+    status: order.displayStatus || normalizeStatus(order.status || 'draft'),
     createdAt: order.createdAt || order.created_at || order.created_time || new Date().toISOString(),
     
     // 重要：保留完整的嵌套数据结构

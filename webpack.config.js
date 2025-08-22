@@ -3,6 +3,17 @@ const createExpoWebpackConfigAsync = require('@expo/webpack-config');
 module.exports = async function (env, argv) {
   const config = await createExpoWebpackConfigAsync(env, argv);
   
+  // 添加模块解析别名来修复 React Native Web 路径问题
+  config.resolve.alias = {
+    ...config.resolve.alias,
+    'react-native$': 'react-native-web',
+    'react-native/Libraries/Image/ImageProps': 'react-native-web/dist/exports/Image',
+    'react-native/Libraries/Text/TextProps': 'react-native-web/dist/exports/Text',
+    '../Utilities/Platform': 'react-native-web/dist/exports/Platform',
+    '../../Utilities/Platform': 'react-native-web/dist/exports/Platform',
+    '../../../exports/Platform': 'react-native-web/dist/exports/Platform',
+  };
+  
   // 确保环境变量被注入
   config.plugins.forEach(plugin => {
     if (plugin.constructor.name === 'DefinePlugin') {

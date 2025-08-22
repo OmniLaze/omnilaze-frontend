@@ -96,6 +96,38 @@ function OmnilazeAppContent() {
   // 使用状态管理hook
   const appState = useAppState();
   
+  // 先解构需要的状态和函数，避免 TDZ 问题
+  const {
+    // 认证状态
+    isAuthenticated, setIsAuthenticated,
+    authResult, setAuthResult,
+    authQuestionText, setAuthQuestionText,
+    isStateRestored,
+    authResetTrigger, setAuthResetTrigger,
+    
+    // 表单状态
+    address, budget, deliveryTime, selectedAllergies, selectedPreferences, selectedFoodType,
+    otherAllergyText, otherPreferenceText, showMap, isAddressConfirmed,
+    selectedAddressSuggestion, currentStep, completedAnswers, editingStep,
+    originalAnswerBeforeEdit, currentOrderId, currentOrderNumber,
+    currentUserSequenceNumber, isOrderSubmitting, isSearchingRestaurant,
+    isOrderCompleted, orderMessage, isFreeOrder, showFreeDrinkModal,
+    isQuickOrderMode, completedQuestionsOffset, currentPushOffset,
+    
+    // 状态设置函数
+    setAddress, setBudget, setDeliveryTime, setSelectedAllergies, setSelectedPreferences,
+    setSelectedFoodType, setOtherAllergyText, setOtherPreferenceText,
+    setShowMap, setIsAddressConfirmed, setSelectedAddressSuggestion,
+    setCurrentStep, setCompletedAnswers, setEditingStep,
+    setOriginalAnswerBeforeEdit, setCurrentOrderId, setCurrentOrderNumber,
+    setCurrentUserSequenceNumber, setIsOrderSubmitting, setIsSearchingRestaurant,
+    setIsOrderCompleted, setOrderMessage, setIsFreeOrder, setShowFreeDrinkModal,
+    setIsQuickOrderMode, setCompletedQuestionsOffset, setCurrentPushOffset,
+    
+    // 工具函数
+    resetAllState
+  } = appState;
+  
   // 颜色主题hook
   const { 
     theme, 
@@ -124,6 +156,46 @@ function OmnilazeAppContent() {
     const id = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     setOrderMessagesLog((prev) => [...prev, { id, text, avatar }]);
   }, []);
+
+  // 先定义所有需要的 hooks 和函数
+  const { inputError, validateInput, validatePhoneNumber, setInputError } = useValidation();
+  const { 
+    questionAnimations,
+    answerAnimations, 
+    currentQuestionAnimation,
+    mapAnimation,
+    emotionAnimation,
+    shakeAnimation,
+    inputSectionAnimation,
+    triggerShake,
+    changeEmotion,
+    triggerQuestionFlowAnimation
+  } = useAnimations();
+
+  // Custom hooks - AI流式打字机效果
+  const { 
+    displayedText, 
+    isTyping, 
+    showCursor, 
+    cursorOpacity, 
+    streamingOpacity,
+    typeText, 
+    setTextDirectly, 
+    clearText,
+    isStreaming 
+  } = useTypewriterEffect();
+
+  // 订单管理hook - 移动到回调函数之前以避免 TDZ 问题
+  const orderManagement = useOrderManagement({
+    authResult, address, deliveryTime, selectedAllergies, selectedPreferences, budget,
+    selectedFoodType, isFreeOrder, currentUserSequenceNumber,
+    otherAllergyText, otherPreferenceText, selectedAddressSuggestion,
+    setCurrentOrderId, setCurrentOrderNumber, setCurrentUserSequenceNumber,
+    setIsOrderSubmitting, setIsSearchingRestaurant, setIsOrderCompleted,
+    setCurrentStep, setCompletedAnswers, setInputError, setOrderMessage,
+    triggerShake, changeEmotion, typeText,
+    pushOrderMessage
+  });
   
   // 支付相关回调函数
   const handleShouldShowPaymentButton = useCallback((shouldShow: boolean) => {
@@ -165,38 +237,6 @@ function OmnilazeAppContent() {
   const [showGoToPaymentButton, setShowGoToPaymentButton] = useState(false);
   const [isPaymentCompleted, setIsPaymentCompleted] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  
-  // 解构需要的状态和函数
-  const {
-    // 认证状态
-    isAuthenticated, setIsAuthenticated,
-    authResult, setAuthResult,
-    authQuestionText, setAuthQuestionText,
-    isStateRestored,
-    authResetTrigger, setAuthResetTrigger,
-    
-    // 表单状态
-    address, budget, deliveryTime, selectedAllergies, selectedPreferences, selectedFoodType,
-    otherAllergyText, otherPreferenceText, showMap, isAddressConfirmed,
-    selectedAddressSuggestion, currentStep, completedAnswers, editingStep,
-    originalAnswerBeforeEdit, currentOrderId, currentOrderNumber,
-    currentUserSequenceNumber, isOrderSubmitting, isSearchingRestaurant,
-    isOrderCompleted, orderMessage, isFreeOrder, showFreeDrinkModal,
-    isQuickOrderMode, completedQuestionsOffset, currentPushOffset,
-    
-    // 状态设置函数
-    setAddress, setBudget, setDeliveryTime, setSelectedAllergies, setSelectedPreferences,
-    setSelectedFoodType, setOtherAllergyText, setOtherPreferenceText,
-    setShowMap, setIsAddressConfirmed, setSelectedAddressSuggestion,
-    setCurrentStep, setCompletedAnswers, setEditingStep,
-    setOriginalAnswerBeforeEdit, setCurrentOrderId, setCurrentOrderNumber,
-    setCurrentUserSequenceNumber, setIsOrderSubmitting, setIsSearchingRestaurant,
-    setIsOrderCompleted, setOrderMessage, setIsFreeOrder, setShowFreeDrinkModal,
-    setIsQuickOrderMode, setCompletedQuestionsOffset, setCurrentPushOffset,
-    
-    // 工具函数
-    resetAllState
-  } = appState;
 
   // 移动端专用状态：用于步骤变化动画
   const [previousStep, setPreviousStep] = useState<number | undefined>(undefined);
@@ -223,19 +263,6 @@ function OmnilazeAppContent() {
     return titles[step] || '懒得点外卖';
   };
 
-  // Custom hooks - AI流式打字机效果
-  const { 
-    displayedText, 
-    isTyping, 
-    showCursor, 
-    cursorOpacity, 
-    streamingOpacity,
-    typeText, 
-    setTextDirectly, 
-    clearText,
-    isStreaming 
-  } = useTypewriterEffect();
-  
   // 新增订单处理
   const handleNewOrder = useCallback(() => {
     // 重置订单状态，从预算问题开始
@@ -277,19 +304,6 @@ function OmnilazeAppContent() {
   const handleCloseOrderHistory = useCallback(() => {
     setShowOrderHistory(false);
   }, []);
-  const { inputError, validateInput, validatePhoneNumber, setInputError } = useValidation();
-  const { 
-    questionAnimations,
-    answerAnimations, 
-    currentQuestionAnimation,
-    mapAnimation,
-    emotionAnimation,
-    shakeAnimation,
-    inputSectionAnimation,
-    triggerShake,
-    changeEmotion,
-    triggerQuestionFlowAnimation
-  } = useAnimations();
   // Track animated values without private APIs
   const completedOffsetValueRef = useAnimatedValueRef(completedQuestionsOffset);
   const inputSectionValueRef = useAnimatedValueRef(inputSectionAnimation);
@@ -662,18 +676,6 @@ function OmnilazeAppContent() {
     
     // 验证和动画函数
     validateInput, triggerShake, changeEmotion
-  });
-  
-  // 订单管理hook
-  const orderManagement = useOrderManagement({
-    authResult, address, deliveryTime, selectedAllergies, selectedPreferences, budget,
-    selectedFoodType, isFreeOrder, currentUserSequenceNumber,
-    otherAllergyText, otherPreferenceText, selectedAddressSuggestion,
-    setCurrentOrderId, setCurrentOrderNumber, setCurrentUserSequenceNumber,
-    setIsOrderSubmitting, setIsSearchingRestaurant, setIsOrderCompleted,
-    setCurrentStep, setCompletedAnswers, setInputError, setOrderMessage,
-    triggerShake, changeEmotion, typeText,
-    pushOrderMessage
   });
   
   // ===========================================

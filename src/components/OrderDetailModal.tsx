@@ -44,7 +44,8 @@ interface Order {
   budget?: string;
   amount?: string;
   totalAmount?: string;
-  status: 'draft' | 'submitted' | 'processing' | 'delivering' | 'completed' | 'cancelled' | 'pending';
+  status: 'unpaid' | 'paid' | 'delivering' | 'completed' | 'cancelled' | 'draft' | 'submitted' | 'processing' | 'pending';
+  displayStatus?: 'unpaid' | 'paid' | 'delivering' | 'completed'; // 新的统一显示状态
   createdAt: string;
   deliveryTime?: string;
   foodType?: string[];
@@ -283,12 +284,15 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
     return `${year}年${month}月${day}日 ${hour}:${minute.toString().padStart(2, '0')}`;
   };
 
-  const getStatusText = (status: string) => {
-    return formatOrderStatus(status).text;
+  const getStatusText = (order: Order) => {
+    // 优先使用后端返回的displayStatus，如果没有则使用原始status
+    const statusToUse = order.displayStatus || order.status;
+    return formatOrderStatus(statusToUse).text;
   };
 
-  const getStatusColor = (status: string) => {
-    return formatOrderStatus(status).color;
+  const getStatusColor = (order: Order) => {
+    const statusToUse = order.displayStatus || order.status;
+    return formatOrderStatus(statusToUse).color;
   };
 
   const styles = createStyles(theme);
@@ -313,9 +317,9 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
       <View style={styles.header}>
         <Text style={styles.title}>订单详情</Text>
         <View style={styles.headerRight}>
-          <View style={[styles.statusPill, { backgroundColor: formatOrderStatus(order.status).bgColor }]}>
-            <Text style={[styles.statusText, { color: formatOrderStatus(order.status).color }]}>
-              {formatOrderStatus(order.status).text}
+          <View style={[styles.statusPill, { backgroundColor: formatOrderStatus(order.displayStatus || order.status).bgColor }]}>
+            <Text style={[styles.statusText, { color: formatOrderStatus(order.displayStatus || order.status).color }]}>
+              {formatOrderStatus(order.displayStatus || order.status).text}
             </Text>
           </View>
           {feedbackSubmitted && (
