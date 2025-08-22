@@ -16,6 +16,8 @@ module.exports = async function (env, argv) {
     '../PlatformUtils': 'react-native-web/dist/exports/Platform',
     '../../PlatformUtils': 'react-native-web/dist/exports/Platform',
     '../../../PlatformUtils': 'react-native-web/dist/exports/Platform',
+    './cjs/react-dom.development.js': 'react-dom',
+    './cjs/react-dom.production.min.js': 'react-dom',
   };
   
   // 确保环境变量被注入
