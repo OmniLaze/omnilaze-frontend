@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { View, Animated, Platform, StyleSheet, Vibration } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { View, Animated, Platform, StyleSheet, Vibration, Dimensions } from 'react-native';
 import { ActionButton } from './ActionButton';
 import { useTheme } from '../contexts/ColorThemeContext';
+
+const { height: screenHeight, width: screenWidth } = Dimensions.get('window');
 
 interface FloatingConfirmButtonProps {
   // 当前步骤和状态
@@ -34,6 +36,10 @@ interface FloatingConfirmButtonProps {
   // 新增：支付相关状态
   showGoToPaymentButton?: boolean; // 是否显示去支付按钮（基于打字机效果完成）
   isPaymentCompleted?: boolean; // 支付是否已完成
+  
+  // 新增：输入组件位置信息
+  inputComponentRef?: React.RefObject<View>;
+  scrollViewRef?: React.RefObject<any>;
 }
 
 export const FloatingConfirmButton: React.FC<FloatingConfirmButtonProps> = ({
@@ -53,10 +59,67 @@ export const FloatingConfirmButton: React.FC<FloatingConfirmButtonProps> = ({
   isAuthenticated,
   showGoToPaymentButton = false,
   isPaymentCompleted = false,
+  inputComponentRef,
+  scrollViewRef,
 }) => {
   const { theme } = useTheme();
   const [buttonOpacity] = useState(new Animated.Value(0));
   const [shouldShow, setShouldShow] = useState(false);
+  const [buttonPosition, setButtonPosition] = useState({ top: 0, isFloating: true });
+  const measureTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 计算按钮位置
+  const calculateButtonPosition = useCallback(() => {
+    if (!inputComponentRef?.current) {
+      // 如果没有输入组件引用，默认浮动在底部
+      const fallbackBottom = Platform.OS === 'ios' ? 80 : 70;
+      setButtonPosition({ top: screenHeight - fallbackBottom, isFloating: true });
+      return;
+    }
+
+    inputComponentRef.current.measure((x, y, width, height, pageX, pageY) => {
+      const inputBottomY = pageY + height;
+      const proposedButtonY = inputBottomY + 50; // 50px间距
+      
+      // 检查按钮是否会超出屏幕
+      const buttonHeight = 44; // 预估按钮高度
+      const screenBottom = screenHeight - 20; // 留20px底部边距
+      
+      if (proposedButtonY + buttonHeight > screenBottom) {
+        // 超出屏幕，使用浮动定位
+        setButtonPosition({ top: screenBottom - buttonHeight, isFloating: true });
+      } else {
+        // 位于输入组件下方50px
+        setButtonPosition({ top: proposedButtonY, isFloating: false });
+      }
+    });
+  }, [inputComponentRef]);
+
+  // 延迟测量输入组件位置（等待DOM更新）
+  const scheduleMeasurement = useCallback(() => {
+    if (measureTimerRef.current) {
+      clearTimeout(measureTimerRef.current);
+    }
+    measureTimerRef.current = setTimeout(() => {
+      calculateButtonPosition();
+    }, 100); // 100ms延迟确保DOM已更新
+  }, [calculateButtonPosition]);
+
+  // 监听步骤变化，重新测量位置
+  useEffect(() => {
+    if (shouldShow) {
+      scheduleMeasurement();
+    }
+  }, [currentStep, editingStep, shouldShow, scheduleMeasurement]);
+
+  // 清理定时器
+  useEffect(() => {
+    return () => {
+      if (measureTimerRef.current) {
+        clearTimeout(measureTimerRef.current);
+      }
+    };
+  }, []);
 
   // 检测当前步骤是否有有效选择
   const checkHasValidSelection = () => {
@@ -195,9 +258,10 @@ export const FloatingConfirmButton: React.FC<FloatingConfirmButtonProps> = ({
   return (
     <Animated.View 
       style={[
-        styles.floatingContainer,
+        buttonPosition.isFloating ? styles.floatingContainer : styles.fixedContainer,
         {
           opacity: buttonOpacity,
+          top: buttonPosition.top,
         }
       ]}
       pointerEvents={shouldShow ? 'auto' : 'none'}
@@ -216,8 +280,12 @@ export const FloatingConfirmButton: React.FC<FloatingConfirmButtonProps> = ({
 const styles = StyleSheet.create({
   floatingContainer: {
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 20 : 10,
     right: 20,
     zIndex: 1000, // 确保在最上层，悬浮在所有内容之上
+  },
+  fixedContainer: {
+    position: 'absolute',
+    right: 20,
+    zIndex: 1000,
   },
 });

@@ -255,9 +255,6 @@ export const OrderHistorySidebar: React.FC<OrderHistorySidebarProps> = ({
           <SafeAreaView style={{ flex: 1 }}>
             <View style={styles.header}>
               <Text style={styles.title}>订单历史</Text>
-              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                <Text style={styles.closeButtonText}>×</Text>
-              </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.orderList} showsVerticalScrollIndicator={false}>
@@ -327,8 +324,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     left: 0,
     top: 0,
     bottom: 0,
-    width: Platform.OS === 'web' ? 380 : '85%', // 移动端使用相对宽度
-    maxWidth: 400, // 最大宽度限制
+    width: '50%', // 确保侧边栏只占屏幕50%
     backgroundColor: theme.BACKGROUND,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 0 },
@@ -347,20 +343,6 @@ const createStyles = (theme: any) => StyleSheet.create({
     fontWeight: '300', // 更轻的字重
     color: theme.TEXT_PRIMARY,
     letterSpacing: 0.5,
-  },
-  closeButton: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 60 : 24,
-    right: 24,
-    width: 32,
-    height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 20,
-    color: theme.TEXT_SECONDARY,
-    fontWeight: '300',
   },
   orderList: {
     flex: 1,
