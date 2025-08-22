@@ -52,8 +52,8 @@ export const createInputStyles = (theme: any = COLORS) => StyleSheet.create({
   },
   simpleTextInput: {
     flex: 1,
-    fontSize: Platform.OS === 'web' ? (width > 768 ? 18 : 16) : 16,
-    color: theme.TEXT_PRIMARY,
+    fontSize: Platform.OS === 'web' ? (width > 768 ? 12 : 11) : 11,
+    color: '#6B7280',
     paddingVertical: 0,
     paddingHorizontal: 0,
     fontWeight: '400',
@@ -122,7 +122,7 @@ export const createBudgetStyles = (theme: any = COLORS) => StyleSheet.create({
     borderColor: theme.PRIMARY,
   },
   budgetOptionText: {
-    fontSize: Platform.OS === 'web' ? (width > 768 ? 20 : 18) : 18,
+    fontSize: Platform.OS === 'web' ? (width > 768 ? 13 : 12) : 12,
     fontWeight: '500',
     color: theme.TEXT_PRIMARY,
   },
@@ -169,7 +169,7 @@ export const createButtonStyles = (theme: any = COLORS) => StyleSheet.create({
     } as any),
   } as any,
   simpleButtonText: {
-    fontSize: Platform.OS === 'web' ? (width > 768 ? 18 : 16) : 16,
+    fontSize: Platform.OS === 'web' ? (width > 768 ? 12 : 11) : 11,
     fontWeight: '600',
     textAlign: 'center',
     color: theme.TEXT_PRIMARY,
@@ -200,7 +200,7 @@ export const createButtonStyles = (theme: any = COLORS) => StyleSheet.create({
   },
   nextSimpleButtonText: {
     color: theme.TEXT_PRIMARY,
-    fontSize: Platform.OS === 'web' ? (width > 768 ? 18 : 16) : 16,
+    fontSize: Platform.OS === 'web' ? (width > 768 ? 12 : 11) : 11,
     fontWeight: '600',
     textAlign: 'center',
   },

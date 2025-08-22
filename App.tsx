@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import {
-  KeyboardAvoidingView,
   Platform,
   StatusBar,
   ScrollView,
@@ -1582,9 +1581,8 @@ function OmnilazeAppContent() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={[globalStyles.container, { backgroundColor: theme.BACKGROUND }]} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <View 
+      style={[globalStyles.container, { backgroundColor: theme.BACKGROUND }]}
     >
       <StatusBar barStyle="dark-content" backgroundColor={theme.BACKGROUND} />
       
@@ -1928,7 +1926,7 @@ function OmnilazeAppContent() {
           <Text style={{ color: 'white', fontSize: 24 }}>🎨</Text>
         </TouchableOpacity>
       )}
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

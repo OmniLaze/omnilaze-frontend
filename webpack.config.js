@@ -12,6 +12,10 @@ module.exports = async function (env, argv) {
     '../Utilities/Platform': 'react-native-web/dist/exports/Platform',
     '../../Utilities/Platform': 'react-native-web/dist/exports/Platform',
     '../../../exports/Platform': 'react-native-web/dist/exports/Platform',
+    './PlatformUtils': 'react-native-web/dist/exports/Platform',
+    '../PlatformUtils': 'react-native-web/dist/exports/Platform',
+    '../../PlatformUtils': 'react-native-web/dist/exports/Platform',
+    '../../../PlatformUtils': 'react-native-web/dist/exports/Platform',
   };
   
   // 确保环境变量被注入
