@@ -1215,6 +1215,16 @@ function OmnilazeAppContent() {
     }
   }, [isAuthenticated, displayedText, isTyping, inputSectionAnimation, animateInputSection]);
   
+  // 编辑模式：问题文本出现后再显示输入区域（动画500ms）
+  useEffect(() => {
+    if (editingStep !== null && displayedText && !isTyping) {
+      const currentInputValue: number = inputSectionValueRef?.current ?? 0;
+      if (currentInputValue === 0) {
+        animateInputSection(1, 500);
+      }
+    }
+  }, [editingStep, displayedText, isTyping, inputSectionAnimation, animateInputSection]);
+
   // 🔧 修复：编辑模式结束后的额外检查，避免输入框不显示的bug
   useEffect(() => {
     // 当编辑模式结束（editingStep从非null变为null）且有显示文本时，确保输入框显示
