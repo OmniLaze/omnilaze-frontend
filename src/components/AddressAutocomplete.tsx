@@ -203,7 +203,7 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
 
   const renderSuggestion = ({ item }: { item: AddressSuggestion }) => (
     <TouchableOpacity
-      style={addressAutocompleteStyles.suggestionItem}
+      style={styles.suggestionItem}
       onPress={() => handleSelectSuggestion(item)}
       activeOpacity={0.7}
     >
@@ -211,20 +211,20 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
         name="location-on" 
         size={16} 
         color={theme.GRAY_400} 
-        style={addressAutocompleteStyles.suggestionIcon}
+        style={styles.suggestionIcon}
       />
-      <View style={addressAutocompleteStyles.suggestionTextContainer}>
+      <View style={styles.suggestionTextContainer}>
         {item.structured_formatting ? (
           <>
-            <Text style={addressAutocompleteStyles.suggestionMainText}>
+            <Text numberOfLines={1} style={styles.suggestionMainText}>
               {item.structured_formatting.main_text}
             </Text>
-            <Text style={addressAutocompleteStyles.suggestionSecondaryText}>
+            <Text numberOfLines={1} style={styles.suggestionSecondaryText}>
               {item.structured_formatting.secondary_text}
             </Text>
           </>
         ) : (
-          <Text style={addressAutocompleteStyles.suggestionMainText}>
+          <Text numberOfLines={1} style={styles.suggestionMainText}>
             {item.description}
           </Text>
         )}
@@ -242,7 +242,7 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
 
   return (
     <WrapperComponent {...wrapperProps}>
-      <View style={addressAutocompleteStyles.container} ref={inputRef} nativeID={nativeIdRef.current}>
+      <View style={styles.container} ref={inputRef} nativeID={nativeIdRef.current}>
         <View style={getWrapperStyle()}>
           <MaterialIcons 
             name={iconName}
@@ -265,7 +265,7 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
             autoCorrect={false}
           />
           {isLoading && (
-            <View style={addressAutocompleteStyles.loadingContainer}>
+            <View style={styles.loadingContainer}>
               <MaterialIcons name="refresh" size={18} color={theme.GRAY_400} />
             </View>
           )}
@@ -284,25 +284,13 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
             {Platform.OS === 'web' ? (
               <WebPortal isVisible={showSuggestions}>
                 <View 
-                  style={{
-                    position: 'fixed',
-                    left: inputPosition.x,
-                    top: inputPosition.y,
-                    width: inputPosition.width || 300,
-                    backgroundColor: theme.WHITE,
-                    borderRadius: 12,
-                    marginTop: 4,
-                    shadowColor: theme.SHADOW,
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.12,
-                    shadowRadius: 12,
-                    zIndex: 99999,
-                    maxHeight: 200,
-                    pointerEvents: 'auto',
-                  }}
+                  style={[
+                    styles.suggestionsContainer,
+                    { left: inputPosition.x, top: inputPosition.y, width: inputPosition.width || 300 }
+                  ] as any}
                 >
                   <FlatList
-                    data={suggestions}
+                    data={suggestions.slice(0, 3)}
                     renderItem={renderSuggestion}
                     keyExtractor={(item) => item.place_id}
                     keyboardShouldPersistTaps="always"
@@ -312,15 +300,14 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
                 </View>
               </WebPortal>
             ) : (
-              <View style={addressAutocompleteStyles.suggestionsContainer}>
+              <View style={styles.suggestionsContainer as any}>
                 <FlatList
-                  data={suggestions}
+                  data={suggestions.slice(0, 3)}
                   renderItem={renderSuggestion}
                   keyExtractor={(item) => item.place_id}
-                  style={addressAutocompleteStyles.suggestionsList}
+                  style={styles.suggestionsList}
                   keyboardShouldPersistTaps="always"
                   showsVerticalScrollIndicator={false}
-                  maxHeight={200}
                   nestedScrollEnabled={true}
                 />
               </View>

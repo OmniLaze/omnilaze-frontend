@@ -32,7 +32,7 @@ export const STEP_CONTENT: StepContent[] = [
     inputType: "budget"
   },
   {
-    message: "", // 空文本，因为总结文字由OrderConfirmationComponent直接管理
+    message: "请确认订单并完成支付",
     showOrderConfirmation: true,
     inputType: "orderConfirmation"
   }

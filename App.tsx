@@ -423,17 +423,7 @@ function OmnilazeAppContent() {
     }, 100);
   };
   
-  // 确保输入框在非订单完成状态下显示
-  useEffect(() => {
-    // 如果不是订单完成状态，且有文本显示，确保输入框也显示
-    if (!isOrderCompleted && displayedText && !isTyping && editingStep === null) {
-      const currentInputValue: number = inputSectionValueRef?.current ?? 0;
-      
-      if (currentInputValue !== 1) {
-        inputSectionAnimation.setValue(1);
-      }
-    }
-  }, [displayedText, isTyping, isOrderCompleted, editingStep]);
+  // 移除强制 setValue，统一由“打字完成后”触发动画显示输入区
 
   // 页面刷新时的状态恢复
   useEffect(() => {
@@ -1200,7 +1190,7 @@ function OmnilazeAppContent() {
     }
   }, [authQuestionText, isAuthenticated, setTextDirectly]);
 
-  // 当打字机效果完成后显示输入框 - 立即触发版本
+  // 当打字机效果完成后显示输入框 - 立即触发版本（与卡片checkbox一致，动画500ms）
   useEffect(() => {
     if (displayedText && !isTyping && editingStep === null) {
       // 读取当前动画值（避免直接访问私有属性）
@@ -1210,17 +1200,17 @@ function OmnilazeAppContent() {
         if (process.env.NODE_ENV === 'development') {
           console.log('🎭 打字机效果完成，显示输入框');
         }
-        animateInputSection(1, 250);
+        animateInputSection(1, 500);
       }
     }
   }, [displayedText, isTyping, editingStep]);
 
-  // 未认证时，同样等待问题文本出现再显示输入区域
+  // 未认证时，同样等待问题文本出现再显示输入区域（动画500ms）
   useEffect(() => {
     if (!isAuthenticated && displayedText && !isTyping) {
       const currentInputValue: number = inputSectionValueRef?.current ?? 0;
       if (currentInputValue === 0) {
-        animateInputSection(1, 200);
+        animateInputSection(1, 500);
       }
     }
   }, [isAuthenticated, displayedText, isTyping, inputSectionAnimation, animateInputSection]);
@@ -1236,7 +1226,7 @@ function OmnilazeAppContent() {
         }
         // 短暂延迟，确保状态完全同步
         setTimeout(() => {
-          animateInputSection(1, 250);
+          animateInputSection(1, 500);
         }, 50);
       }
     }
@@ -1320,12 +1310,7 @@ function OmnilazeAppContent() {
     if (shouldShowQuestion) {
       const stepData = formSteps.getCurrentStepData();
       
-      // 特殊处理：步骤6（订单确认）不显示问题文本，直接显示组件
-      if (stepData.inputType === 'orderConfirmation') {
-        console.log('📋 步骤6（订单确认），跳过问题文本显示，直接显示组件');
-        // 不调用handleQuestionTransition，让OrderConfirmationComponent自己处理文本显示
-        return;
-      }
+      // 步骤6（订单确认）现在也作为问题显示（无输入，仅支付）
       
       // 统一检查用户输入状态
       let hasUserInput = false;
@@ -1387,7 +1372,8 @@ function OmnilazeAppContent() {
     if (editingStep !== null && isStateRestored) {
       const stepData = STEP_CONTENT[editingStep];
       if (stepData) {
-        handleQuestionTransition(stepData.message, true); // 编辑模式总是有用户输入
+        // 编辑模式也显示打字机动画，输入跟随打字结束后显现
+        handleQuestionTransition(stepData.message, false);
         
         // 🎯 智能编辑模式滚动 - 相对滚动算法
         // 1. 获取当前滚动位置
@@ -1771,14 +1757,14 @@ function OmnilazeAppContent() {
 
               {isAuthenticated && editingStep === null && currentStep === 6 && (
                 <>
-                  {!isSearchingRestaurant && !isOrderCompleted && (
-                    <CurrentQuestion
-                      displayedText=""
-                      isTyping={false}
-                      showCursor={false}
-                      cursorOpacity={new Animated.Value(0)}
-                      streamingOpacity={new Animated.Value(1)}
-                      isStreaming={false}
+              {!isSearchingRestaurant && !isOrderCompleted && (
+                <CurrentQuestion
+                      displayedText={displayedText}
+                      isTyping={isTyping}
+                      showCursor={showCursor}
+                      cursorOpacity={cursorOpacity}
+                      streamingOpacity={streamingOpacity}
+                      isStreaming={isStreaming()}
                       inputError={inputError}
                       currentStep={currentStep}
                       currentQuestionAnimation={currentQuestionAnimation}
@@ -1787,8 +1773,8 @@ function OmnilazeAppContent() {
                       hideAvatar={false}
                     >
                       {renderCurrentInput()}
-                    </CurrentQuestion>
-                  )}
+                </CurrentQuestion>
+              )}
                   {isSearchingRestaurant && (
                     <CurrentQuestion
                       displayedText={displayedText}
@@ -1835,7 +1821,8 @@ function OmnilazeAppContent() {
             completed={completedForWizard}
             currentCard={currentCard}
             onEdit={(idx) => {
-              // 触发级联编辑：清除该步及其后续答案，并进入编辑模式
+              // 支付后禁止编辑
+              if (isPaymentCompleted) return;
               try {
                 formSteps.handleEditAnswer(idx);
               } catch (e) {

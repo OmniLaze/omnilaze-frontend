@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -23,12 +23,15 @@ interface DeliveryTimeStepProps {
     selectedOption: 'asap' | 'scheduled' | null;
     selectedTime: string;
   }) => void;
+  // 新增：与其他输入组件一致的入场动画
+  animationValue?: Animated.Value;
 }
 
 export const DeliveryTimeStep: React.FC<DeliveryTimeStepProps> = ({
   onConfirm,
   initialValue = '',
   onSelectionChange,
+  animationValue,
 }) => {
   const { theme } = useTheme();
   const [selectedOption, setSelectedOption] = useState<'asap' | 'scheduled' | null>(
@@ -40,6 +43,37 @@ export const DeliveryTimeStep: React.FC<DeliveryTimeStepProps> = ({
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
   const [scaleAnim] = useState(new Animated.Value(1));
   const [fadeAnim] = useState(new Animated.Value(0));
+
+  // 为两个快捷选项创建错开入场动画（与卡片checkbox风格一致）
+  const optionAnimations = useRef<Animated.Value[]>([new Animated.Value(0), new Animated.Value(0)]);
+
+  const startOptionAnimations = () => {
+    Animated.stagger(120,
+      optionAnimations.current.map((anim) =>
+        Animated.timing(anim, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        })
+      )
+    ).start();
+  };
+
+  // 当外层动画过半后触发子项动画
+  useEffect(() => {
+    if (!animationValue) {
+      // 无外层动画时，直接触发
+      startOptionAnimations();
+      return;
+    }
+    const id = animationValue.addListener(({ value }: { value: number }) => {
+      if (value > 0.5) {
+        try { animationValue.removeListener(id as any); } catch {}
+        startOptionAnimations();
+      }
+    });
+    return () => { try { animationValue.removeListener(id as any); } catch {} };
+  }, [animationValue]);
 
   // 生成可用时间列表
   useEffect(() => {
@@ -139,11 +173,39 @@ export const DeliveryTimeStep: React.FC<DeliveryTimeStepProps> = ({
 
   const isConfirmDisabled = !selectedOption || (selectedOption === 'scheduled' && !selectedTime);
 
+  const WrapperComponent = animationValue ? Animated.View : View;
+  const wrapperProps = animationValue
+    ? {
+        style: [
+          createStyles(theme).container,
+          {
+            opacity: animationValue,
+            transform: [
+              {
+                translateY: (animationValue as Animated.AnimatedInterpolation<number>).interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [20, 0],
+                }),
+              },
+            ],
+          },
+        ],
+      }
+    : { style: [createStyles(theme).container, { opacity: fadeAnim }] };
+
   return (
-    <Animated.View style={[createStyles(theme).container, { opacity: fadeAnim }]}>
+    <WrapperComponent {...wrapperProps}>
       
       {/* 快速选项 */}
-      <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+      <Animated.View 
+        style={{ 
+          opacity: optionAnimations.current[0],
+          transform: [
+            { translateY: optionAnimations.current[0].interpolate({ inputRange: [0,1], outputRange: [20, 0] }) },
+            { scale: scaleAnim }
+          ] 
+        }}
+      >
         <TouchableOpacity
           style={[
             createStyles(theme).quickOption,
@@ -177,6 +239,12 @@ export const DeliveryTimeStep: React.FC<DeliveryTimeStepProps> = ({
       </Animated.View>
 
       {/* 时间选择选项 */}
+      <Animated.View
+        style={{ 
+          opacity: optionAnimations.current[1],
+          transform: [{ translateY: optionAnimations.current[1].interpolate({ inputRange: [0,1], outputRange: [20, 0] }) }]
+        }}
+      >
       <TouchableOpacity
         style={[
           createStyles(theme).quickOption,
@@ -207,6 +275,7 @@ export const DeliveryTimeStep: React.FC<DeliveryTimeStepProps> = ({
           </View>
         </View>
       </TouchableOpacity>
+      </Animated.View>
 
       {/* 时间选择器 */}
       {selectedOption === 'scheduled' && (
@@ -256,7 +325,7 @@ export const DeliveryTimeStep: React.FC<DeliveryTimeStepProps> = ({
           </ScrollView>
         </Animated.View>
       )}
-    </Animated.View>
+    </WrapperComponent>
   );
 };
 

@@ -145,6 +145,7 @@ export const FormInputContainer: React.FC<FormInputContainerProps> = ({
         onConfirm={handleDeliveryTimeConfirm}
         initialValue={deliveryTime}
         onSelectionChange={onDeliveryTimeSelectionChange}
+        animationValue={inputSectionAnimation}
       />
     );
   }
