@@ -72,6 +72,7 @@ interface FormInputContainerProps {
   onPaymentComplete?: (success: boolean, orderText?: string) => void;
   showPaymentModal?: boolean;
   setShowPaymentModal?: (show: boolean) => void;
+  currentOrderId?: string | null;
 }
 
 export const FormInputContainer: React.FC<FormInputContainerProps> = ({
@@ -114,6 +115,7 @@ export const FormInputContainer: React.FC<FormInputContainerProps> = ({
   onPaymentComplete,
   showPaymentModal,
   setShowPaymentModal,
+  currentOrderId,
 }) => {
   // 🔧 性能优化：使用 useMemo 缓存预算选项，避免重复计算
   const budgetOptions = useMemo(() => {
@@ -128,7 +130,7 @@ export const FormInputContainer: React.FC<FormInputContainerProps> = ({
           value={address}
           onChangeText={handleAddressChange}
           onSelectAddress={handleSelectAddress}
-          placeholder="请输入地址，如有门牌号请一并输入"
+          placeholder="请输入地址(具体到门牌号)"
           iconName="location-on"
           editable={!isAddressConfirmed || editingStep === 0}
           isDisabled={isAddressConfirmed && editingStep !== 0}
@@ -223,6 +225,7 @@ export const FormInputContainer: React.FC<FormInputContainerProps> = ({
         emotionAnimation={emotionAnimation}
         onShouldShowPaymentButton={onShouldShowPaymentButton}
         isPaymentModalVisible={showPaymentModal}
+        currentOrderId={currentOrderId}
       />
     );
   }

@@ -132,8 +132,12 @@ function OmnilazeAppContent() {
   
   const handleGoToPayment = useCallback(() => {
     setShowGoToPaymentButton(false);
+    // 确保已有订单ID，避免支付阶段重复创建订单
+    if (!currentOrderId) {
+      try { orderManagement.handleConfirmOrder(); } catch {}
+    }
     setShowPaymentModal(true);
-  }, []);
+  }, [currentOrderId, orderManagement]);
   
   const handlePaymentComplete = useCallback((success: boolean, orderText?: string) => {
     setShowPaymentModal(false);
@@ -1554,6 +1558,7 @@ function OmnilazeAppContent() {
         onPaymentComplete={handlePaymentComplete}
         showPaymentModal={showPaymentModal}
         setShowPaymentModal={setShowPaymentModal}
+        currentOrderId={currentOrderId}
       />
     );
   };

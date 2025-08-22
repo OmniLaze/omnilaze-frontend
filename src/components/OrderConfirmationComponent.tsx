@@ -5,7 +5,7 @@ import { useTheme } from '../contexts/ColorThemeContext';
 import { createQuestionStyles } from '../styles/globalStyles';
 import { useTypewriterEffect } from '../hooks';
 import { TIMING } from '../constants';
-import { createPayment, queryPaymentStatus, redirectToAlipayPayment, CreatePaymentResponse, createOrder, submitOrder } from '../services/api';
+import { createPayment, queryPaymentStatus, redirectToAlipayPayment, CreatePaymentResponse } from '../services/api';
 
 interface OrderConfirmationComponentProps {
   // 用户填写的所有信息
@@ -29,6 +29,7 @@ interface OrderConfirmationComponentProps {
   isOrderProcessing?: boolean;
   isPaymentModalVisible?: boolean;
   isPaymentCompleted?: boolean; // 新增：指示支付是否已完成
+  currentOrderId?: string | null; // 新增：使用已创建的订单ID进行支付
   
   // CurrentQuestion需要的动画参数
   currentQuestionAnimation?: Animated.Value;
@@ -54,6 +55,7 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
   isOrderProcessing = false,
   isPaymentModalVisible = false,
   isPaymentCompleted = false, // 新增参数
+  currentOrderId = null,
   currentQuestionAnimation = new Animated.Value(1),
   shakeAnimation = new Animated.Value(0),
   emotionAnimation = new Animated.Value(1),
@@ -208,77 +210,49 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
       handlePaymentComplete(true);
       return;
     }
-    
+
     setPaymentLoading(true);
     setPaymentError(null);
     setPaymentStatus('processing');
-    
+
     try {
-      // 先创建订单
-      const userId = authResult?.userId || authResult?.user_id || '';
-      const phoneNumber = authResult?.phoneNumber || authResult?.phone_number || '';
-      
-      if (!userId || !phoneNumber) {
-        throw new Error('用户信息不完整，请重新登录');
+      // 优先使用上游已创建的订单ID，避免重复创建
+      const orderId = currentOrderId;
+      if (!orderId) {
+        throw new Error('订单未创建，请返回上一步重试');
       }
-      
-      const orderData = {
-        address,
-        budget,
-        deliveryTime,
-        selectedAllergies,
-        selectedPreferences,
-        selectedFoodType,
-      };
-      
-      console.log('📦 创建订单:', { userId, phoneNumber, orderData });
-      const orderResponse = await createOrder(userId, phoneNumber, orderData);
-      
-      if (!orderResponse.success || !orderResponse.order_id) {
-        throw new Error(orderResponse.message || '订单创建失败');
-      }
-      
-      const orderId = orderResponse.order_id;
-      console.log('✅ 订单创建成功:', orderId);
-      
-      // 提交订单
-      const submitResponse = await submitOrder(orderId);
-      if (!submitResponse.success) {
-        console.warn('⚠️ 订单提交失败:', submitResponse.message);
-      }
-      
+
       // 创建支付
-      console.log('💳 创建支付:', { orderId, amount: parseFloat(budget) });
+      console.log('💳 创建支付(已有订单):', { orderId, amount: parseFloat(budget) });
       const response = await createPayment({
         orderId,
-        provider: 'alipay', // 改为支付宝
+        provider: 'alipay',
         amount: parseFloat(budget),
         paymentMethod: 'h5',
       });
-      
+
       if (response.success && response.data) {
         setPaymentData(response.data);
-        
+
         if (response.data.h5_url) {
           // 支付宝H5支付：跳转到支付页面
-          const returnUrl = Platform.OS === 'web' 
+          const returnUrl = Platform.OS === 'web'
             ? `${window.location.origin}/payment/callback`
             : 'omnilaze://payment/callback';
-          
+
           redirectToAlipayPayment(response.data.h5_url, returnUrl);
-          
+
           // 开始轮询支付状态
           startPaymentStatusCheck(response.data.payment_id);
         } else if (response.data.qr_code) {
-          // 支付宝二维码支付（保留兼容）
-          // TODO: 显示二维码
+          // TODO: 兼容二维码支付
         }
       } else {
         setPaymentError(response.message || '创建支付失败');
         setPaymentStatus('failed');
       }
     } catch (error) {
-      setPaymentError('支付创建失败，请重试');
+      setPaymentError(error instanceof Error ? error.message : '支付创建失败，请重试');
       setPaymentStatus('failed');
     } finally {
       setPaymentLoading(false);
@@ -342,10 +316,9 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
   // 处理支付完成
   const handlePaymentComplete = (success: boolean) => {
     if (success) {
-      // 支付成功，通知父组件创建订单
+      // 支付成功，仅通知父组件；不再重复创建/提交订单
       const orderText = formatOrderConfirmationText();
       onPaymentComplete?.(true, orderText);
-      onConfirmOrder();
     } else {
       // 支付取消时：1. 通知父组件关闭弹窗 2. 重新显示支付按钮
       onPaymentComplete?.(false);
