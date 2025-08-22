@@ -1800,6 +1800,7 @@ function OmnilazeAppContent() {
                       emotionAnimation={emotionAnimation}
                       hideAvatar={false}
                     >
+                      {renderCurrentInput()}
                     </CurrentQuestion>
                   )}
                   {isOrderCompleted && (
