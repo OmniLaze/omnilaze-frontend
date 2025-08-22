@@ -820,6 +820,8 @@ function OmnilazeAppContent() {
   
   // 连续滚动状态管理
   const scrollViewRef = useRef<ScrollView>(null);
+  // 输入组件测量用ref，供悬浮确认按钮定位
+  const inputComponentRef = useRef<View>(null);
   const [scrollPosition, setScrollPosition] = useState(new Animated.Value(0));
   const scrollPositionValueRef = useAnimatedValueRef(scrollPosition);
   const [isScrolling, setIsScrolling] = useState(false);
@@ -1762,7 +1764,10 @@ function OmnilazeAppContent() {
                         shakeAnimation={shakeAnimation}
                         emotionAnimation={emotionAnimation}
                       >
-                        {renderCurrentInput()}
+                        {/* 包裹输入组件以便测量其位置 */}
+                        <View ref={inputComponentRef}>
+                          {renderCurrentInput()}
+                        </View>
                         <Animated.View style={{
                           opacity: inputSectionAnimation,
                           transform: [{ translateY: inputSectionAnimation.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }],
@@ -1799,7 +1804,10 @@ function OmnilazeAppContent() {
                   shakeAnimation={shakeAnimation}
                   emotionAnimation={emotionAnimation}
                 >
-                  {renderCurrentInput()}
+                  {/* 包裹输入组件以便测量其位置（编辑态） */}
+                  <View ref={inputComponentRef}>
+                    {renderCurrentInput()}
+                  </View>
                   <Animated.View style={{
                     opacity: inputSectionAnimation,
                     transform: [{ translateY: inputSectionAnimation.interpolate({ inputRange: [0,1], outputRange: [10,0] }) }]
@@ -1826,7 +1834,10 @@ function OmnilazeAppContent() {
                       emotionAnimation={emotionAnimation}
                       hideAvatar={false}
                     >
-                      {renderCurrentInput()}
+                      {/* 包裹订单确认输入区域，支持定位 */}
+                      <View ref={inputComponentRef}>
+                        {renderCurrentInput()}
+                      </View>
                 </CurrentQuestion>
               )}
                   {isSearchingRestaurant && (
@@ -1919,6 +1930,8 @@ function OmnilazeAppContent() {
         showGoToPaymentButton={showGoToPaymentButton}
         isPaymentCompleted={isPaymentCompleted}
         onGoToPayment={handleGoToPayment}
+        inputComponentRef={inputComponentRef}
+        scrollViewRef={scrollViewRef}
       />
 
       {/* 移除过渡问题组件 - 不再需要动画渲染 */}

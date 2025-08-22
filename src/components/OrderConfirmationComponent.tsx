@@ -396,10 +396,7 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
             {paymentStatus === 'idle' && (
               <>
                 <Text style={styles.modalText}>
-                  支付金额：¥{budget}
-                </Text>
-                <Text style={styles.modalNote}>
-                  {isFreeOrder ? '免单订单' : '点击下方按钮进行支付宝支付'}
+                  {isFreeOrder ? '免单订单' : `支付金额：¥${budget}`}
                 </Text>
               </>
             )}
