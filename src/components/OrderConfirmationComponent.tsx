@@ -4,6 +4,7 @@ import { ActionButton } from './ActionButton';
 import { useTheme } from '../contexts/ColorThemeContext';
 import { createQuestionStyles } from '../styles/globalStyles';
 import { useTypewriterEffect } from '../hooks';
+import { TIMING } from '../constants';
 import { createPayment, queryPaymentStatus, redirectToAlipayPayment, CreatePaymentResponse, createOrder, submitOrder } from '../services/api';
 
 interface OrderConfirmationComponentProps {
@@ -160,7 +161,8 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
         typeSummaryText(summaryText, {
           instant: false,
           streaming: false,
-          speed: 25,
+          // 使出字速度与输入组件一致
+          speed: TIMING.TYPING_SPEED,
           onComplete: () => {
             console.log('📝 总结文字显示完成，通知父组件显示支付按钮');
             setHasShownSummary(true);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, Image, Animated, TouchableOpacity, Pressable, Dimensions } from 'react-native';
 import { SimpleIcon } from './SimpleIcon';
 import { createQuestionStyles, createAvatarStyles, createAnswerStyles } from '../styles/globalStyles';
@@ -34,7 +34,6 @@ export const CompletedQuestion: React.FC<CompletedQuestionProps> = ({
   editingButtons,
   canEdit = true,
 }) => {
-  const [isHovered, setIsHovered] = useState(false);
   const isMobile = width <= 768;
   const { theme } = useTheme();
   
@@ -74,8 +73,6 @@ export const CompletedQuestion: React.FC<CompletedQuestionProps> = ({
             ) : (
               <Pressable
                 style={answerStyles.completedAnswerText}
-                onHoverIn={() => {}}
-                onHoverOut={() => {}}
               >
                 <Animated.View
                   style={{
@@ -151,8 +148,6 @@ export const CompletedQuestion: React.FC<CompletedQuestionProps> = ({
                 ) : (
                   <Pressable
                     style={answerStyles.completedAnswerText}
-                    onHoverIn={() => !isMobile && setIsHovered(true)}
-                    onHoverOut={() => !isMobile && setIsHovered(false)}
                   >
                     <Animated.View
                       style={{
@@ -170,11 +165,14 @@ export const CompletedQuestion: React.FC<CompletedQuestionProps> = ({
                           {formatAnswerDisplay(answer)}
                         </Text>
                         {canEdit && (
-                          isHovered && (
-                            <TouchableOpacity onPress={onEdit} style={answerStyles.editAnswerButton}>
-                              <SimpleIcon name="edit" size={16} color={theme.GRAY_600} />
-                            </TouchableOpacity>
-                          )
+                          <TouchableOpacity
+                            onPress={onEdit}
+                            style={[answerStyles.editAnswerButton, { padding: 0, marginLeft: 4 }]}
+                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                            activeOpacity={0.6}
+                          >
+                            <SimpleIcon name="edit" size={12} color={theme.TEXT_SECONDARY} />
+                          </TouchableOpacity>
                         )}
                       </View>
                     </Animated.View>

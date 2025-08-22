@@ -148,10 +148,10 @@ export const createQuestionStyles = (theme: any = COLORS, dims?: Dims) => StyleS
   },
   questionText: {
     fontSize: Platform.OS === 'web' ? ((dims?.width ?? fallbackDims.width) > 768 ? 18 : 16) : 16,
-    color: theme.TEXT_PRIMARY, // 改为黑色，通过外层透明度控制弱化效果
+    color: theme.TEXT_PRIMARY,
     lineHeight: Platform.OS === 'web' ? ((dims?.width ?? fallbackDims.width) > 768 ? 26 : 22) : 22,
     flex: 1,
-    // 移除opacity，通过外层容器控制透明度
+    fontWeight: '500', // 增加字重，使问题文本更突出
   },
   currentQuestionText: {
     fontSize: Platform.OS === 'web' ? ((dims?.width ?? fallbackDims.width) > 768 ? 20 : 18) : 18,
@@ -205,17 +205,25 @@ export const avatarStyles = createAvatarStyles();
 
 export const createAnswerStyles = (theme: any = COLORS, dims?: Dims) => StyleSheet.create({
   completedAnswerText: {
-    marginLeft: 0, // 移除左边距，因为不再需要为头像留空间
-    marginTop: -2, // 减少间距，从2改为-2
-    paddingLeft: 0, // 移除左侧padding
-    opacity: 0.8, // 整体降低透明度
+    // 布局
+    marginLeft: 0,
+    marginTop: 4,
+    alignSelf: 'flex-start',
+
+    // 移除气泡外观，使用简洁的文本样式
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    borderWidth: 0,
+    borderColor: 'transparent',
+    opacity: 1,
   },
   answerValue: {
-    fontSize: Platform.OS === 'web' ? (((dims?.width ?? fallbackDims.width) > 768) ? 18 : 16) : 16,
-    color: theme.TEXT_PRIMARY, // 改为黑色，通过外层透明度控制弱化效果
+    fontSize: Platform.OS === 'web' ? (((dims?.width ?? fallbackDims.width) > 768) ? 17 : 15) : 15,
+    color: theme.TEXT_PRIMARY,
     fontWeight: '400',
     lineHeight: Platform.OS === 'web' ? (((dims?.width ?? fallbackDims.width) > 768) ? 26 : 22) : 22,
-    // 移除opacity，通过外层容器控制透明度
   },
   answerWithEdit: {
     flexDirection: 'row',
@@ -224,11 +232,12 @@ export const createAnswerStyles = (theme: any = COLORS, dims?: Dims) => StyleShe
     gap: 6,
   },
   editAnswerButton: {
-    padding: 2,
+    paddingVertical: 2,
+    paddingHorizontal: 2,
     borderRadius: 4,
     backgroundColor: 'transparent',
-    opacity: 0.9,
-    minHeight: 24,
+    opacity: 0.7,
+    minHeight: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },

@@ -32,6 +32,8 @@ export const COLORS = {
   ERROR: '#ef4444',
   ERROR_BACKGROUND: '#FEF2F2',
   BORDER: '#AAAAAA',
+  BORDER_LIGHT: '#F3F4F6',
+  CARD_BACKGROUND: '#FFFFFF',
   SHADOW: '#000',
 } as const;
 

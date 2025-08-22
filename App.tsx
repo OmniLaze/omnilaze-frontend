@@ -68,6 +68,7 @@ import { createGlobalStyles, rightContentStyles, createProgressStyles, createQue
 import { TIMING, DEV_CONFIG } from './src/constants';
 import { useWebAdaptation } from './src/platform/useWebAdaptation';
 // useAnimatedValue is imported above
+import WizardFlatList from './src/components/WizardFlatList';
 
 function OmnilazeAppContent() {
   const { setSafeTimeout, clearTimeoutById } = useSafeTimeout();
@@ -1651,132 +1652,25 @@ function OmnilazeAppContent() {
         />
       )}
 
-      {/* 连续滚动容器 - 新的滚动体验 */}
-      <ScrollView
-        ref={scrollViewRef}
-        style={{ flex: 1 }}
-        contentContainerStyle={Platform.OS === 'web' ? { height: dynamicContentHeight } : { minHeight: '150%' }} // 🔧 修复：移动端确保有足够的滚动空间
-        showsVerticalScrollIndicator={false}
-        scrollEventThrottle={16}
-        onScroll={handleScroll}
-        onMomentumScrollEnd={handleScrollEnd}
-        onScrollEndDrag={handleScrollEnd}
-        bounces={Platform.OS !== 'web'} // 🔧 修复：移动端允许弹性滚动，改善用户体验
-        decelerationRate={0.92} // 调整减速率，让滚动停止更快，吸附更明显
-        // 暂时移除snapToOffsets，使用自定义吸附逻辑
-      >
-        {/* ========== 空白缓冲容器（仅网页端） ========== */}
-        {Platform.OS === 'web' && (
-          <Animated.View 
-            style={[
-              {
-                height: 300,
-                backgroundColor: theme.BACKGROUND,
-                transform: [{ translateY: completedQuestionsOffset }]
-              }
-            ]}
-          />
-        )}
+      {/* 使用 Inverted FlatList 的问答流（互斥显示 + 上推收缩） */}
+      {(() => {
+        const questionsForWizard = STEP_CONTENT.map((s) => ({ title: s.message }));
+        const completedForWizard = Object.keys(effectiveCompletedAnswers)
+          .filter((k) => parseInt(k) >= 0 && parseInt(k) !== currentStep)
+          .sort((a, b) => parseInt(a) - parseInt(b))
+          .map((k) => {
+            const idx = parseInt(k);
+            return {
+              index: idx,
+              title: STEP_CONTENT[idx]?.message || '',
+              summary: formSteps.formatAnswerDisplay(effectiveCompletedAnswers[idx]),
+            };
+          });
 
-        {/* ========== 已完成问题页面（动态高度） ========== */}
-        <Animated.View 
-          style={[
-            {
-              minHeight: 200,
-              paddingTop: Platform.OS === 'web' ? 100 : 24, // 移动端调整为24px，确保第一个问题距离页眉只有一行距离
-              paddingHorizontal: 16,
-              paddingBottom: 20,
-              justifyContent: 'flex-start',
-              backgroundColor: theme.BACKGROUND,
-              ...(Platform.OS === 'web' ? { transform: [{ translateY: completedQuestionsOffset }] } : {}),
-            }
-          ]}
-        >
-          <View 
-            style={{
-              width: '100%',
-              maxWidth: 500,
-              alignSelf: 'center',
-              flex: 1,
-            }}>
-            {/* Debug log: rendering completed questions */}
-            {/* 已完成问题区域 */}
-            {/* 显示有效的已完成问题，包括已安定的过渡问题 */}
-            {Object.keys(effectiveCompletedAnswers).length > 0 && (
-              <>
-                {/* 已完成问题列表 */}
-                {Object.keys(effectiveCompletedAnswers)
-                  // 隐藏登录手机号条目（索引 -1），避免干扰后续问题展示
-                  .filter((k) => parseInt(k) >= 0)
-                  .sort((a, b) => parseInt(a) - parseInt(b))
-                  .map((stepIndex) => {
-                    const index = parseInt(stepIndex);
-                    const answer = effectiveCompletedAnswers[index];
-                    
-                    // 移除过渡问题检查逻辑
-                    
-                    // 为手机号问题（index: -1）提供特殊处理
-                    const questionText = STEP_CONTENT[index]?.message || '';
-                    
-                    return (
-                      <Animated.View
-                        key={index}
-                        style={{
-                          // 动态调节内容颜色 - 已完成问题页面的透明度
-                          opacity: pageOpacity.completedPageOpacity,
-                        }}
-                      >
-                        <CompletedQuestion
-                          question={questionText}
-                          answer={answer}
-                          index={index}
-                          questionAnimation={index >= 0 ? (questionAnimations[index] || new Animated.Value(1)) : new Animated.Value(1)}
-                          answerAnimation={index >= 0 ? (answerAnimations[index] || new Animated.Value(1)) : new Animated.Value(1)}
-                          onEdit={() => formSteps.handleEditAnswer(index)}
-                          formatAnswerDisplay={formSteps.formatAnswerDisplay}
-                          isEditing={false} // 已完成问题区域不显示编辑表单
-                          canEdit={index >= 0 && !isOrderCompleted} // 🔧 修复：支付成功后禁用所有编辑功能
-                        />
-                      </Animated.View>
-                    );
-                  })}
-              </>
-            )}
-          </View>
-        </Animated.View>
-
-        {/* ========== 当前问题页面（紧贴已完成问题） ========== */}
-        <Animated.View 
-          style={[
-            {
-              ...(Platform.OS === 'web' ? { height: pageHeight, paddingTop: 1 } : { paddingTop: 12 }),
-              paddingHorizontal: 16,
-              paddingBottom: 40,
-              justifyContent: 'flex-start',
-              backgroundColor: theme.BACKGROUND,
-              ...(Platform.OS === 'web' ? { transform: [{ translateY: completedQuestionsOffset }] } : {}),
-            }
-          ]}
-        >
-          <View style={{
-            width: '100%',
-            maxWidth: 500,
-            alignSelf: 'center',
-            flex: 1,
-          }}>
-            {/* 订单消息日志（两段） */}
+        const currentCard = (
+          <View style={{ flex: 1, paddingHorizontal: 16 }}>
             <OrderMessageLog messages={orderMessagesLog} />
-            {/* 当前问题内容 */}
-            <Animated.View
-              style={{
-                flex: 1,
-                // 动态调节内容颜色 - 当前问题页面的透明度
-                opacity: pageOpacity.currentPageOpacity,
-                // 动画期间稍微降低透明度，提供视觉反馈
-                // Note: movingQuestion removed as flow animation system was simplified
-              }}
-            >
-              {/* 未认证状态 - 显示认证组件 */}
+            <Animated.View style={{ flex: 1, opacity: 1 }}>
               {!isAuthenticated && (
                 <CurrentQuestion
                   key="auth"
@@ -1805,12 +1699,10 @@ function OmnilazeAppContent() {
                 </CurrentQuestion>
               )}
 
-              {/* Current Question - 正常流程、搜索状态、订单完成状态显示 */}
               {isAuthenticated && editingStep === null && (
-                // 如果正在搜索餐厅或订单已完成，只显示相应文本，不显示其他内容
                 (isSearchingRestaurant || isOrderCompleted) && currentStep !== 6 ? (
                   <CurrentQuestion
-                    key={`state-${isSearchingRestaurant?'search':isOrderCompleted?'done':'idle'}-${currentStep}`}
+                    key={`state-${isSearchingRestaurant ? 'search' : isOrderCompleted ? 'done' : 'idle'}-${currentStep}`}
                     displayedText={displayedText}
                     isTyping={isTyping}
                     showCursor={showCursor}
@@ -1823,10 +1715,10 @@ function OmnilazeAppContent() {
                     shakeAnimation={shakeAnimation}
                     emotionAnimation={emotionAnimation}
                   >
-                    {/* 搜索状态或订单完成状态时不显示任何输入组件或按钮 */}
+                    {/* 搜索/完成状态下不渲染输入 */}
                   </CurrentQuestion>
                 ) : (
-                  (currentStep < STEP_CONTENT.length && !completedAnswers[currentStep] && currentStep !== 6) && (
+                  currentStep < STEP_CONTENT.length && !completedAnswers[currentStep] && currentStep !== 6 && (
                     <CurrentQuestion
                       key={`step-${editingStep !== null ? `edit-${editingStep}` : currentStep}`}
                       displayedText={displayedText}
@@ -1841,24 +1733,27 @@ function OmnilazeAppContent() {
                       shakeAnimation={shakeAnimation}
                       emotionAnimation={emotionAnimation}
                     >
-                      {/* Input Section */}
                       {renderCurrentInput()}
-
-                      {/* Action Button 在输入组件出现后再显示 */}
                       <Animated.View style={{
                         opacity: inputSectionAnimation,
-                        transform: [{
-                          translateY: inputSectionAnimation.interpolate({ inputRange: [0,1], outputRange: [100,0] })
-                        }]
+                        transform: [{ translateY: inputSectionAnimation.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }],
                       }}>
-                        {renderActionButton()}
+                        <FormActionButtonContainer 
+                          inputError={inputError} 
+                          onNext={() => formSteps.handleNext()} 
+                          onEditFinish={() => formSteps.handleFinishEditing()} 
+                          isEditing={editingStep !== null}
+                          currentStep={currentStep}
+                          isAuthenticated={isAuthenticated}
+                          displayGoToPayment={showGoToPaymentButton}
+                          onGoToPayment={handleGoToPayment}
+                        />
                       </Animated.View>
                     </CurrentQuestion>
                   )
                 )
               )}
 
-              {/* 编辑模式 - 当有编辑步骤时显示 */}
               {editingStep !== null && (
                 <CurrentQuestion
                   key={`edit-${editingStep}`}
@@ -1874,10 +1769,7 @@ function OmnilazeAppContent() {
                   shakeAnimation={shakeAnimation}
                   emotionAnimation={emotionAnimation}
                 >
-                  {/* Input Section */}
                   {renderCurrentInput()}
-
-                  {/* Action Button 在输入组件出现后再显示 */}
                   <Animated.View style={{
                     opacity: inputSectionAnimation,
                     transform: [{ translateY: inputSectionAnimation.interpolate({ inputRange: [0,1], outputRange: [10,0] }) }]
@@ -1887,13 +1779,11 @@ function OmnilazeAppContent() {
                 </CurrentQuestion>
               )}
 
-              {/* 步骤6（订单确认）- 特殊渲染 */}
               {isAuthenticated && editingStep === null && currentStep === 6 && (
                 <>
-                  {/* 支付前：显示订单确认组件（带头像） */}
                   {!isSearchingRestaurant && !isOrderCompleted && (
                     <CurrentQuestion
-                      displayedText="" // 不显示主流程的问题文本
+                      displayedText=""
                       isTyping={false}
                       showCursor={false}
                       cursorOpacity={new Animated.Value(0)}
@@ -1904,36 +1794,11 @@ function OmnilazeAppContent() {
                       currentQuestionAnimation={currentQuestionAnimation}
                       shakeAnimation={shakeAnimation}
                       emotionAnimation={emotionAnimation}
-                      hideAvatar={false} // 支付前显示头像
+                      hideAvatar={false}
                     >
-                      {/* 渲染订单确认组件 */}
                       {renderCurrentInput()}
                     </CurrentQuestion>
                   )}
-                  
-                  {/* 支付成功后：不再显示OrderConfirmationComponent，改为显示历史消息 */}
-                  {/* 注释掉重复的OrderConfirmationComponent渲染 */}
-                  {/* {(isSearchingRestaurant || isOrderCompleted) && (
-                    <CurrentQuestion
-                      displayedText="" // 不显示主流程的问题文本
-                      isTyping={false}
-                      showCursor={false}
-                      cursorOpacity={new Animated.Value(0)}
-                      streamingOpacity={new Animated.Value(1)}
-                      isStreaming={false}
-                      inputError={inputError}
-                      currentStep={currentStep}
-                      currentQuestionAnimation={currentQuestionAnimation}
-                      shakeAnimation={shakeAnimation}
-                      emotionAnimation={emotionAnimation}
-                      hideAvatar={true} // 支付后隐藏头像，变为"老"问题
-                    >
-                      {/* 渲染订单确认组件（已完成状态） */}
-                      {/* {renderCurrentInput()} */}
-                    {/* </CurrentQuestion>
-                  )} */}
-                  
-                  {/* 支付成功后显示"正在挑选..."问题（新的当前问题，带头像） */}
                   {isSearchingRestaurant && (
                     <CurrentQuestion
                       displayedText={displayedText}
@@ -1947,13 +1812,10 @@ function OmnilazeAppContent() {
                       currentQuestionAnimation={currentQuestionAnimation}
                       shakeAnimation={shakeAnimation}
                       emotionAnimation={emotionAnimation}
-                      hideAvatar={false} // "正在挑选..."是新的当前问题，显示头像
+                      hideAvatar={false}
                     >
-                      {/* 正在挑选状态时不显示任何输入组件或按钮 */}
                     </CurrentQuestion>
                   )}
-                  
-                  {/* 订单完成后显示最终消息（新的当前问题，带头像） */}
                   {isOrderCompleted && (
                     <CurrentQuestion
                       displayedText={displayedText}
@@ -1967,18 +1829,32 @@ function OmnilazeAppContent() {
                       currentQuestionAnimation={currentQuestionAnimation}
                       shakeAnimation={shakeAnimation}
                       emotionAnimation={emotionAnimation}
-                      hideAvatar={false} // 最终消息是当前问题，显示头像
+                      hideAvatar={false}
                     >
-                      {/* 订单完成状态时不显示任何输入组件或按钮 */}
                     </CurrentQuestion>
                   )}
                 </>
               )}
-
             </Animated.View>
           </View>
-        </Animated.View>
-      </ScrollView>
+        );
+
+        return (
+          <WizardFlatList
+            questions={questionsForWizard}
+            completed={completedForWizard}
+            currentCard={currentCard}
+            onEdit={(idx) => {
+              // 触发级联编辑：清除该步及其后续答案，并进入编辑模式
+              try {
+                formSteps.handleEditAnswer(idx);
+              } catch (e) {
+                console.warn('handleEditAnswer failed', e);
+              }
+            }}
+          />
+        );
+      })()}
 
       {/* 全局悬浮确认按钮 - 基于选择状态条件显示，固定在右下角 */}
       <FloatingConfirmButton
