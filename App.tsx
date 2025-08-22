@@ -211,15 +211,24 @@ function OmnilazeAppContent() {
   }, [currentOrderId, orderManagement]);
   
   const handlePaymentComplete = useCallback((success: boolean, orderText?: string) => {
+    console.log('💳 handlePaymentComplete 被调用:', { success, orderText: orderText?.substring(0, 50) + '...' });
     setShowPaymentModal(false);
     if (success) {
       setIsPaymentCompleted(true);
       setShowGoToPaymentButton(false);
-      // 这里可以添加订单创建逻辑
-      console.log('💰 支付成功，订单创建:', orderText);
+      // 关键修复：正确设置订单完成状态，停止转圈
+      setIsSearchingRestaurant(false);
+      setIsOrderCompleted(true);
+      if (orderText) {
+        setOrderMessage(orderText);
+      }
+      console.log('💰 支付成功，状态已更新: isPaymentCompleted=true, isSearchingRestaurant=false, isOrderCompleted=true');
     } else {
       // 支付取消时重新显示支付按钮
       setShowGoToPaymentButton(true);
+      // 重置搜索状态，回到订单确认界面
+      setIsSearchingRestaurant(false);
+      console.log('💳 支付取消，重置状态: showGoToPaymentButton=true, isSearchingRestaurant=false');
     }
   }, []);
   
@@ -262,7 +271,16 @@ function OmnilazeAppContent() {
     return titles[step] || '懒得点外卖';
   };
 
-  // 新增订单处理
+  // 订单状态变化追踪（调试用）
+  useEffect(() => {
+    console.log('📊 订单状态变化:', {
+      isSearchingRestaurant,
+      isOrderCompleted,
+      isPaymentCompleted,
+      currentStep,
+      hasOrderMessage: !!orderMessage
+    });
+  }, [isSearchingRestaurant, isOrderCompleted, isPaymentCompleted, currentStep, orderMessage]);
   const handleNewOrder = useCallback(() => {
     // 重置订单状态，从预算问题开始
     setIsOrderCompleted(false);
@@ -1282,7 +1300,7 @@ function OmnilazeAppContent() {
     // 避免在直播输出过程中把逐条追加的内容整体重置为完整文本
     if (isOrderCompleted && orderMessage) {
       if (!displayedText && isStateRestored) {
-        console.log('📝 恢复订单消息（刷新后）:', orderMessage);
+        console.log('📝 恢复订单消息（刷新后）:', orderMessage?.substring(0, 50) + '...');
         setTextDirectly(orderMessage);
       }
       return; // 订单完成后不再显示其他问题
@@ -1691,9 +1709,10 @@ function OmnilazeAppContent() {
               )}
 
               {isAuthenticated && editingStep === null && (
-                (isSearchingRestaurant || isOrderCompleted) && currentStep !== 6 ? (
+                // 修复：如果支付已完成，优先显示完成状态，停止转圈
+                isPaymentCompleted ? (
                   <CurrentQuestion
-                    key={`state-${isSearchingRestaurant ? 'search' : isOrderCompleted ? 'done' : 'idle'}-${currentStep}`}
+                    key="payment-completed"
                     displayedText={displayedText}
                     isTyping={isTyping}
                     showCursor={showCursor}
@@ -1706,12 +1725,13 @@ function OmnilazeAppContent() {
                     shakeAnimation={shakeAnimation}
                     emotionAnimation={emotionAnimation}
                   >
-                    {/* 搜索/完成状态下不渲染输入 */}
+                    {/* 支付完成后不渲染输入 */}
                   </CurrentQuestion>
                 ) : (
-                  currentStep < STEP_CONTENT.length && !completedAnswers[currentStep] && currentStep !== 6 && (
+                  // 原有逻辑：搜索或订单处理状态
+                  (isSearchingRestaurant || isOrderCompleted) && currentStep !== 6 ? (
                     <CurrentQuestion
-                      key={`step-${editingStep !== null ? `edit-${editingStep}` : currentStep}`}
+                      key={`state-${isSearchingRestaurant ? 'search' : isOrderCompleted ? 'done' : 'idle'}-${currentStep}`}
                       displayedText={displayedText}
                       isTyping={isTyping}
                       showCursor={showCursor}
@@ -1719,28 +1739,47 @@ function OmnilazeAppContent() {
                       streamingOpacity={streamingOpacity}
                       isStreaming={isStreaming()}
                       inputError={inputError}
-                      currentStep={editingStep !== null ? editingStep : currentStep}
+                      currentStep={currentStep}
                       currentQuestionAnimation={currentQuestionAnimation}
                       shakeAnimation={shakeAnimation}
                       emotionAnimation={emotionAnimation}
                     >
-                      {renderCurrentInput()}
-                      <Animated.View style={{
-                        opacity: inputSectionAnimation,
-                        transform: [{ translateY: inputSectionAnimation.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }],
-                      }}>
-                        <FormActionButtonContainer 
-                          inputError={inputError} 
-                          onNext={() => formSteps.handleNext()} 
-                          onEditFinish={() => formSteps.handleFinishEditing()} 
-                          isEditing={editingStep !== null}
-                          currentStep={currentStep}
-                          isAuthenticated={isAuthenticated}
-                          displayGoToPayment={showGoToPaymentButton}
-                          onGoToPayment={handleGoToPayment}
-                        />
-                      </Animated.View>
+                      {/* 搜索/完成状态下不渲染输入 */}
                     </CurrentQuestion>
+                  ) : (
+                    currentStep < STEP_CONTENT.length && !completedAnswers[currentStep] && currentStep !== 6 && (
+                      <CurrentQuestion
+                        key={`step-${editingStep !== null ? `edit-${editingStep}` : currentStep}`}
+                        displayedText={displayedText}
+                        isTyping={isTyping}
+                        showCursor={showCursor}
+                        cursorOpacity={cursorOpacity}
+                        streamingOpacity={streamingOpacity}
+                        isStreaming={isStreaming()}
+                        inputError={inputError}
+                        currentStep={editingStep !== null ? editingStep : currentStep}
+                        currentQuestionAnimation={currentQuestionAnimation}
+                        shakeAnimation={shakeAnimation}
+                        emotionAnimation={emotionAnimation}
+                      >
+                        {renderCurrentInput()}
+                        <Animated.View style={{
+                          opacity: inputSectionAnimation,
+                          transform: [{ translateY: inputSectionAnimation.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }],
+                        }}>
+                          <FormActionButtonContainer 
+                            inputError={inputError} 
+                            onNext={() => formSteps.handleNext()} 
+                            onEditFinish={() => formSteps.handleFinishEditing()} 
+                            isEditing={editingStep !== null}
+                            currentStep={currentStep}
+                            isAuthenticated={isAuthenticated}
+                            displayGoToPayment={showGoToPaymentButton}
+                            onGoToPayment={handleGoToPayment}
+                          />
+                        </Animated.View>
+                      </CurrentQuestion>
+                    )
                   )
                 )
               )}

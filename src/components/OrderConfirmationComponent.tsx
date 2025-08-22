@@ -276,12 +276,16 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
         if (response.success && response.data) {
           if (response.data.status === 'succeeded') {
             // 支付成功
+            console.log('🎉 轮询检测到支付成功，清理轮询');
             clearInterval(interval);
+            setStatusCheckInterval(null);
             setPaymentStatus('success');
             handlePaymentComplete(true);
           } else if (response.data.status === 'failed') {
             // 支付失败
+            console.log('❌ 轮询检测到支付失败，清理轮询');
             clearInterval(interval);
+            setStatusCheckInterval(null);
             setPaymentStatus('failed');
             setPaymentError('支付失败，请重试');
           }
@@ -304,23 +308,41 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
     }, 5 * 60 * 1000);
   };
   
-  // 清理轮询
+  // 清理轮询 - 增强版本，确保在所有情况下都能正确清理
   useEffect(() => {
     return () => {
+      console.log('🧹 OrderConfirmationComponent 卸载，清理轮询');
       if (statusCheckInterval) {
         clearInterval(statusCheckInterval);
+        setStatusCheckInterval(null);
       }
     };
   }, [statusCheckInterval]);
   
   // 处理支付完成
   const handlePaymentComplete = (success: boolean) => {
+    console.log('🎯 OrderConfirmationComponent handlePaymentComplete:', { success, paymentStatus });
+    
+    // 关键修复：立即清理轮询，防止继续运行
+    if (statusCheckInterval) {
+      console.log('🧹 清理支付状态轮询');
+      clearInterval(statusCheckInterval);
+      setStatusCheckInterval(null);
+    }
+    
+    // 重置支付状态
+    setPaymentStatus('idle');
+    setPaymentLoading(false);
+    setPaymentError(null);
+    
     if (success) {
       // 支付成功，仅通知父组件；不再重复创建/提交订单
       const orderText = formatOrderConfirmationText();
+      console.log('✅ 支付成功，通知父组件:', orderText?.substring(0, 50) + '...');
       onPaymentComplete?.(true, orderText);
     } else {
       // 支付取消时：1. 通知父组件关闭弹窗 2. 重新显示支付按钮
+      console.log('❌ 支付取消或失败');
       onPaymentComplete?.(false);
       onShouldShowPaymentButton?.(true);
     }
