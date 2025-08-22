@@ -66,30 +66,34 @@ export const FloatingConfirmButton: React.FC<FloatingConfirmButtonProps> = ({
   const [buttonOpacity] = useState(new Animated.Value(0));
   const [shouldShow, setShouldShow] = useState(false);
   const [buttonPosition, setButtonPosition] = useState({ top: 0, isFloating: true });
+  const [isInputBelowViewport, setIsInputBelowViewport] = useState(false);
   const measureTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // 计算按钮位置
   const calculateButtonPosition = useCallback(() => {
     if (!inputComponentRef?.current) {
-      // 如果没有输入组件引用，默认浮动在底部
-      const fallbackBottom = Platform.OS === 'ios' ? 80 : 70;
-      setButtonPosition({ top: screenHeight - fallbackBottom, isFloating: true });
+      // 没有输入组件引用时，不触发悬浮显示
+      setIsInputBelowViewport(false);
       return;
     }
 
     inputComponentRef.current.measure((x, y, width, height, pageX, pageY) => {
       const inputBottomY = pageY + height;
-      const proposedButtonY = inputBottomY + 50; // 50px间距
-      
-      // 检查按钮是否会超出屏幕
-      const buttonHeight = 44; // 预估按钮高度
       const screenBottom = screenHeight - 20; // 留20px底部边距
-      
-      if (proposedButtonY + buttonHeight > screenBottom) {
-        // 超出屏幕，使用浮动定位
+
+      // 判断输入组件是否沉底超出视口
+      const below = inputBottomY > screenBottom;
+      setIsInputBelowViewport(below);
+
+      // 仅在需要悬浮时计算悬浮位置
+      if (below) {
+        const buttonHeight = 44; // 预估按钮高度
         setButtonPosition({ top: screenBottom - buttonHeight, isFloating: true });
       } else {
-        // 位于输入组件下方50px
+        // 非悬浮情况下不显示该组件（按钮由表单内部容器负责）
+        // 但仍保留一个合理位置用于过渡
+        const proposedButtonY = inputBottomY + 50; // 50px间距
         setButtonPosition({ top: proposedButtonY, isFloating: false });
       }
     });
@@ -105,18 +109,19 @@ export const FloatingConfirmButton: React.FC<FloatingConfirmButtonProps> = ({
     }, 100); // 100ms延迟确保DOM已更新
   }, [calculateButtonPosition]);
 
-  // 监听步骤变化，重新测量位置
+  // 监听步骤/编辑变化，重新测量位置
   useEffect(() => {
-    if (shouldShow) {
-      scheduleMeasurement();
-    }
-  }, [currentStep, editingStep, shouldShow, scheduleMeasurement]);
+    scheduleMeasurement();
+  }, [currentStep, editingStep, scheduleMeasurement]);
 
   // 清理定时器
   useEffect(() => {
     return () => {
       if (measureTimerRef.current) {
         clearTimeout(measureTimerRef.current);
+      }
+      if (pollTimerRef.current) {
+        clearInterval(pollTimerRef.current);
       }
     };
   }, []);
@@ -174,16 +179,28 @@ export const FloatingConfirmButton: React.FC<FloatingConfirmButtonProps> = ({
   // 监听状态变化，决定是否显示按钮
   useEffect(() => {
     const hasValidSelection = checkHasValidSelection();
-    
-    if (hasValidSelection !== shouldShow) {
-      setShouldShow(hasValidSelection);
-      
-      // 执行透明度动画
+    const wantShow = hasValidSelection && isInputBelowViewport;
+
+    if (wantShow !== shouldShow) {
+      setShouldShow(wantShow);
+
       Animated.timing(buttonOpacity, {
-        toValue: hasValidSelection ? 1 : 0,
-        duration: 300,
+        toValue: wantShow ? 1 : 0,
+        duration: 200,
         useNativeDriver: true,
       }).start();
+    }
+
+    // 当需要监听滚动时，开启轮询测量，确保随滚动更新可见性（支付步骤不需要）
+    if (hasValidSelection) {
+      if (!pollTimerRef.current) {
+        pollTimerRef.current = setInterval(() => {
+          calculateButtonPosition();
+        }, 150);
+      }
+    } else if (pollTimerRef.current) {
+      clearInterval(pollTimerRef.current);
+      pollTimerRef.current = null;
     }
   }, [
     currentStep,
@@ -199,7 +216,9 @@ export const FloatingConfirmButton: React.FC<FloatingConfirmButtonProps> = ({
     isAuthenticated,
     showGoToPaymentButton,
     isPaymentCompleted,
-    shouldShow
+    isInputBelowViewport,
+    shouldShow,
+    calculateButtonPosition
   ]);
 
   // 获取按钮文案

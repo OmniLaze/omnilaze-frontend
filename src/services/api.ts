@@ -946,11 +946,15 @@ export async function getPreferencesAsFormData(userId: string): Promise<FormData
  */
 export const getOrderHistory = async (userId: string) => {
   try {
-    const response = await authFetch(buildApiUrl(`/orders/${userId}`), {
+    // 避免浏览器/中间层缓存：添加时间戳并声明不缓存
+    const url = buildApiUrl(`/orders/${userId}`) + `?t=${Date.now()}`;
+    const response = await authFetch(url, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
       },
+      // Web端明确声明不使用缓存
+      cache: (Platform.OS === 'web' ? 'no-store' : undefined) as any,
       credentials: Platform.OS === "web" ? "include" : undefined,
     });
 
@@ -1205,8 +1209,12 @@ export function redirectToAlipayPayment(h5Url: string, returnUrl?: string) {
   const paymentUrl = h5Url;
 
   if (Platform.OS === 'web') {
-    // Web平台：在当前窗口跳转（支付宝H5支付通常需要在同一窗口）
-    window.location.href = paymentUrl;
+    // Web平台：在新窗口打开，保留当前页以便轮询支付状态
+    const opened = window.open(paymentUrl, '_blank');
+    if (!opened) {
+      // 浏览器可能拦截弹窗，退化为当前窗口跳转
+      window.location.href = paymentUrl;
+    }
   } else {
     // 移动平台：使用React Native Linking打开
     import('react-native').then(({ Linking }) => {

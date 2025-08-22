@@ -34,6 +34,7 @@ interface FormInputContainerProps {
   // Order status - 新增
   isSearchingRestaurant?: boolean;
   isOrderCompleted?: boolean;
+  isPaymentCompleted?: boolean; // 新增：支付是否已完成
   
   // Form handlers
   handleAddressChange: (text: string) => void;
@@ -73,6 +74,9 @@ interface FormInputContainerProps {
   showPaymentModal?: boolean;
   setShowPaymentModal?: (show: boolean) => void;
   currentOrderId?: string | null;
+  setCurrentOrderId?: (id: string | null) => void;
+  setCurrentOrderNumber?: (no: string | null) => void;
+  setCurrentUserSequenceNumber?: (seq: number | null) => void;
 }
 
 export const FormInputContainer: React.FC<FormInputContainerProps> = ({
@@ -92,6 +96,7 @@ export const FormInputContainer: React.FC<FormInputContainerProps> = ({
   authResult,
   isSearchingRestaurant = false, // 新增参数
   isOrderCompleted = false, // 新增参数
+  isPaymentCompleted = false, // 新增参数
   handleAddressChange,
   handleSelectAddress,
   handleDeliveryTimeConfirm,
@@ -116,6 +121,9 @@ export const FormInputContainer: React.FC<FormInputContainerProps> = ({
   showPaymentModal,
   setShowPaymentModal,
   currentOrderId,
+  setCurrentOrderId,
+  setCurrentOrderNumber,
+  setCurrentUserSequenceNumber,
 }) => {
   // 🔧 性能优化：使用 useMemo 缓存预算选项，避免重复计算
   const budgetOptions = useMemo(() => {
@@ -219,13 +227,17 @@ export const FormInputContainer: React.FC<FormInputContainerProps> = ({
             handleConfirmOrder(orderText);
           }
         })}
-        isPaymentCompleted={isSearchingRestaurant || isOrderCompleted} // 传递支付完成状态
+        isPaymentCompleted={isPaymentCompleted}
         currentQuestionAnimation={currentQuestionAnimation}
         shakeAnimation={shakeAnimation}
         emotionAnimation={emotionAnimation}
         onShouldShowPaymentButton={onShouldShowPaymentButton}
         isPaymentModalVisible={showPaymentModal}
+        setShowPaymentModal={setShowPaymentModal}
         currentOrderId={currentOrderId}
+        setCurrentOrderId={setCurrentOrderId}
+        setCurrentOrderNumber={setCurrentOrderNumber}
+        setCurrentUserSequenceNumber={setCurrentUserSequenceNumber}
       />
     );
   }
@@ -274,21 +286,31 @@ export const FormActionButtonContainer: React.FC<FormActionButtonContainerProps>
   handleNext,
   inputSectionAnimation
 }) => {
-  // 现在使用全局悬浮按钮，FormActionButtonContainer大部分情况下不显示按钮
-  // 只在特殊情况下显示内联按钮
-  
-  // 用餐时间步骤 - 组件内部有自己的确认按钮（暂时保留）
-  if (currentStep === 4) {
-    return null;
-  }
-  
-  // 订单确认步骤 - 组件内部有自己的确认和支付按钮
-  if (currentStep === 6) {
-    return null;
-  }
-  
-  // 其他所有情况都由全局悬浮按钮处理
-  return null;
+  // 用餐时间步骤由 DeliveryTimeStep 内部按钮处理
+  if (currentStep === 4) return null;
+
+  // 订单确认步骤由 OrderConfirmationComponent 内部处理
+  if (currentStep === 6) return null;
+
+  // 其他步骤：在输入组件下方渲染内联确认按钮（当输入区可见时可用），与悬浮按钮互补
+  const title = '确认';
+  const onPress = () => {
+    if (editingStep !== null) return handleFinishEditing?.();
+    if (currentStep === 0) return handleAddressConfirm?.();
+    return handleNext();
+  };
+
+  return (
+    <View style={{ paddingHorizontal: 20, paddingTop: 12 }}>
+      <ActionButton
+        onPress={onPress}
+        title={title}
+        disabled={!canProceed}
+        isActive={canProceed}
+        animationValue={inputSectionAnimation}
+      />
+    </View>
+  );
 };
 
 // 移动端优化：按钮右下角定位样式

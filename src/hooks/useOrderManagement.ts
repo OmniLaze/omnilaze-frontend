@@ -71,7 +71,7 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
     typeText("点好了，预计送达时间为12:00-12:20", {
       instant: false,
       streaming: false,
-      speed: 30,
+      speed: 15,
       onComplete: () => {
         // 1秒后推进到下一个状态
         setTimeout(() => {
@@ -82,7 +82,7 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
           typeText("正在持续跟进送达情况，记得接听电话", {
             instant: false,
             streaming: false,
-            speed: 30,
+            speed: 15,
             onComplete: () => {
               // 2秒后推进到最终状态
               setTimeout(() => {
@@ -90,11 +90,14 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
                 pushOrderMessage("正在持续跟进送达情况，记得接听电话", 'delivery');
                 
                 // 显示最终消息
-                typeText("已送达，骑手未提供存放位置图片，请在周围找找～", {
+                const deliveredText = "已送达，骑手未提供存放位置图片，请在周围找找～";
+                typeText(deliveredText, {
                   instant: false,
                   streaming: false,
-                  speed: 30,
+                  speed: 15,
                   onComplete: () => {
+                    // 将最终送达消息也固定到历史
+                    try { pushOrderMessage(deliveredText, 'delivery'); } catch {}
                     setOrderStatusFlowRunning(false);
                   }
                 });
@@ -303,7 +306,7 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
         typeText("正在挑选", { // 移除省略号，由LoadingDots组件处理
           instant: false,
           streaming: false,
-          speed: 30,
+          speed: 15,
           onComplete: () => {
             console.log('正在挑选文字显示完成，开始创建订单');
             // 在显示完成后再创建订单
@@ -361,7 +364,7 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
       typeText("正在挑选", { // 移除省略号，由LoadingDots组件处理
         instant: false,
         streaming: false,
-        speed: 30,
+        speed: 15,
         onComplete: () => {
           console.log('正在挑选文字显示完成，开始创建订单');
           // 在显示完成后再创建订单

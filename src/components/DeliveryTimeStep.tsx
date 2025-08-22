@@ -325,6 +325,16 @@ export const DeliveryTimeStep: React.FC<DeliveryTimeStepProps> = ({
           </ScrollView>
         </Animated.View>
       )}
+
+      {/* 确认按钮：与其他步骤一致，始终提供内联确认 */}
+      <View style={{ paddingTop: 8 }}>
+        <ActionButton
+          onPress={handleConfirm}
+          title={'确认'}
+          disabled={isConfirmDisabled}
+          isActive={!isConfirmDisabled}
+        />
+      </View>
     </WrapperComponent>
   );
 };

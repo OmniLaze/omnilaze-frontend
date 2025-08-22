@@ -156,6 +156,31 @@ function OmnilazeAppContent() {
     setOrderMessagesLog((prev) => [...prev, { id, text, avatar }]);
   }, []);
 
+  // 持久化订单消息日志（按用户隔离），避免刷新后丢失
+  useEffect(() => {
+    if (!isStateRestored || !isAuthenticated) return;
+    const key = `order_messages_log_${authResult?.userId || 'unknown'}`;
+    try {
+      const saved = CookieManager.getItem(key);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setOrderMessagesLog(parsed as OrderLogItem[]);
+        } else if (parsed && Array.isArray(parsed.messages)) {
+          setOrderMessagesLog(parsed.messages as OrderLogItem[]);
+        }
+      }
+    } catch {}
+  }, [isStateRestored, isAuthenticated, authResult?.userId]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const key = `order_messages_log_${authResult?.userId || 'unknown'}`;
+    try {
+      CookieManager.saveItem(key, JSON.stringify(orderMessagesLog));
+    } catch {}
+  }, [orderMessagesLog, isAuthenticated, authResult?.userId]);
+
   // 先定义所有需要的 hooks 和函数
   const { inputError, validateInput, validatePhoneNumber, setInputError } = useValidation();
   const { 
@@ -214,15 +239,54 @@ function OmnilazeAppContent() {
     console.log('💳 handlePaymentComplete 被调用:', { success, orderText: orderText?.substring(0, 50) + '...' });
     setShowPaymentModal(false);
     if (success) {
+      // 标记支付完成，并进入“正在挑选”流程
       setIsPaymentCompleted(true);
       setShowGoToPaymentButton(false);
-      // 关键修复：正确设置订单完成状态，停止转圈
-      setIsSearchingRestaurant(false);
-      setIsOrderCompleted(true);
+
+      // 标记支付步骤完成
+      setCompletedAnswers(prev => ({
+        ...prev,
+        [5]: { type: 'payment', value: '已确认支付' }
+      }));
+
+      // 显示“正在挑选”并推进状态流
+      setIsSearchingRestaurant(true);
+      try {
+        typeText('正在挑选', {
+          instant: false,
+          streaming: false,
+          speed: 15,
+          onComplete: () => {
+            setTimeout(() => {
+              try {
+                // 推入订单总结文字
+                orderManagement.createOrderSummaryAndPush(
+                  address,
+                  deliveryTime,
+                  selectedAllergies,
+                  selectedPreferences,
+                  selectedFoodType,
+                  budget
+                );
+              } catch {}
+
+              // 结束“正在挑选”加载，显示后续状态流
+              setIsSearchingRestaurant(false);
+              setIsOrderCompleted(true);
+              try { changeEmotion('✅'); } catch {}
+
+              setTimeout(() => {
+                try { orderManagement.handleOrderStatusFlow(); } catch {}
+              }, 1000);
+            }, 500);
+          }
+        });
+      } catch {}
+
       if (orderText) {
         setOrderMessage(orderText);
       }
-      console.log('💰 支付成功，状态已更新: isPaymentCompleted=true, isSearchingRestaurant=false, isOrderCompleted=true');
+      console.log('💰 支付成功，已进入状态推进流程');
     } else {
       // 支付取消时重新显示支付按钮
       setShowGoToPaymentButton(true);
@@ -230,7 +294,7 @@ function OmnilazeAppContent() {
       setIsSearchingRestaurant(false);
       console.log('💳 支付取消，重置状态: showGoToPaymentButton=true, isSearchingRestaurant=false');
     }
-  }, []);
+  }, [typeText, orderManagement, address, deliveryTime, selectedAllergies, selectedPreferences, selectedFoodType, budget, changeEmotion]);
   
   // 配送时间选择状态（用于全局悬浮按钮）
   const [deliveryTimeSelection, setDeliveryTimeSelection] = useState<{
@@ -310,6 +374,10 @@ function OmnilazeAppContent() {
     
     // 清空订单消息日志，防止显示之前的订单状态消息
     setOrderMessagesLog([]);
+    try {
+      const key = `order_messages_log_${authResult?.userId || 'unknown'}`;
+      CookieManager.saveItem(key, JSON.stringify([]));
+    } catch {}
   }, [authResult, completedAnswers, setCompletedAnswers, setCurrentStep, setIsOrderCompleted, setIsSearchingRestaurant, setOrderMessage, setEditingStep, setBudget, clearText, setOrderMessagesLog, setIsPaymentCompleted, setShowGoToPaymentButton, setShowPaymentModal]);
   
   // 打开订单历史
@@ -402,6 +470,14 @@ function OmnilazeAppContent() {
       dynamicContentHeight
     };
   }, [height, completedQuestionsHeight, width]);
+
+  // 计算第一个未完成的步骤索引，用于刷新时兜底渲染
+  const firstIncompleteStepIndex = useMemo(() => {
+    for (let i = 0; i < STEP_CONTENT.length; i++) {
+      if (!completedAnswers[i]) return i;
+    }
+    return -1;
+  }, [completedAnswers]);
 
   // 移除不再使用的流动函数
   
@@ -1316,15 +1392,18 @@ function OmnilazeAppContent() {
     }
     
     // 已认证状态 - 显示表单问题（但如果订单已完成则不显示）
+    // 兼容刷新：如果当前步骤已完成，使用第一个未完成步骤作为目标问题
+    const targetStepIndex = !completedAnswers[currentStep] ? currentStep : firstIncompleteStepIndex;
+
     const shouldShowQuestion = (
       editingStep === null && 
       isAuthenticated && 
-      !isOrderCompleted && // 新增：订单完成后不再显示问题
-      currentStep < STEP_CONTENT.length && 
-      !completedAnswers[currentStep] && 
+      !isOrderCompleted &&
+      targetStepIndex >= 0 &&
+      targetStepIndex < STEP_CONTENT.length && 
       !isTyping && 
       !displayedText &&
-      currentStep !== 6 // 步骤6（订单确认）由OrderConfirmationComponent自己处理
+      targetStepIndex !== 6 // 步骤6（订单确认）由OrderConfirmationComponent自己处理
     );
     
     console.log('🔍 检查是否应该显示问题:', {
@@ -1343,7 +1422,7 @@ function OmnilazeAppContent() {
     });
     
     if (shouldShowQuestion) {
-      const stepData = formSteps.getCurrentStepData();
+      const stepData = (targetStepIndex >= 0 ? STEP_CONTENT[targetStepIndex] : formSteps.getCurrentStepData());
       
       // 步骤6（订单确认）现在也作为问题显示（无输入，仅支付）
       
@@ -1534,9 +1613,11 @@ function OmnilazeAppContent() {
     setCompletedAnswers({ [-1]: phoneAnswer });
   };
 
-  // Render current step input
-  const renderCurrentInput = () => {
-    const stepData = editingStep !== null ? STEP_CONTENT[editingStep] : formSteps.getCurrentStepData();
+  // Render current step input（支持覆盖步骤索引，用于刷新兜底）
+  const renderCurrentInput = (overrideStepIndex?: number) => {
+    const stepData = (typeof overrideStepIndex === 'number' && overrideStepIndex >= 0)
+      ? STEP_CONTENT[overrideStepIndex]
+      : (editingStep !== null ? STEP_CONTENT[editingStep] : formSteps.getCurrentStepData());
     
     return (
       <FormInputContainer
@@ -1556,6 +1637,7 @@ function OmnilazeAppContent() {
         authResult={authResult}
         isSearchingRestaurant={isSearchingRestaurant} // 新增参数
         isOrderCompleted={isOrderCompleted} // 新增参数
+        isPaymentCompleted={isPaymentCompleted}
         handleAddressChange={formSteps.handleAddressChange}
         handleSelectAddress={formSteps.handleSelectAddress}
         handleDeliveryTimeConfirm={formSteps.handleDeliveryTimeConfirm}
@@ -1580,18 +1662,46 @@ function OmnilazeAppContent() {
         showPaymentModal={showPaymentModal}
         setShowPaymentModal={setShowPaymentModal}
         currentOrderId={currentOrderId}
+        setCurrentOrderId={setCurrentOrderId}
+        setCurrentOrderNumber={setCurrentOrderNumber}
+        setCurrentUserSequenceNumber={setCurrentUserSequenceNumber}
       />
     );
   };
 
-  const renderActionButton = () => {
+  const renderActionButton = (stepIndexOverride?: number) => {
+    const stepIdx = typeof stepIndexOverride === 'number' ? stepIndexOverride : currentStep;
+    // 与悬浮按钮逻辑一致的可继续判断
+    const canProceedForStep = (() => {
+      if (editingStep !== null) return true;
+      switch (stepIdx) {
+        case 0:
+          return address.trim().length >= 5;
+        case 1:
+          return selectedFoodType.length > 0;
+        case 2:
+          return selectedAllergies.length > 0;
+        case 3:
+          return selectedPreferences.length > 0;
+        case 4:
+          // 由 DeliveryTimeStep 内部处理
+          return false;
+        case 5:
+          return budget.trim().length > 0;
+        case 6:
+          return false;
+        default:
+          return false;
+      }
+    })();
+
     return (
       <FormActionButtonContainer
         editingStep={editingStep}
-        currentStep={currentStep}
+        currentStep={stepIdx}
         budget={budget}
         address={address}
-        canProceed={formSteps.canProceed()}
+        canProceed={canProceedForStep}
         handleFinishEditing={formSteps.handleFinishEditing}
         handleAddressConfirm={formSteps.handleAddressConfirm}
         handleNext={formSteps.handleNext}
@@ -1749,9 +1859,13 @@ function OmnilazeAppContent() {
                       {/* 搜索/完成状态下不渲染输入 */}
                     </CurrentQuestion>
                   ) : (
-                    currentStep < STEP_CONTENT.length && !completedAnswers[currentStep] && currentStep !== 6 && (
-                      <CurrentQuestion
-                        key={`step-${editingStep !== null ? `edit-${editingStep}` : currentStep}`}
+                    (() => {
+                      const stepToRender = (editingStep !== null)
+                        ? editingStep
+                        : (!completedAnswers[currentStep] ? currentStep : firstIncompleteStepIndex);
+                      return (stepToRender >= 0 && stepToRender < STEP_CONTENT.length && stepToRender !== 6) && (
+                       <CurrentQuestion
+                        key={`step-${editingStep !== null ? `edit-${editingStep}` : stepToRender}`}
                         displayedText={displayedText}
                         isTyping={isTyping}
                         showCursor={showCursor}
@@ -1759,32 +1873,24 @@ function OmnilazeAppContent() {
                         streamingOpacity={streamingOpacity}
                         isStreaming={isStreaming()}
                         inputError={inputError}
-                        currentStep={editingStep !== null ? editingStep : currentStep}
+                        currentStep={stepToRender}
                         currentQuestionAnimation={currentQuestionAnimation}
                         shakeAnimation={shakeAnimation}
                         emotionAnimation={emotionAnimation}
                       >
                         {/* 包裹输入组件以便测量其位置 */}
                         <View ref={inputComponentRef}>
-                          {renderCurrentInput()}
+                          {renderCurrentInput(stepToRender)}
                         </View>
                         <Animated.View style={{
                           opacity: inputSectionAnimation,
                           transform: [{ translateY: inputSectionAnimation.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }],
                         }}>
-                          <FormActionButtonContainer 
-                            inputError={inputError} 
-                            onNext={() => formSteps.handleNext()} 
-                            onEditFinish={() => formSteps.handleFinishEditing()} 
-                            isEditing={editingStep !== null}
-                            currentStep={currentStep}
-                            isAuthenticated={isAuthenticated}
-                            displayGoToPayment={showGoToPaymentButton}
-                            onGoToPayment={handleGoToPayment}
-                          />
+                          {renderActionButton(stepToRender)}
                         </Animated.View>
                       </CurrentQuestion>
-                    )
+                      );
+                    })()
                   )
                 )
               )}

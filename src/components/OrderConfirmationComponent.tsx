@@ -5,7 +5,7 @@ import { useTheme } from '../contexts/ColorThemeContext';
 import { createQuestionStyles } from '../styles/globalStyles';
 import { useTypewriterEffect } from '../hooks';
 import { TIMING } from '../constants';
-import { createPayment, queryPaymentStatus, redirectToAlipayPayment, CreatePaymentResponse } from '../services/api';
+import { createPayment, queryPaymentStatus, redirectToAlipayPayment, CreatePaymentResponse, createOrder } from '../services/api';
 
 interface OrderConfirmationComponentProps {
   // 用户填写的所有信息
@@ -30,6 +30,11 @@ interface OrderConfirmationComponentProps {
   isPaymentModalVisible?: boolean;
   isPaymentCompleted?: boolean; // 新增：指示支付是否已完成
   currentOrderId?: string | null; // 新增：使用已创建的订单ID进行支付
+  setShowPaymentModal?: (show: boolean) => void; // 新增：由父组件控制支付弹窗
+  // 父组件订单状态同步
+  setCurrentOrderId?: (id: string | null) => void;
+  setCurrentOrderNumber?: (no: string | null) => void;
+  setCurrentUserSequenceNumber?: (seq: number | null) => void;
   
   // CurrentQuestion需要的动画参数
   currentQuestionAnimation?: Animated.Value;
@@ -56,6 +61,10 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
   isPaymentModalVisible = false,
   isPaymentCompleted = false, // 新增参数
   currentOrderId = null,
+  setShowPaymentModal: setShowPaymentModalProp,
+  setCurrentOrderId,
+  setCurrentOrderNumber,
+  setCurrentUserSequenceNumber,
   currentQuestionAnimation = new Animated.Value(1),
   shakeAnimation = new Animated.Value(0),
   emotionAnimation = new Animated.Value(1),
@@ -65,7 +74,7 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
   const { theme } = useTheme();
   const questionStyles = createQuestionStyles(theme);
   
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  // 支付弹窗可见性由父组件控制；此处不再维护本地副本
   
   // 原有的UI控制状态
   const [showGoToPaymentButton, setShowGoToPaymentButton] = useState(false);
@@ -164,10 +173,10 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
           // 使出字速度与输入组件一致
           speed: TIMING.TYPING_SPEED,
           onComplete: () => {
-            console.log('📝 总结文字显示完成，通知父组件显示支付按钮');
+            console.log('📝 总结文字显示完成，使用内联按钮显示去支付');
             setHasShownSummary(true);
-            // 通知父组件显示悬浮支付按钮
-            onShouldShowPaymentButton?.(true);
+            // 不再使用悬浮按钮
+            onShouldShowPaymentButton?.(false);
           }
         });
       } catch (error) {
@@ -178,8 +187,8 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
           // 兜底：显示手动文字
           setManualDisplayText(summaryText);
           setHasShownSummary(true);
-          // 通知父组件显示悬浮支付按钮
-          onShouldShowPaymentButton?.(true);
+          // 不再使用悬浮按钮
+          onShouldShowPaymentButton?.(false);
         }, 1000); // 给用户时间看到文字
       }
     }
@@ -192,13 +201,13 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
   // 处理确认下单 - 现在只触发支付弹窗
   const handleConfirmOrder = () => {
     console.log('💳 触发支付弹窗');
-    setShowPaymentModal(true);
+    try { setShowPaymentModalProp?.(true); } catch {}
   };
   
   // 处理"去支付"按钮点击
   const handleGoToPayment = () => {
     setShowGoToPaymentButton(false);
-    setShowPaymentModal(true);
+    try { setShowPaymentModalProp?.(true); } catch {}
     setPaymentError(null);
     setPaymentStatus('idle');
   };
@@ -216,10 +225,32 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
     setPaymentStatus('processing');
 
     try {
-      // 优先使用上游已创建的订单ID，避免重复创建
-      const orderId = currentOrderId;
+      // 确保存在订单ID；若不存在，先创建订单
+      let orderId = currentOrderId || null;
       if (!orderId) {
-        throw new Error('订单未创建，请返回上一步重试');
+        if (!authResult?.userId || !authResult?.phoneNumber) {
+          throw new Error('用户信息缺失，请重新登录');
+        }
+        const orderData = {
+          address,
+          deliveryTime,
+          allergies: selectedAllergies,
+          preferences: selectedPreferences,
+          budget,
+          foodType: selectedFoodType,
+          isFreeOrder,
+          freeOrderType: isFreeOrder ? 'invite_reward' as const : undefined,
+        };
+        const res = await createOrder(authResult.userId, authResult.phoneNumber, orderData);
+        if (!res.success || !res.order_id) {
+          throw new Error(res.message || '创建订单失败');
+        }
+        orderId = res.order_id;
+        try {
+          setCurrentOrderId?.(res.order_id || null);
+          setCurrentOrderNumber?.(res.order_number || null);
+          setCurrentUserSequenceNumber?.(res.user_sequence_number || null);
+        } catch {}
       }
 
       // 创建支付
@@ -344,7 +375,7 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
       // 支付取消时：1. 通知父组件关闭弹窗 2. 重新显示支付按钮
       console.log('❌ 支付取消或失败');
       onPaymentComplete?.(false);
-      onShouldShowPaymentButton?.(true);
+      onShouldShowPaymentButton?.(false);
     }
   };
   
@@ -383,12 +414,24 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
         </Text>
       </Animated.View>
       
+      {/* 内联“去支付”按钮：与确认按钮一致的内联呈现 */}
+      {!isPaymentCompleted && hasShownSummary && (
+        <View style={{ paddingTop: 8 }}>
+          <ActionButton
+            onPress={handleGoToPayment}
+            title={isFreeOrder ? '确认免单' : '去支付'}
+            disabled={false}
+            isActive={true}
+          />
+        </View>
+      )}
+
       {/* 支付弹窗 */}
       <Modal
         visible={isPaymentModalVisible || false}
         transparent={true}
         animationType="slide"
-        onRequestClose={() => onShouldShowPaymentButton?.(true)}
+        onRequestClose={() => onShouldShowPaymentButton?.(false)}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -469,7 +512,7 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
                 <TouchableOpacity 
                   style={[styles.modalButton, styles.cancelButton]}
                   onPress={() => {
-                    setShowPaymentModal(false);
+                    try { setShowPaymentModalProp?.(false); } catch {}
                     if (statusCheckInterval) {
                       clearInterval(statusCheckInterval);
                     }
