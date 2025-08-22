@@ -154,10 +154,8 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
       console.log('📋 开始显示总结文字:', summaryText);
       console.log('📋 文字长度:', summaryText.length);
       console.log('📋 typeSummaryText函数:', typeof typeSummaryText);
-      
-      // 立即设置手动显示文字作为备用
-      setManualDisplayText(summaryText);
-      
+      // 移除立即显示的手动文字，避免先闪一次完整再进入打字
+      // 仅在支付完成或打字机失败时使用手动文字作为兜底
       // 尝试使用打字机效果
       try {
         typeSummaryText(summaryText, {
@@ -177,6 +175,8 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
         // 如果打字机效果失败，直接显示按钮
         console.log('📋 使用备用显示方式');
         setTimeout(() => {
+          // 兜底：显示手动文字
+          setManualDisplayText(summaryText);
           setHasShownSummary(true);
           // 通知父组件显示悬浮支付按钮
           onShouldShowPaymentButton?.(true);
@@ -374,7 +374,8 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
       {/* 总结文字显示区域 - 优先显示打字机效果，备用显示手动文字 */}
       <Animated.View style={{ opacity: 1, marginBottom: 12 }}>
         <Text style={[questionStyles.currentQuestionText, { minHeight: 20 }]}>
-          {summaryDisplayedText || manualDisplayText || "正在加载..."}
+          {/* 避免闪烁：打字进行中时仅显示打字内容，不回退到完整手动文字 */}
+          {summaryDisplayedText || (!summaryIsTyping ? (manualDisplayText || '正在加载...') : '')}
           {summaryIsTyping && (
             <Animated.Text style={[questionStyles.cursor, { opacity: 1, fontSize: 18, color: questionStyles.cursor.color }]}>|
             </Animated.Text>
