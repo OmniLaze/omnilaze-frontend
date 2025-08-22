@@ -32,7 +32,7 @@ export const STEP_CONTENT: StepContent[] = [
     inputType: "budget"
   },
   {
-    message: " ",
+    message: "收到，我现在下单",
     showOrderConfirmation: true,
     inputType: "orderConfirmation"
   }

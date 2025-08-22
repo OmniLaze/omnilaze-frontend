@@ -124,7 +124,7 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
     
     const deliveryTimeText = deliveryTime === 'ASAP' ? '越快越好' : deliveryTime;
     
-    let text = `收到，我现在下单\n`;
+    let text = ``;
     text += `为你在 ${address}，\n`;
     text += `安排一份${allergyText ? `不要${allergyText}的` : ''}${preferenceText}口味${foodTypeText}，\n`;
     text += `并且选择${deliveryTimeText}的配送。\n`;
