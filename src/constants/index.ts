@@ -12,8 +12,9 @@ export const LAYOUT = {
 } as const;
 
 export const TIMING = {
-  TYPING_SPEED: 60,          // 主要问题的打字速度
-  TYPING_SPEED_FAST: 40,     // 快速文本的打字速度（成功消息等）
+  // 将打字机速度与卡片错开动画保持一致（每字符约120ms）
+  TYPING_SPEED: 120,          // 主要问题的打字速度（ms/字符）
+  TYPING_SPEED_FAST: 60,      // 快速文本的打字速度（ms/字符）
   CURSOR_BLINK: 500,
   ANIMATION_DELAY: 0,        // 移除动画延迟以消除与打字机效果的冲突
   SCROLL_DELAY: 400,

@@ -40,12 +40,12 @@ export const useTypewriterEffect = () => {
       if (now - last >= delay) {
         setDisplayedText(target.substring(0, i + 1));
         i++;
-        delay = opts.speed ?? 16;
+        delay = opts.speed ?? TIMING.TYPING_SPEED;
         last = now;
       }
       rafRef.current = requestAnimationFrame((t) => step(t, last, delay));
     };
-    rafRef.current = requestAnimationFrame((t) => step(t, performance.now(), opts.speed ?? 16));
+    rafRef.current = requestAnimationFrame((t) => step(t, performance.now(), opts.speed ?? TIMING.TYPING_SPEED));
   };
 
   const appendText = (t: string) => typeText(t, { append: true });
@@ -114,4 +114,3 @@ export const useAnimations = () => {
 export { useAppState } from './useAppState';
 export { useFormSteps } from './useFormSteps';
 export { useOrderManagement } from './useOrderManagement';
-

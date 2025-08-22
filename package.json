@@ -12,6 +12,7 @@
     "build:aws": "REACT_APP_API_URL=https://backend.omnilaze.co expo export -p web --output-dir dist"
   },
   "dependencies": {
+    "@babel/runtime": "^7.25.6",
     "@expo/metro-runtime": "~5.0.4",
     "@expo/vector-icons": "^14.1.0",
     "expo": "~53.0.20",

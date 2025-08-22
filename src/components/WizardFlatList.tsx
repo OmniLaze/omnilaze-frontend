@@ -100,7 +100,7 @@ export default function WizardFlatList({ questions, completed, currentCard, onEd
       return <View style={[styles.cardContainer, { height: cardHeight }]}>{currentCard}</View>;
     }
     const it = item.item;
-    const leftPad = (isMobile ? 20 : 70) + 20; // 左侧边距再增加 20
+    const leftPad = (isMobile ? 20 : 70) + 18; // 左侧边距再增加 18
     return (
       <Pressable
         onPress={() => onEdit?.(it.index)}

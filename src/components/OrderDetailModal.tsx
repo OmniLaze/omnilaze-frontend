@@ -23,12 +23,11 @@ import {
   formatOrderStatus 
 } from '../utils/orderDataMapper';
 
-// Web-only: try to load motion.dev (Motion) react bindings
+// Web-only: try to load Motion (motion.dev) React bindings
 let MotionDiv: any = null;
 let AnimatePresenceCmp: any = null;
 try {
-  // Only attempt on web
-  if (typeof window !== 'undefined') {
+  if (Platform.OS === 'web') {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const motionReact = require('motion/react');
     MotionDiv = motionReact.motion?.div || null;
@@ -56,6 +55,8 @@ interface Order {
   arrivalImageUrl?: string;
   arrivalImageTakenAt?: string;
   arrivalImageSource?: string;
+  etaEstimatedAt?: string | null;
+  etaSource?: string | null;
   form_data?: {
     budget?: string;
     address?: string;
@@ -292,6 +293,19 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
 
   const styles = createStyles(theme);
 
+  const getEtaDisplay = (): string => {
+    const eta = order.etaEstimatedAt || (order as any).eta_estimated_at || (order as any).metadata?.eta_estimated_at;
+    if (!eta) return '—';
+    try {
+      const dt = new Date(eta);
+      if (isNaN(dt.getTime())) return '—';
+      const now = new Date();
+      const mins = Math.max(0, Math.round((dt.getTime() - now.getTime()) / 60000));
+      const timeStr = dt.toLocaleString('zh-CN');
+      return mins > 0 ? `${timeStr}（约${mins}分钟后）` : `${timeStr}`;
+    } catch { return '—'; }
+  };
+
   // 共享卡片内容（非 Hook）
   const cardBody = (
     <>
@@ -344,6 +358,10 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
           <View style={styles.infoRow}>
             <Text style={styles.label}>用餐时间</Text>
             <Text style={styles.value}>{getDeliveryTime()}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>预计送达</Text>
+            <Text style={styles.value}>{getEtaDisplay()}</Text>
           </View>
           {order.arrivalImageUrl && (
             <View style={styles.arrivalImageSection}>
@@ -558,7 +576,7 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
     </>
   );
 
-  // Web（有 motion/react）使用中心卡片 + 过渡动画；否则使用原生 Modal
+  // Web（有 @motionone/react）使用中心卡片 + 过渡动画；否则使用原生 Modal
   if (Platform.OS === 'web' && MotionDiv && AnimatePresenceCmp) {
     return (
       <AnimatePresenceCmp>

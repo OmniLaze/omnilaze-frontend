@@ -110,14 +110,11 @@ export const CurrentQuestion: React.FC<CurrentQuestionProps> = ({
             }}>
               {/* 顶部头像（左对齐）- 仅在不隐藏头像时显示 */}
               {!hideAvatar && (
-                <Animated.View
+                <View
                   style={{
                     alignSelf: 'flex-start',
                     marginBottom: 12,
                     marginLeft: 0,
-                    transform: [
-                      { scale: emotionAnimation || new Animated.Value(1) },
-                    ],
                   }}
                 >
                   <View style={[
@@ -140,7 +137,7 @@ export const CurrentQuestion: React.FC<CurrentQuestionProps> = ({
                       style={avatarStyles.avatarImage}
                     />
                   </View>
-                </Animated.View>
+                </View>
               )}
 
               {/* 问题与输入 */}
@@ -194,13 +191,12 @@ export const CurrentQuestion: React.FC<CurrentQuestionProps> = ({
               }}>
                 {/* 头像区域（左侧）- 仅在不隐藏头像时显示 */}
                 {!hideAvatar && (
-                  <Animated.View
+                  <View
                     style={[
                       {
                         marginRight: 18,
                         alignSelf: 'flex-start',
                         marginTop: 0,
-                        transform: [{ scale: emotionAnimation || new Animated.Value(1) }],
                       },
                     ]}
                   >
@@ -224,7 +220,7 @@ export const CurrentQuestion: React.FC<CurrentQuestionProps> = ({
                         style={avatarStyles.avatarImage}
                       />
                     </View>
-                  </Animated.View>
+                  </View>
                 )}
 
                 {/* 问题和输入内容区域 */}

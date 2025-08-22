@@ -387,7 +387,8 @@ function OmnilazeAppContent() {
     }
     
     clearText();
-    inputSectionAnimation.setValue(1);
+    // 初始化时隐藏输入区域，待问题文本出现后再显示
+    inputSectionAnimation.setValue(0);
     
     // 强制触发问题显示
     setSafeTimeout(() => {
@@ -545,25 +546,19 @@ function OmnilazeAppContent() {
 
   // 🔧 优化：使用 useCallback 稳定函数引用 - AI流式问题过渡函数
   const handleQuestionTransition = useCallback((questionText: string, hasUserInput: boolean = false) => {
-    // 重置动画状态，避免冲突
-    inputSectionAnimation.setValue(1); // 直接设置为1，确保输入框可见
+    // 重置动画状态：问题出现前先隐藏输入区域
+    inputSectionAnimation.setValue(0);
     currentQuestionAnimation.setValue(1);
-    
+
     if (!hasUserInput) {
-      // 无用户输入：使用AI流式打字机效果
+      // 无用户输入：使用打字机效果；完成后由全局effect显示输入框
       typeText(questionText, { 
         instant: false,
         streaming: true,
-        onComplete: () => {
-          // 打字完成后，确保输入框可见
-          inputSectionAnimation.setValue(1);
-        }
       });
     } else {
-      // 有用户输入：直接显示文本，确保输入框可见
+      // 有用户输入：直接显示文本；输入区域仍遵循统一的显示时机
       setTextDirectly(questionText);
-      // 确保输入框可见
-      inputSectionAnimation.setValue(1);
     }
   }, [inputSectionAnimation, currentQuestionAnimation, typeText, setTextDirectly]);
 
@@ -633,16 +628,15 @@ function OmnilazeAppContent() {
           console.log('📋 检查用户输入状态:', { nextStep, hasUserInput, hasAnswer: !!completedAnswers[nextStep] });
           handleQuestionTransition(stepData.message, hasUserInput);
           
-          // 🔧 关键修复：延迟显示输入框，确保所有状态（包括editingStep=null）都已同步
+          // 🔧 输入框显示时机统一交给打字完成后的全局逻辑处理
           setSafeTimeout(() => {
             const currentInputValue: number = inputSectionValueRef?.current ?? 0;
-            if (currentInputValue === 0) {
-              console.log('🔧 强制触发输入框显示，修复编辑模式后的显示bug');
-              animateInputSection(1, 250);
+            if (currentInputValue === 1) {
+              console.log('📋 输入框已显示');
             } else {
-              console.log('📋 输入框已显示，跳过强制触发');
+              console.log('⏳ 等待打字完成后再显示输入框');
             }
-          }, 100); // 确保handleQuestionTransition的打字机效果有时间完成
+          }, 100);
         }
       }, 10); // 很短的延迟，确保状态更新完成
       
@@ -1179,22 +1173,18 @@ function OmnilazeAppContent() {
     }
     
     // 常规流程：新用户或没有完整偏好的老用户
-    await handleAnswerSubmission(-1, phoneAnswer, {
-      skipAnimation: true, // 认证不需要动画
-      onComplete: () => {
-        // 立即推进到第一步，并清空旧文本，保证问题立即切换
-        setCurrentStep(0);
-        try { clearText?.(); } catch {}
-        // 主动显示地址问题，避免首次进入时机缘冲突导致不显示
-        try {
-          const step0 = STEP_CONTENT[0];
-          if (step0) {
-            // 下一帧触发，确保状态已更新
-            setTimeout(() => handleQuestionTransition(step0.message, false), 0);
-          }
-        } catch {}
+    // 先立即切换到第0步并显示对应问题，避免短暂显示手机号问题
+    try { clearText?.(); } catch {}
+    setCurrentStep(0);
+    try {
+      const step0 = STEP_CONTENT[0];
+      if (step0) {
+        handleQuestionTransition(step0.message, false);
       }
-    });
+    } catch {}
+    
+    // 记录手机号为已完成答案（无需动画）
+    await handleAnswerSubmission(-1, phoneAnswer, { skipAnimation: true });
   }, [
     handleAnswerSubmission, setIsAuthenticated, setAuthResult, setAddress, clearText,
     setSelectedFoodType, setSelectedAllergies, setSelectedPreferences, setBudget,
@@ -1225,15 +1215,15 @@ function OmnilazeAppContent() {
     }
   }, [displayedText, isTyping, editingStep]);
 
-  // 未认证时，确保输入区域可见（不依赖打字机状态）
+  // 未认证时，同样等待问题文本出现再显示输入区域
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated && displayedText && !isTyping) {
       const currentInputValue: number = inputSectionValueRef?.current ?? 0;
       if (currentInputValue === 0) {
         animateInputSection(1, 200);
       }
     }
-  }, [isAuthenticated, inputSectionAnimation, animateInputSection]);
+  }, [isAuthenticated, displayedText, isTyping, inputSectionAnimation, animateInputSection]);
   
   // 🔧 修复：编辑模式结束后的额外检查，避免输入框不显示的bug
   useEffect(() => {

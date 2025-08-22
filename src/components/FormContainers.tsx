@@ -128,7 +128,7 @@ export const FormInputContainer: React.FC<FormInputContainerProps> = ({
           value={address}
           onChangeText={handleAddressChange}
           onSelectAddress={handleSelectAddress}
-          placeholder="请输入地址"
+          placeholder="请输入地址，如有门牌号请一并输入"
           iconName="location-on"
           editable={!isAddressConfirmed || editingStep === 0}
           isDisabled={isAddressConfirmed && editingStep !== 0}

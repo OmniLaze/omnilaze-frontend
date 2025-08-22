@@ -217,6 +217,10 @@ export function normalizeOrderData(order: any): any {
     amount: order.budgetAmount || order.amount || order.order_amount,
     totalAmount: order.budgetAmount || order.totalAmount || order.total_amount,
     isFreeOrder: order.isFreeOrder || order.is_free_order || formData.isFreeOrder,
+
+    // ETA 预计到达时间（从后端 metadata 或直传字段）
+    etaEstimatedAt: order.etaEstimatedAt || order.eta_estimated_at || order.metadata?.eta_estimated_at || null,
+    etaSource: order.etaSource || order.eta_source || order.metadata?.eta_source || null,
     
     // 额外文本字段
     otherAllergyText: formData.otherAllergyText || formData.other_allergy_text || '',
@@ -228,7 +232,8 @@ export function normalizeOrderData(order: any): any {
       budgetAmount: order.budgetAmount,
       dietaryRestrictions: order.dietaryRestrictions,
       foodPreferences: order.foodPreferences,
-      metadata: order.metadata
+      metadata: order.metadata,
+      etaEstimatedAt: order.etaEstimatedAt || order.metadata?.eta_estimated_at || null,
     }
   };
   
