@@ -1188,12 +1188,12 @@ function OmnilazeAppContent() {
     setIsOrderCompleted, setIsSearchingRestaurant, setCurrentStep
   ]);
 
-  // 未认证阶段：当认证问题文本变化（如从手机号 -> 验证码 -> 邀请码）时，立即刷新显示
+  // 未认证阶段：当认证问题文本变化时，仅在状态恢复后刷新显示
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated && isStateRestored) {
       try { setTextDirectly(authQuestionText); } catch {}
     }
-  }, [authQuestionText, isAuthenticated, setTextDirectly]);
+  }, [authQuestionText, isAuthenticated, isStateRestored, setTextDirectly]);
 
   // 当打字机效果完成后显示输入框 - 立即触发版本（与卡片checkbox一致，动画500ms）
   useEffect(() => {
@@ -1262,8 +1262,8 @@ function OmnilazeAppContent() {
       completedAnswersForCurrentStep: completedAnswers[currentStep] ? '已存在' : '不存在'
     });
 
-    // 优先处理未认证态：即使状态尚未恢复，也先显示认证问题，避免首屏空白
-    if (editingStep === null && !isAuthenticated && !isTyping && !displayedText) {
+    // 未认证态：仅在状态恢复后再显示认证问题，避免刷新时闪现验证码问题
+    if (editingStep === null && !isAuthenticated && isStateRestored && !isTyping && !displayedText) {
       console.log('🔐 显示认证问题(优先):', authQuestionText);
       handleQuestionTransition(authQuestionText);
       return;
@@ -1382,13 +1382,13 @@ function OmnilazeAppContent() {
     }
   }, [isStateRestored, isAuthenticated, isOrderCompleted, editingStep, completedAnswers, currentStep, setCurrentStep, clearText]);
 
-  // 编辑模式效果 - 使用统一的问题管理
+  // 编辑模式效果 - 使用统一的问题管理（编辑时不使用打字机效果）
   useEffect(() => {
     if (editingStep !== null && isStateRestored) {
       const stepData = STEP_CONTENT[editingStep];
       if (stepData) {
-        // 编辑模式也显示打字机动画，输入跟随打字结束后显现
-        handleQuestionTransition(stepData.message, false);
+        // 编辑模式：直接展示完整问题文本，保留输入组件动画
+        handleQuestionTransition(stepData.message, true);
         
         // 🎯 智能编辑模式滚动 - 相对滚动算法
         // 1. 获取当前滚动位置

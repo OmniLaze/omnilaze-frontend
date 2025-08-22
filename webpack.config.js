@@ -29,6 +29,14 @@ module.exports = async function (env, argv) {
       );
     }
   });
+
+  // 确保可解析 TypeScript 扩展（包含 node_modules 下的 .ts/.tsx）
+  config.resolve = config.resolve || {};
+  config.resolve.extensions = Array.from(new Set([
+    '.web.tsx', '.web.ts', '.ts', '.tsx',
+    '.web.jsx', '.web.js', '.jsx', '.js',
+    ...(config.resolve.extensions || [])
+  ]));
   
   return config;
 };

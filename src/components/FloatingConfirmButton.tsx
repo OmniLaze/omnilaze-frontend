@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Animated, Platform, StyleSheet } from 'react-native';
+import { View, Animated, Platform, StyleSheet, Vibration } from 'react-native';
 import { ActionButton } from './ActionButton';
 import { useTheme } from '../contexts/ColorThemeContext';
 
@@ -158,8 +158,19 @@ export const FloatingConfirmButton: React.FC<FloatingConfirmButtonProps> = ({
     }
   };
 
+  // 轻触觉反馈（小震动）
+  const triggerLightHaptic = () => {
+    try {
+      // 10ms 轻微震动；Web 端多数情况下无效果但安全
+      Vibration.vibrate(10);
+    } catch {}
+  };
+
   // 处理按钮点击
   const handleButtonPress = () => {
+    // 先触发轻触觉反馈
+    triggerLightHaptic();
+
     if (currentStep === 4 && onDeliveryTimeConfirm && deliveryTimeSelection) {
       // 配送时间步骤的特殊处理
       const { selectedOption, selectedTime } = deliveryTimeSelection;
