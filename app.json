@@ -4,7 +4,7 @@
     "slug": "lan-de-dian-waimai",
     "version": "1.0.0",
     "orientation": "portrait",
-    
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -13,13 +13,21 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.omnilaze.waimai"
     },
     "android": {
+      "package": "com.omnilaze.waimai",
+      "versionCode": 3,
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "INTERNET",
+        "VIBRATE"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -28,6 +36,12 @@
         "viewport": "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
       }
     },
-    "plugins": []
+    "plugins": [],
+    "extra": {
+      "eas": {
+        "projectId": "9f624637-8579-4a08-930d-6f0d4be46604"
+      }
+    },
+    "owner": "omnilaze"
   }
 }
