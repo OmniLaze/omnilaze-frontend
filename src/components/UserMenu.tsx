@@ -256,7 +256,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     width: width > 768 ? 4 : 3,
     height: width > 768 ? 4 : 3,
     borderRadius: width > 768 ? 2 : 1.5,
-    backgroundColor: theme.TEXT_PRIMARY,
+    backgroundColor: 'rgb(255, 107, 53)',
     marginVertical: 0.5,
   },
   dropdown: {

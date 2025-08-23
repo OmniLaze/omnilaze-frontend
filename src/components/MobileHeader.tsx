@@ -207,8 +207,8 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
     },
     iconButtonText: {
       fontSize: 18,
-      color: theme.TEXT_SECONDARY,
-      fontWeight: '400' as const,
+      color: 'rgb(255, 107, 53)',
+      fontWeight: '600' as const,
     },
     plusButtonText: {
       fontSize: 20,
@@ -248,8 +248,8 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
     },
     menuDots: {
       fontSize: 14,
-      color: theme.TEXT_SECONDARY,
-      fontWeight: '400' as const,
+      color: 'rgb(255, 107, 53)',
+      fontWeight: '600' as const,
     },
     // 邀请气泡样式
     inviteBubble: {
