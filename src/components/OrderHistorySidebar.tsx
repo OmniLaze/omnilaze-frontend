@@ -324,7 +324,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     left: 0,
     top: 0,
     bottom: 0,
-    width: '50%', // 确保侧边栏只占屏幕50%
+    width: '65%', // 确保侧边栏只占屏幕65%
     backgroundColor: theme.BACKGROUND,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 0 },
