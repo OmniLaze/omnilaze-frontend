@@ -69,6 +69,23 @@ export function useWebAdaptation() {
       document.body.style.setProperty('-moz-text-size-adjust', '100%', 'important');
       document.body.style.setProperty('text-size-adjust', '100%', 'important');
 
+      // Apply global UI scale (font + all UI) via CSS transform
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const paramScale = params.get('scale');
+        const envScale = (process.env.EXPO_PUBLIC_UI_SCALE as string) || '';
+        // Prefer URL param > env > sensible default on mobile
+        const defaultScale = window.innerWidth <= 768 ? '0.92' : '0.95';
+        const scale = (paramScale && /^0?\.\d+$|^1(\.0+)?$/.test(paramScale))
+          ? paramScale
+          : (envScale && /^0?\.\d+$|^1(\.0+)?$/.test(envScale))
+            ? envScale
+            : defaultScale;
+
+        // Write CSS variable for global.css consumption
+        document.documentElement.style.setProperty('--ui-scale', scale);
+      } catch {}
+
       const handleResize = () => {
         if (window.innerWidth <= 768) {
           document.body.classList.add('force-mobile-layout');

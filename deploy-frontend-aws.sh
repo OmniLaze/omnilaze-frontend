@@ -6,12 +6,13 @@ set -euo pipefail
 #   ./deploy-frontend-aws.sh [OPTIONS]
 #
 # Options:
-#   -b, --bucket BUCKET       S3 bucket name (default: omnilaze-frontend)
-#   -r, --region REGION       AWS region (default: ap-southeast-1)
-#   -d, --dist-id ID          CloudFront distribution ID (optional)
-#   -a, --api-url URL         Backend API URL (default: https://backend.omnilaze.co)
-#   -p, --profile PROFILE     AWS profile to use (optional)
-#   -h, --help               Show this help message
+  #   -b, --bucket BUCKET       S3 bucket name (default: omnilaze-frontend)
+  #   -r, --region REGION       AWS region (default: ap-southeast-1)
+  #   -d, --dist-id ID          CloudFront distribution ID (optional)
+  #   -a, --api-url URL         Backend API URL (default: https://backend.omnilaze.co)
+  #   -s, --scale NUM           Global UI scale 0.80–1.00 (default: auto)
+  #   -p, --profile PROFILE     AWS profile to use (optional)
+  #   -h, --help               Show this help message
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -22,6 +23,7 @@ AWS_REGION="ap-southeast-1"
 API_URL="https://backend.omnilaze.co"
 DISTRIBUTION_ID=""
 AWS_PROFILE=""
+UI_SCALE=""
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -31,6 +33,7 @@ while [[ $# -gt 0 ]]; do
     -d|--dist-id) DISTRIBUTION_ID="$2"; shift 2;;
     -a|--api-url) API_URL="$2"; shift 2;;
     -p|--profile) AWS_PROFILE="$2"; shift 2;;
+    -s|--scale) UI_SCALE="$2"; shift 2;;
     -h|--help) 
       echo "One-click deploy for omnilaze-frontend to AWS S3 + CloudFront"
       echo ""
@@ -42,6 +45,7 @@ while [[ $# -gt 0 ]]; do
       echo "  -d, --dist-id ID          CloudFront distribution ID (optional)"
       echo "  -a, --api-url URL         Backend API URL (default: https://backend.omnilaze.co)"
       echo "  -p, --profile PROFILE     AWS profile to use (optional)"
+      echo "  -s, --scale NUM           Global UI scale 0.80–1.00 (default: auto)"
       echo "  -h, --help               Show this help message"
       echo ""
       echo "Examples:"
@@ -63,6 +67,7 @@ export AWS_REGION
 echo "🚀 Frontend One-Click Deploy (S3 + CloudFront)"
 echo "📦 Bucket: $S3_BUCKET | 🌐 Region: $AWS_REGION"
 echo "🔗 API URL: $API_URL"
+[[ -n "$UI_SCALE" ]] && echo "🔤 UI Scale: $UI_SCALE"
 [[ -n "$DISTRIBUTION_ID" ]] && echo "☁️ CloudFront ID: $DISTRIBUTION_ID"
 
 # Check dependencies
@@ -87,7 +92,11 @@ npm ci
 
 # Build frontend
 echo "🔨 Building frontend..."
-REACT_APP_API_URL="$API_URL" npm run build
+if [[ -n "$UI_SCALE" ]]; then
+  EXPO_PUBLIC_UI_SCALE="$UI_SCALE" REACT_APP_API_URL="$API_URL" npm run build
+else
+  REACT_APP_API_URL="$API_URL" npm run build
+fi
 echo "✅ Build complete: $SCRIPT_DIR/dist"
 
 # Check if bucket exists, create if not

@@ -59,6 +59,14 @@ body {
 
 /* React Native Web根容器字体控制 */
 #root {
+  /* 全局UI缩放：由 --ui-scale 控制，默认1 */
+  transform: scale(var(--ui-scale, 1));
+  transform-origin: top center;
+  /* 为了在缩放后仍铺满视口，按比例扩大容器尺寸 */
+  width: calc(100% / var(--ui-scale, 1));
+  height: calc(100% / var(--ui-scale, 1));
+  /* 防止缩放导致的横向滚动 */
+  overflow-x: hidden;
   -webkit-text-size-adjust: 100% !important;
   -moz-text-size-adjust: 100% !important;
   -ms-text-size-adjust: 100% !important;
@@ -165,4 +173,9 @@ div[style*="font-size"] {
   html, body {
     max-width: 100vw;
   }
+}
+
+/* 默认全局缩放变量（可被运行时覆盖） */
+:root {
+  --ui-scale: 1;
 }
