@@ -253,12 +253,25 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
           <TextInput
             style={[
               inputStyles.simpleTextInput,
-              ...(Platform.OS === 'web' ? [{ outlineStyle: 'none' as any, outlineWidth: 0 }] : [])
+              ...(Platform.OS === 'web' ? [{ 
+                outlineStyle: 'none' as any, 
+                outlineWidth: 0,
+                // 禁用移动端键盘弹起时的输入框位移
+                transform: 'none',
+                transition: 'none',
+                WebkitTransform: 'none'
+              }] : [])
             ]}
             placeholder={placeholder}
             value={value}
             onChangeText={handleTextChange}
-            onFocus={handleFocus}
+            onFocus={(e) => {
+              // 阻止默认的滚动到输入框行为
+              if (Platform.OS === 'web' && e?.target) {
+                (e.target as any).scrollIntoView = () => {};
+              }
+              handleFocus();
+            }}
             onBlur={handleBlur}
             editable={editable && !isDisabled}
             autoComplete="address-line1"

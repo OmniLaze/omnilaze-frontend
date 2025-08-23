@@ -89,13 +89,26 @@ export const BaseInput: React.FC<BaseInputProps> = ({
           style={[
             inputStyles.simpleTextInput,
             multiline && inputStyles.multilineInput,
-            ...(Platform.OS === 'web' ? [{ outlineStyle: 'none' as any, outlineWidth: 0 }] : [])
+            ...(Platform.OS === 'web' ? [{ 
+              outlineStyle: 'none' as any, 
+              outlineWidth: 0,
+              // 禁用移动端键盘弹起时的输入框位移
+              transform: 'none',
+              transition: 'none',
+              WebkitTransform: 'none'
+            }] : [])
           ]}
           placeholder={placeholder}
           placeholderTextColor="#000000"
           value={value}
           onChangeText={onChangeText}
-          onFocus={onFocus}
+          onFocus={(e) => {
+            // 阻止默认的滚动到输入框行为
+            if (Platform.OS === 'web' && e?.target) {
+              (e.target as any).scrollIntoView = () => {};
+            }
+            onFocus?.();
+          }}
           onBlur={onBlur}
           editable={editable}
           multiline={multiline}

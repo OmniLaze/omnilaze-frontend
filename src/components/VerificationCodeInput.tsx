@@ -270,11 +270,25 @@ export const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
             >
               <TextInput
                 ref={(ref) => (inputRefs.current[index] = ref)}
-                style={inputStyle}
+                style={[
+                  inputStyle,
+                  ...(Platform.OS === 'web' ? [{
+                    // 禁用移动端键盘弹起时的输入框位移
+                    transform: 'none',
+                    transition: 'none',
+                    WebkitTransform: 'none'
+                  }] : [])
+                ]}
                 value={isFilled ? digit : ''}
                 onChangeText={(text) => handleTextChange(text, index)}
                 onKeyPress={(e) => handleKeyPress(e, index)}
-                onFocus={() => handleFocus(index)}
+                onFocus={(e) => {
+                  // 阻止默认的滚动到输入框行为
+                  if (Platform.OS === 'web' && e?.target) {
+                    (e.target as any).scrollIntoView = () => {};
+                  }
+                  handleFocus(index);
+                }}
                 onBlur={handleBlur}
                 keyboardType="numeric"
                 maxLength={1}

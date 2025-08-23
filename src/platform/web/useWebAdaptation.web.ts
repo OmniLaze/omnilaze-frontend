@@ -56,6 +56,66 @@ export function useWebAdaptation() {
           html.force-mobile, body.force-mobile-layout { width: 100vw !important; max-width: 100vw !important; overflow-x: hidden !important; }
           .force-mobile-layout * { max-width: 100vw !important; box-sizing: border-box !important; }
           .force-mobile-layout { -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+          
+          /* 禁用移动端键盘弹起时的页面下沉/位移效果 - 强化版 */
+          .force-mobile-layout input, 
+          .force-mobile-layout textarea {
+            transform: none !important;
+            -webkit-transform: none !important;
+            -moz-transform: none !important;
+            -ms-transform: none !important;
+            -o-transform: none !important;
+            transition: none !important;
+            -webkit-transition: none !important;
+            -moz-transition: none !important;
+            -ms-transition: none !important;
+            -o-transition: none !important;
+            position: relative !important;
+            animation: none !important;
+            -webkit-animation: none !important;
+          }
+          
+          /* 阻止输入框焦点时的页面滚动行为 - 强化版 */
+          .force-mobile-layout input:focus,
+          .force-mobile-layout textarea:focus {
+            scroll-behavior: auto !important;
+            transform: none !important;
+            -webkit-transform: none !important;
+            -moz-transform: none !important;
+            -ms-transform: none !important;
+            -o-transform: none !important;
+            transition: none !important;
+            -webkit-transition: none !important;
+            -moz-transition: none !important;
+            -ms-transition: none !important;
+            -o-transition: none !important;
+            animation: none !important;
+            -webkit-animation: none !important;
+          }
+          
+          /* 针对Android Chrome的特殊修复 */
+          @supports (-webkit-touch-callout: none) {
+            .force-mobile-layout input,
+            .force-mobile-layout textarea {
+              -webkit-transform: translate3d(0, 0, 0) !important;
+              transform: translate3d(0, 0, 0) !important;
+            }
+          }
+          
+          /* 禁用webkit在输入时的自动缩放和位移 - 强化版 */
+          @media screen and (-webkit-min-device-pixel-ratio: 0) {
+            .force-mobile-layout input,
+            .force-mobile-layout textarea {
+              -webkit-transform: none !important;
+              transform: none !important;
+            }
+            
+            .force-mobile-layout input:focus,
+            .force-mobile-layout textarea:focus {
+              -webkit-transform: none !important;
+              transform: none !important;
+            }
+          }
         `;
         const oldStyle = document.getElementById('mobile-adaptation');
         if (oldStyle) oldStyle.remove();

@@ -166,6 +166,67 @@ div[style*="font-size"] {
   button {
     font-size: 16px !important; /* iOS需要16px以上防止缩放 */
   }
+  
+  /* 禁用移动端键盘弹起时的页面下沉/位移效果 */
+  input, 
+  textarea {
+    transform: none !important;
+    transition: none !important;
+    position: relative !important;
+    /* 针对小米/Android Chrome的额外修复 */
+    -webkit-transform: none !important;
+    -moz-transform: none !important;
+    -ms-transform: none !important;
+    -o-transform: none !important;
+  }
+  
+  /* 阻止输入框焦点时的页面滚动行为 */
+  input:focus,
+  textarea:focus {
+    scroll-behavior: auto !important;
+    transform: none !important;
+    transition: none !important;
+    -webkit-transform: none !important;
+    -moz-transform: none !important;
+    -ms-transform: none !important;
+    -o-transform: none !important;
+  }
+  
+  /* 禁用webkit在输入时的自动缩放和位移 */
+  @media screen and (-webkit-min-device-pixel-ratio: 0) {
+    input,
+    textarea {
+      -webkit-transform: none !important;
+      transform: none !important;
+    }
+    
+    input:focus,
+    textarea:focus {
+      -webkit-transform: none !important;
+      transform: none !important;
+    }
+  }
+  
+  /* 针对Android设备的特别修复 */
+  @media screen and (max-width: 768px) {
+    input,
+    textarea {
+      transform: none !important;
+      -webkit-transform: none !important;
+      transition: none !important;
+      animation: none !important;
+      -webkit-animation: none !important;
+    }
+    
+    input:focus,
+    textarea:focus {
+      transform: none !important;
+      -webkit-transform: none !important;
+      transition: none !important;
+      animation: none !important;
+      -webkit-animation: none !important;
+    }
+  }
 }
 
 /* 桌面端适配 */
