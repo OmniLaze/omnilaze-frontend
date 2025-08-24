@@ -4,7 +4,7 @@ import { ActionButton } from './ActionButton';
 import { useTheme } from '../contexts/ColorThemeContext';
 import { createQuestionStyles } from '../styles/globalStyles';
 import { useTypewriterEffect } from '../hooks';
-import { TIMING } from '../constants';
+import { TIMING, DEV_CONFIG } from '../constants';
 import { createPayment, queryPaymentStatus, redirectToAlipayPayment, CreatePaymentResponse, createOrder } from '../services/api';
 
 interface OrderConfirmationComponentProps {
@@ -29,6 +29,8 @@ interface OrderConfirmationComponentProps {
   isOrderProcessing?: boolean;
   isPaymentModalVisible?: boolean;
   isPaymentCompleted?: boolean; // 新增：指示支付是否已完成
+  isSearchingRestaurant?: boolean; // 新增：搜索餐厅状态
+  isOrderCompleted?: boolean; // 新增：订单完成状态
   currentOrderId?: string | null; // 新增：使用已创建的订单ID进行支付
   setShowPaymentModal?: (show: boolean) => void; // 新增：由父组件控制支付弹窗
   // 父组件订单状态同步
@@ -60,6 +62,8 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
   isOrderProcessing = false,
   isPaymentModalVisible = false,
   isPaymentCompleted = false, // 新增参数
+  isSearchingRestaurant = false, // 新增参数
+  isOrderCompleted = false, // 新增参数
   currentOrderId = null,
   setShowPaymentModal: setShowPaymentModalProp,
   setCurrentOrderId,
@@ -173,7 +177,7 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
           // 使出字速度与输入组件一致
           speed: TIMING.TYPING_SPEED,
           onComplete: () => {
-            console.log('📝 总结文字显示完成，使用内联按钮显示去支付');
+            console.log('📝 总结文字显示完成');
             setHasShownSummary(true);
             // 不再使用悬浮按钮
             onShouldShowPaymentButton?.(false);
@@ -214,6 +218,19 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
   
   // 创建支付订单
   const handleCreatePayment = async () => {
+    // 测试模式：跳过真实支付
+    if (DEV_CONFIG.SKIP_PAYMENT) {
+      console.log('🧪 测试模式：跳过支付，直接成功');
+      setPaymentLoading(true);
+      setPaymentStatus('processing');
+      setTimeout(() => {
+        setPaymentLoading(false);
+        setPaymentStatus('success');
+        handlePaymentComplete(true);
+      }, 1000); // 模拟1秒的支付时间
+      return;
+    }
+
     if (isFreeOrder) {
       // 免单订单直接成功
       handlePaymentComplete(true);
@@ -402,28 +419,48 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
   return (
     <WrapperComponent {...wrapperProps}>
       
-      {/* 总结文字显示区域 - 优先显示打字机效果，备用显示手动文字 */}
-      <Animated.View style={{ opacity: 1, marginBottom: 12 }}>
-        <Text style={[questionStyles.currentQuestionText, { minHeight: 20 }]}>
-          {/* 避免闪烁：打字进行中时仅显示打字内容，不回退到完整手动文字 */}
-          {summaryDisplayedText || (!summaryIsTyping ? (manualDisplayText || '正在加载...') : '')}
-          {summaryIsTyping && (
-            <Animated.Text style={[questionStyles.cursor, { opacity: 1, fontSize: 18, color: questionStyles.cursor.color }]}>|
-            </Animated.Text>
+      {/* 根据订单状态显示不同内容 */}
+      {isSearchingRestaurant ? (
+        // 搜索餐厅状态：显示加载提示
+        <Animated.View style={{ opacity: 1, marginBottom: 12 }}>
+          <Text style={[questionStyles.currentQuestionText, { minHeight: 20 }]}>
+            {summaryDisplayedText || '正在挑选...'}
+          </Text>
+        </Animated.View>
+      ) : isOrderCompleted ? (
+        // 订单完成状态：显示完成信息
+        <Animated.View style={{ opacity: 1, marginBottom: 12 }}>
+          <Text style={[questionStyles.currentQuestionText, { minHeight: 20 }]}>
+            {summaryDisplayedText || manualDisplayText || '订单处理中...'}
+          </Text>
+        </Animated.View>
+      ) : (
+        // 正常状态：显示订单总结和支付按钮
+        <>
+          {/* 总结文字显示区域 - 优先显示打字机效果，备用显示手动文字 */}
+          <Animated.View style={{ opacity: 1, marginBottom: 12 }}>
+            <Text style={[questionStyles.currentQuestionText, { minHeight: 20 }]}>
+              {/* 避免闪烁：打字进行中时仅显示打字内容，不回退到完整手动文字 */}
+              {summaryDisplayedText || (!summaryIsTyping ? (manualDisplayText || '正在加载...') : '')}
+              {summaryIsTyping && (
+                <Animated.Text style={[questionStyles.cursor, { opacity: 1, fontSize: 18, color: questionStyles.cursor.color }]}>|
+                </Animated.Text>
+              )}
+            </Text>
+          </Animated.View>
+          
+          {/* 内联"去支付"按钮：与确认按钮一致的内联呈现 */}
+          {!isPaymentCompleted && hasShownSummary && (
+            <View style={{ paddingTop: 8 }}>
+              <ActionButton
+                onPress={handleGoToPayment}
+                title={isFreeOrder ? '确认免单' : '去支付'}
+                disabled={false}
+                isActive={true}
+              />
+            </View>
           )}
-        </Text>
-      </Animated.View>
-      
-      {/* 内联“去支付”按钮：与确认按钮一致的内联呈现 */}
-      {!isPaymentCompleted && hasShownSummary && (
-        <View style={{ paddingTop: 8 }}>
-          <ActionButton
-            onPress={handleGoToPayment}
-            title={isFreeOrder ? '确认免单' : '去支付'}
-            disabled={false}
-            isActive={true}
-          />
-        </View>
+        </>
       )}
 
       {/* 支付弹窗 */}

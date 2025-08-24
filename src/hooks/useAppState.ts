@@ -57,6 +57,11 @@ export const useAppState = () => {
   // 快速下单模式状态
   const [isQuickOrderMode, setIsQuickOrderMode] = useState(false);
 
+  // 支付状态
+  const [showGoToPaymentButton, setShowGoToPaymentButton] = useState(false);
+  const [isPaymentCompleted, setIsPaymentCompleted] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+
   // 已完成问题列表上推动画状态
   const [completedQuestionsOffset, setCompletedQuestionsOffset] = useState(() => new Animated.Value(0));
   // 跟踪当前推动偏移值用于高度计算
@@ -93,6 +98,9 @@ export const useAppState = () => {
     setShowFreeDrinkModal(false);
     setIsFreeOrder(false);
     setIsQuickOrderMode(false);
+    setShowGoToPaymentButton(false);
+    setIsPaymentCompleted(false);
+    setShowPaymentModal(false);
     completedQuestionsOffset.setValue(0); // 重置上推偏移量
     setCurrentPushOffset(0); // 重置推动偏移跟踪
     setAuthQuestionText('请输入手机号获取验证码');
@@ -123,7 +131,11 @@ export const useAppState = () => {
         currentOrderNumber,
         currentUserSequenceNumber,
         isSearchingRestaurant,
-        isFreeOrder
+        isFreeOrder,
+        // 支付相关状态
+        showGoToPaymentButton,
+        isPaymentCompleted,
+        showPaymentModal
       };
       CookieManager.saveConversationState(conversationState);
     }
@@ -181,6 +193,10 @@ export const useAppState = () => {
         setCurrentUserSequenceNumber(savedConversation.currentUserSequenceNumber || null);
         setIsSearchingRestaurant(savedConversation.isSearchingRestaurant || false);
         setIsFreeOrder(savedConversation.isFreeOrder || false);
+        // 恢复支付相关状态
+        setShowGoToPaymentButton(savedConversation.showGoToPaymentButton || false);
+        setIsPaymentCompleted(savedConversation.isPaymentCompleted || false);
+        setShowPaymentModal(savedConversation.showPaymentModal || false);
       }
       
       setIsStateRestored(true);
@@ -228,6 +244,10 @@ export const useAppState = () => {
         setCurrentUserSequenceNumber(savedConversation.currentUserSequenceNumber || null);
         setIsSearchingRestaurant(savedConversation.isSearchingRestaurant || false);
         setIsFreeOrder(savedConversation.isFreeOrder || false);
+        // 恢复支付相关状态
+        setShowGoToPaymentButton(savedConversation.showGoToPaymentButton || false);
+        setIsPaymentCompleted(savedConversation.isPaymentCompleted || false);
+        setShowPaymentModal(savedConversation.showPaymentModal || false);
       }
       
       setIsStateRestored(true);
@@ -248,7 +268,9 @@ export const useAppState = () => {
     isOrderCompleted, orderMessage, deliveryTime,
     // 新增的订单相关状态
     currentOrderId, currentOrderNumber, currentUserSequenceNumber, 
-    isSearchingRestaurant, isFreeOrder
+    isSearchingRestaurant, isFreeOrder,
+    // 支付相关状态
+    showGoToPaymentButton, isPaymentCompleted, showPaymentModal
   ]);
 
   return {
@@ -299,6 +321,11 @@ export const useAppState = () => {
     isFreeOrder, setIsFreeOrder,
     showFreeDrinkModal, setShowFreeDrinkModal,
     authResetTrigger, setAuthResetTrigger,
+    
+    // 支付状态
+    showGoToPaymentButton, setShowGoToPaymentButton,
+    isPaymentCompleted, setIsPaymentCompleted,
+    showPaymentModal, setShowPaymentModal,
     
     // 快速下单模式状态
     isQuickOrderMode, setIsQuickOrderMode,

@@ -79,4 +79,6 @@ export const DEV_CONFIG = {
   DEV_VERIFICATION_CODE: '100000',
   // 调色板调试工具开关
   ENABLE_COLOR_PALETTE: false, // 设置为true开启调色板功能，false完全禁用
+  // 测试模式：跳过支付流程
+  SKIP_PAYMENT: true, // 设置为true时跳过真实支付，直接成功
 } as const;

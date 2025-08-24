@@ -228,6 +228,8 @@ export const FormInputContainer: React.FC<FormInputContainerProps> = ({
           }
         })}
         isPaymentCompleted={isPaymentCompleted}
+        isSearchingRestaurant={isSearchingRestaurant}
+        isOrderCompleted={isOrderCompleted}
         currentQuestionAnimation={currentQuestionAnimation}
         shakeAnimation={shakeAnimation}
         emotionAnimation={emotionAnimation}
