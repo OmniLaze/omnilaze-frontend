@@ -298,7 +298,10 @@ export const FormActionButtonContainer: React.FC<FormActionButtonContainerProps>
   const title = '确认';
   const onPress = () => {
     if (editingStep !== null) return handleFinishEditing?.();
-    if (currentStep === 0) return handleAddressConfirm?.();
+    if (currentStep === 0) {
+      handleAddressConfirm?.(); // 先确认地址状态
+      return handleNext();      // 然后进入下一步
+    }
     return handleNext();
   };
 

@@ -340,7 +340,66 @@ const QuestionWizard: React.FC<QuestionWizardProps> = memo(({
         canProceed={canProceed}
         handleFinishEditing={() => form.setEditingStep(null)}
         handleAddressConfirm={() => form.setIsAddressConfirmed(true)}
-        handleNext={() => handleStepProgression(form.currentStep)}
+        handleNext={() => {
+          // 在进入下一步之前，确保答案被保存
+          if (form.currentStep === 0 && form.address.trim()) {
+            // 保存地址答案
+            const addressAnswer = {
+              type: 'address',
+              value: form.address,
+              suggestion: form.selectedAddressSuggestion
+            };
+            form.setCompletedAnswers(prev => ({
+              ...prev,
+              [0]: addressAnswer
+            }));
+          } else if (form.currentStep === 1 && form.selectedFoodType.length > 0) {
+            // 保存食物类型答案
+            const foodAnswer = {
+              type: 'foodType',
+              value: form.selectedFoodType
+            };
+            form.setCompletedAnswers(prev => ({
+              ...prev,
+              [1]: foodAnswer
+            }));
+          } else if (form.currentStep === 2 && form.selectedAllergies.length > 0) {
+            // 保存过敏源答案
+            const allergyAnswer = {
+              type: 'allergy',
+              value: form.selectedAllergies,
+              otherText: form.otherAllergyText
+            };
+            form.setCompletedAnswers(prev => ({
+              ...prev,
+              [2]: allergyAnswer
+            }));
+          } else if (form.currentStep === 3 && form.selectedPreferences.length > 0) {
+            // 保存口味偏好答案
+            const preferenceAnswer = {
+              type: 'preference',
+              value: form.selectedPreferences,
+              otherText: form.otherPreferenceText
+            };
+            form.setCompletedAnswers(prev => ({
+              ...prev,
+              [3]: preferenceAnswer
+            }));
+          } else if (form.currentStep === 5 && form.budget.trim()) {
+            // 保存预算答案
+            const budgetAnswer = {
+              type: 'budget',
+              value: form.budget
+            };
+            form.setCompletedAnswers(prev => ({
+              ...prev,
+              [5]: budgetAnswer
+            }));
+          }
+          
+          // 然后进入下一步
+          handleStepProgression(form.currentStep);
+        }}
         inputSectionAnimation={inputSectionAnimation}
       />
     );
