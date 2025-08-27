@@ -141,6 +141,67 @@ const QuestionWizard: React.FC<QuestionWizardProps> = memo(({
     height,
   });
   
+  // Handle editing - 直接删除答案并进入编辑状态
+  const handleEditQuestion = useCallback((stepIndex: number) => {
+    // 1. 删除当前步骤及后续步骤的所有已完成答案
+    const newCompletedAnswers = { ...form.completedAnswers };
+    
+    // 删除当前编辑步骤及其后的所有答案
+    Object.keys(newCompletedAnswers).forEach(key => {
+      const keyNumber = parseInt(key);
+      if (keyNumber >= stepIndex) {
+        delete newCompletedAnswers[keyNumber];
+      }
+    });
+    
+    // 更新已完成答案集合
+    form.setCompletedAnswers(newCompletedAnswers);
+    
+    // 2. 重置当前步骤及后续步骤的表单状态
+    if (stepIndex <= 0) {
+      form.setAddress('');
+      form.setIsAddressConfirmed(false);
+      form.setSelectedAddressSuggestion(null);
+    }
+    if (stepIndex <= 1) {
+      form.setSelectedFoodType([]);
+    }
+    if (stepIndex <= 2) {
+      form.setSelectedAllergies([]);
+      form.setOtherAllergyText('');
+    }
+    if (stepIndex <= 3) {
+      form.setSelectedPreferences([]);
+      form.setOtherPreferenceText('');
+    }
+    if (stepIndex <= 4) {
+      form.setDeliveryTime('');
+    }
+    if (stepIndex <= 5) {
+      form.setBudget('');
+    }
+    
+    // 3. 重置订单相关状态
+    order.setCurrentOrderId(null);
+    order.setCurrentOrderNumber(null);
+    order.setCurrentUserSequenceNumber(null);
+    order.setIsOrderSubmitting(false);
+    order.setIsSearchingRestaurant(false);
+    order.setIsOrderCompleted(false);
+    order.setIsPaymentCompleted(false);
+    
+    // 4. 设置当前步骤，不进入编辑状态，直接重新开始
+    form.setCurrentStep(stepIndex);
+    form.setEditingStep(null); // 不进入编辑状态，直接重新开始填写
+    
+    // 5. 清除当前显示的文字，准备显示新问题
+    clearText();
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`🔄 编辑第${stepIndex}步，已删除当前及后续所有答案，进入重新填写状态`);
+    }
+  }, [form, order, clearText]);
+
   // Handle answer submission
   const handleAnswerSubmission = useCallback(async (
     stepIndex: number,
@@ -339,8 +400,8 @@ const QuestionWizard: React.FC<QuestionWizardProps> = memo(({
       switch (form.currentStep) {
         case 0: return form.address.trim().length >= 5;
         case 1: return form.selectedFoodType.length > 0;
-        case 2: return form.selectedAllergies.length > 0;
-        case 3: return form.selectedPreferences.length > 0;
+        case 2: return true; // 过敏源是可选的，总是可以继续
+        case 3: return true; // 口味偏好是可选的，总是可以继续  
         case 4: return false; // Handled by DeliveryTimeStep
         case 5: return form.budget.trim().length > 0;
         case 6: return false;
@@ -380,22 +441,22 @@ const QuestionWizard: React.FC<QuestionWizardProps> = memo(({
               ...prev,
               [1]: foodAnswer
             }));
-          } else if (form.currentStep === 2 && form.selectedAllergies.length > 0) {
-            // 保存过敏源答案
+          } else if (form.currentStep === 2) {
+            // 保存过敏源答案（即使为空）
             const allergyAnswer = {
               type: 'allergy',
-              value: form.selectedAllergies,
+              value: form.selectedAllergies.length > 0 ? form.selectedAllergies : ['无忌口'],
               otherText: form.otherAllergyText
             };
             form.setCompletedAnswers(prev => ({
               ...prev,
               [2]: allergyAnswer
             }));
-          } else if (form.currentStep === 3 && form.selectedPreferences.length > 0) {
-            // 保存口味偏好答案
+          } else if (form.currentStep === 3) {
+            // 保存口味偏好答案（即使为空）
             const preferenceAnswer = {
               type: 'preference',
-              value: form.selectedPreferences,
+              value: form.selectedPreferences.length > 0 ? form.selectedPreferences : ['随便'],
               otherText: form.otherPreferenceText
             };
             form.setCompletedAnswers(prev => ({
@@ -432,7 +493,12 @@ const QuestionWizard: React.FC<QuestionWizardProps> = memo(({
   // Render completed questions
   const renderCompletedQuestions = useMemo(() => {
     return Object.keys(form.completedAnswers)
-      .filter(key => parseInt(key) >= 0)
+      .filter(key => {
+        const idx = parseInt(key);
+        return idx >= 0 && 
+               idx !== form.currentStep && 
+               idx !== form.editingStep; // 隐藏正在编辑的问题
+      })
       .sort((a, b) => parseInt(a) - parseInt(b))
       .map(key => {
         const idx = parseInt(key);
@@ -451,7 +517,7 @@ const QuestionWizard: React.FC<QuestionWizardProps> = memo(({
           />
         );
       });
-  }, [form.completedAnswers, form.setEditingStep, formatAnswerDisplay, questionAnimations, answerAnimations]);
+  }, [form.completedAnswers, form.currentStep, form.editingStep, form.setEditingStep, formatAnswerDisplay, questionAnimations, answerAnimations]);
   
   return (
     <View style={{ flex: 1 }}>
@@ -459,7 +525,12 @@ const QuestionWizard: React.FC<QuestionWizardProps> = memo(({
       <WizardFlatList
         questions={STEP_CONTENT.map((s) => ({ title: s.message }))}
         completed={Object.keys(form.completedAnswers)
-          .filter((k) => parseInt(k) >= 0 && parseInt(k) !== form.currentStep)
+          .filter((k) => {
+            const idx = parseInt(k);
+            return idx >= 0 && 
+                   idx !== form.currentStep && 
+                   idx !== form.editingStep; // 隐藏正在编辑的问题
+          })
           .sort((a, b) => parseInt(a) - parseInt(b))
           .map((k) => {
             const idx = parseInt(k);
@@ -535,7 +606,7 @@ const QuestionWizard: React.FC<QuestionWizardProps> = memo(({
             </View>
           </View>
         }
-        onEdit={(idx) => form.setEditingStep(idx)}
+        onEdit={(idx) => handleEditQuestion(idx)}
       />
     </View>
   );
