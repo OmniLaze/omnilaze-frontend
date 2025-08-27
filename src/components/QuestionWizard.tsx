@@ -11,6 +11,7 @@ import { AuthComponent } from './AuthComponent';
 import { FormInputContainer } from './FormContainers';
 import { FormActionButtonContainer } from './FormContainers';
 import { OrderMessageLog } from './OrderMessageLog';
+import WizardFlatList from './WizardFlatList';
 import { STEP_CONTENT } from '../data/stepContent';
 import { useValidation } from '../hooks';
 import { useTypewriterEffect } from '../hooks';
@@ -274,7 +275,23 @@ const QuestionWizard: React.FC<QuestionWizardProps> = memo(({
         isPaymentCompleted={order.isPaymentCompleted}
         handleAddressChange={(value: string) => form.setAddress(value)}
         handleSelectAddress={(suggestion: any) => form.setSelectedAddressSuggestion(suggestion)}
-        handleDeliveryTimeConfirm={() => {}}
+        handleDeliveryTimeConfirm={(deliveryTime: string) => {
+          // Save delivery time
+          form.setDeliveryTime(deliveryTime);
+          
+          // Save answer
+          const timeAnswer = {
+            type: 'deliveryTime',
+            value: deliveryTime
+          };
+          form.setCompletedAnswers(prev => ({
+            ...prev,
+            [4]: timeAnswer
+          }));
+          
+          // Progress to next step
+          handleStepProgression(4);
+        }}
         onDeliveryTimeSelectionChange={() => {}}
         setBudget={form.setBudget}
         setSelectedAllergies={form.setSelectedAllergies}
@@ -415,7 +432,7 @@ const QuestionWizard: React.FC<QuestionWizardProps> = memo(({
   // Render completed questions
   const renderCompletedQuestions = useMemo(() => {
     return Object.keys(form.completedAnswers)
-      .filter(key => parseInt(key) >= 0 && parseInt(key) !== form.currentStep)
+      .filter(key => parseInt(key) >= 0)
       .sort((a, b) => parseInt(a) - parseInt(b))
       .map(key => {
         const idx = parseInt(key);
@@ -424,89 +441,102 @@ const QuestionWizard: React.FC<QuestionWizardProps> = memo(({
             key={idx}
             index={idx}
             question={STEP_CONTENT[idx]?.message || ''}
-            answer={formatAnswerDisplay(form.completedAnswers[idx])}
+            answer={form.completedAnswers[idx]}
+            questionAnimation={questionAnimations[idx] || new Animated.Value(1)}
+            answerAnimation={answerAnimations[idx] || new Animated.Value(1)}
             onEdit={() => form.setEditingStep(idx)}
-            animation={answerAnimations[idx]}
-            theme={theme}
+            formatAnswerDisplay={formatAnswerDisplay}
+            isEditing={false}
+            canEdit={true}
           />
         );
       });
-  }, [form.completedAnswers, form.currentStep, formatAnswerDisplay, answerAnimations, theme]);
+  }, [form.completedAnswers, form.setEditingStep, formatAnswerDisplay, questionAnimations, answerAnimations]);
   
   return (
     <View style={{ flex: 1 }}>
-      {/* Order message log */}
-      <OrderMessageLog messages={orderMessagesLog} />
-      
-      {/* Completed questions */}
-      <Animated.View
-        style={{
-          transform: [{ translateY: completedQuestionsOffset }],
-        }}
-      >
-        {renderCompletedQuestions}
-      </Animated.View>
-      
-      {/* Current question */}
-      <View style={{ flex: 1, paddingHorizontal: 16 }}>
-        {!auth.isAuthenticated ? (
-          <CurrentQuestion
-            displayedText={displayedText || (auth.authQuestionText || '手机号？')}
-            isTyping={isTyping}
-            showCursor={showCursor}
-            cursorOpacity={cursorOpacity}
-            streamingOpacity={streamingOpacity}
-            isStreaming={isStreaming()}
-            inputError={ui.inputError}
-            currentStep={0}
-            currentQuestionAnimation={currentQuestionAnimation}
-            shakeAnimation={shakeAnimation}
-            emotionAnimation={emotionAnimation}
-          >
-            <AuthComponent
-              onAuthSuccess={handleAuthSuccess}
-              onError={(error: string) => ui.setInputError(error)}
-              onQuestionChange={(q: string) => auth.setAuthQuestionText(q)}
-              animationValue={inputSectionAnimation}
-              validatePhoneNumber={validatePhoneNumber}
-              triggerShake={triggerShake}
-              changeEmotion={changeEmotion}
-              resetTrigger={auth.authResetTrigger}
-            />
-          </CurrentQuestion>
-        ) : (
-          <CurrentQuestion
-            displayedText={displayedText}
-            isTyping={isTyping}
-            showCursor={showCursor}
-            cursorOpacity={cursorOpacity}
-            streamingOpacity={streamingOpacity}
-            isStreaming={isStreaming()}
-            inputError={ui.inputError}
-            currentStep={form.currentStep}
-            currentQuestionAnimation={currentQuestionAnimation}
-            shakeAnimation={shakeAnimation}
-            emotionAnimation={emotionAnimation}
-          >
-            <View>
-              {renderCurrentInput()}
-              <Animated.View
-                style={{
-                  opacity: inputSectionAnimation,
-                  transform: [{
-                    translateY: inputSectionAnimation.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [20, 0],
-                    })
-                  }],
-                }}
-              >
-                {renderActionButton()}
-              </Animated.View>
+      {/* Use WizardFlatList for proper layout like before */}
+      <WizardFlatList
+        questions={STEP_CONTENT.map((s) => ({ title: s.message }))}
+        completed={Object.keys(form.completedAnswers)
+          .filter((k) => parseInt(k) >= 0 && parseInt(k) !== form.currentStep)
+          .sort((a, b) => parseInt(a) - parseInt(b))
+          .map((k) => {
+            const idx = parseInt(k);
+            return {
+              index: idx,
+              title: STEP_CONTENT[idx]?.message || '',
+              summary: formatAnswerDisplay(form.completedAnswers[idx]),
+            };
+          })}
+        currentCard={
+          <View style={{ flex: 1, paddingHorizontal: 16 }}>
+            {/* Order message log */}
+            <OrderMessageLog messages={orderMessagesLog} />
+            
+            <View style={{ flex: 1 }}>
+              {!auth.isAuthenticated ? (
+                <CurrentQuestion
+                  displayedText={displayedText || (auth.authQuestionText || '手机号？')}
+                  isTyping={isTyping}
+                  showCursor={showCursor}
+                  cursorOpacity={cursorOpacity}
+                  streamingOpacity={streamingOpacity}
+                  isStreaming={isStreaming()}
+                  inputError={ui.inputError}
+                  currentStep={0}
+                  currentQuestionAnimation={currentQuestionAnimation}
+                  shakeAnimation={shakeAnimation}
+                  emotionAnimation={emotionAnimation}
+                >
+                  <AuthComponent
+                    onAuthSuccess={handleAuthSuccess}
+                    onError={(error: string) => ui.setInputError(error)}
+                    onQuestionChange={(q: string) => auth.setAuthQuestionText(q)}
+                    animationValue={inputSectionAnimation}
+                    validatePhoneNumber={validatePhoneNumber}
+                    triggerShake={triggerShake}
+                    changeEmotion={changeEmotion}
+                    resetTrigger={auth.authResetTrigger}
+                  />
+                </CurrentQuestion>
+              ) : (
+                <CurrentQuestion
+                  displayedText={displayedText}
+                  isTyping={isTyping}
+                  showCursor={showCursor}
+                  cursorOpacity={cursorOpacity}
+                  streamingOpacity={streamingOpacity}
+                  isStreaming={isStreaming()}
+                  inputError={ui.inputError}
+                  currentStep={form.currentStep}
+                  currentQuestionAnimation={currentQuestionAnimation}
+                  shakeAnimation={shakeAnimation}
+                  emotionAnimation={emotionAnimation}
+                >
+                  <View>
+                    {renderCurrentInput()}
+                    <Animated.View
+                      style={{
+                        opacity: inputSectionAnimation,
+                        transform: [{
+                          translateY: inputSectionAnimation.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [20, 0],
+                          })
+                        }],
+                      }}
+                    >
+                      {renderActionButton()}
+                    </Animated.View>
+                  </View>
+                </CurrentQuestion>
+              )}
             </View>
-          </CurrentQuestion>
-        )}
-      </View>
+          </View>
+        }
+        onEdit={(idx) => form.setEditingStep(idx)}
+      />
     </View>
   );
 });

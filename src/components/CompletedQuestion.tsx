@@ -42,15 +42,19 @@ export const CompletedQuestion: React.FC<CompletedQuestionProps> = ({
   const avatarStyles = createAvatarStyles(theme);
   const answerStyles = createAnswerStyles(theme);
 
+  // 安全检查：确保动画值存在
+  const safeQuestionAnimation = questionAnimation || new Animated.Value(1);
+  const safeAnswerAnimation = answerAnimation || new Animated.Value(1);
+
   return (
     <Animated.View 
       key={index} 
       style={[
         questionStyles.completedQuestionContainer,
         {
-          opacity: questionAnimation,
+          opacity: safeQuestionAnimation,
           transform: [{
-            translateY: questionAnimation.interpolate({
+            translateY: safeQuestionAnimation.interpolate({
               inputRange: [0, 1],
               outputRange: [20, 0],
             }),
@@ -76,9 +80,9 @@ export const CompletedQuestion: React.FC<CompletedQuestionProps> = ({
               >
                 <Animated.View
                   style={{
-                    opacity: answerAnimation,
+                    opacity: safeAnswerAnimation,
                     transform: [{
-                      translateY: answerAnimation.interpolate({
+                      translateY: safeAnswerAnimation.interpolate({
                         inputRange: [0, 1],
                         outputRange: [30, 0],
                       }),
@@ -151,9 +155,9 @@ export const CompletedQuestion: React.FC<CompletedQuestionProps> = ({
                   >
                     <Animated.View
                       style={{
-                        opacity: answerAnimation,
+                        opacity: safeAnswerAnimation,
                         transform: [{
-                          translateY: answerAnimation.interpolate({
+                          translateY: safeAnswerAnimation.interpolate({
                             inputRange: [0, 1],
                             outputRange: [30, 0],
                           }),

@@ -265,15 +265,13 @@ const AppContent = memo(() => {
       )}
       
       {/* Main Question Wizard */}
-      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-        <QuestionWizard
-          theme={theme}
-          width={width}
-          height={windowHeight}
-          orderMessagesLog={orderMessagesLog}
-          pushOrderMessage={pushOrderMessage}
-        />
-      </ScrollView>
+      <QuestionWizard
+        theme={theme}
+        width={width}
+        height={windowHeight}
+        orderMessagesLog={orderMessagesLog}
+        pushOrderMessage={pushOrderMessage}
+      />
     </View>
   );
 });
