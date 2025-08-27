@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Text, StyleSheet } from 'react-native';
+import { Text, StyleSheet, View } from 'react-native';
 
 interface LoadingDotsProps {
   text: string;
@@ -28,10 +28,11 @@ export const LoadingDots: React.FC<LoadingDotsProps> = ({
     return () => clearInterval(interval);
   }, [speed]);
 
+  // 确保点号总是在 Text 组件内
   return (
     <Text style={style}>
       {text}
-      <Text style={dotStyle}>{currentDots}</Text>
+      {currentDots && <Text style={dotStyle}>{currentDots}</Text>}
     </Text>
   );
 };

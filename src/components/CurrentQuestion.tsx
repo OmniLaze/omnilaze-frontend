@@ -119,18 +119,15 @@ export const CurrentQuestion: React.FC<CurrentQuestionProps> = ({
                 >
                   <View style={[
                     avatarStyles.avatarSimple,
-                    {
-                      ...(Platform.OS === 'web'
-                        ? { boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)' }
-                        : {
-                            shadowColor: '#000',
-                            shadowOffset: { width: 0, height: 2 },
-                            shadowOpacity: 0.1,
-                            shadowRadius: 4,
-                            elevation: 3,
-                          }
-                      ),
-                    },
+                    Platform.OS === 'web'
+                      ? { boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)' }
+                      : {
+                          shadowColor: '#000',
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.1,
+                          shadowRadius: 4,
+                          elevation: 3,
+                        }
                   ]}>
                     <Image
                       source={require('../../assets/icon.png')}
@@ -202,18 +199,15 @@ export const CurrentQuestion: React.FC<CurrentQuestionProps> = ({
                   >
                     <View style={[
                       avatarStyles.avatarSimple,
-                      {
-                        ...(Platform.OS === 'web'
-                          ? { boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)' }
-                          : {
-                              shadowColor: '#000',
-                              shadowOffset: { width: 0, height: 2 },
-                              shadowOpacity: 0.1,
-                              shadowRadius: 4,
-                              elevation: 3,
-                            }
-                        ),
-                      },
+                      Platform.OS === 'web'
+                        ? { boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)' }
+                        : {
+                            shadowColor: '#000',
+                            shadowOffset: { width: 0, height: 2 },
+                            shadowOpacity: 0.1,
+                            shadowRadius: 4,
+                            elevation: 3,
+                          }
                     ]}>
                       <Image
                         source={require('../../assets/icon.png')}

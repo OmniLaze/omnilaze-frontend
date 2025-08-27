@@ -618,8 +618,8 @@ export const AuthComponent: React.FC<AuthComponentProps> = ({
   const renderSmsAuth = () => (
     <View>
       {/* 手机号输入 */}
-      {!isVerificationCodeSent && (
-        <>
+      {!isVerificationCodeSent ? (
+        <View>
           <BaseInput
             value={phoneNumber}
             onChangeText={setPhoneNumber}
@@ -642,12 +642,12 @@ export const AuthComponent: React.FC<AuthComponentProps> = ({
               animationValue={animationValue}
             />
           </View>
-        </>
-      )}
+        </View>
+      ) : null}
 
       {/* 验证码输入 */}
-      {isVerificationCodeSent && !isPhoneVerified && (
-        <>
+      {isVerificationCodeSent && !isPhoneVerified ? (
+        <View>
           <VerificationCodeInput
             value={verificationCode}
             onChangeText={setVerificationCode}
@@ -667,26 +667,26 @@ export const AuthComponent: React.FC<AuthComponentProps> = ({
               animationValue={animationValue}
             />
           </View>
-        </>
-      )}
+        </View>
+      ) : null}
     </View>
   );
 
   return (
     <View style={styles.container}>
       {/* 登录方式切换 - 只在未验证阶段显示 */}
-      {!isPhoneVerified && aliyunEnabled && renderAuthModeSwitch()}
+      {!isPhoneVerified && aliyunEnabled ? renderAuthModeSwitch() : null}
       
       {/* 主要登录界面 */}
-      {!isPhoneVerified && (
-        <>
-          {authMode === 'aliyun' && aliyunEnabled && renderAliyunAuth()}
-          {authMode === 'sms' && renderSmsAuth()}
-        </>
-      )}
+      {!isPhoneVerified ? (
+        <View>
+          {authMode === 'aliyun' && aliyunEnabled ? renderAliyunAuth() : null}
+          {authMode === 'sms' ? renderSmsAuth() : null}
+        </View>
+      ) : null}
       
       {/* 邀请码输入阶段 */}
-      {isPhoneVerified && isNewUser && renderInviteCodeInput()}
+      {isPhoneVerified && isNewUser ? renderInviteCodeInput() : null}
     </View>
   );
 };

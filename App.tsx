@@ -25,6 +25,7 @@ import { UserMenu } from './src/components/UserMenu';
 import { InviteModalWithFreeDrink } from './src/components/InviteModalWithFreeDrink';
 import { OrderHistorySidebar } from './src/components/OrderHistorySidebar';
 import QuestionWizard from './src/components/QuestionWizard';
+import { TextNodeDebugger } from './src/components/TextNodeDebugger';
 
 // Hooks
 import { useWebAdaptation } from './src/platform/useWebAdaptation';
@@ -282,11 +283,13 @@ AppContent.displayName = 'AppContent';
 // Main App Component with all providers
 function App() {
   return (
-    <ColorThemeProvider>
-      <AppProviders>
-        <AppContent />
-      </AppProviders>
-    </ColorThemeProvider>
+    <TextNodeDebugger>
+      <ColorThemeProvider>
+        <AppProviders>
+          <AppContent />
+        </AppProviders>
+      </ColorThemeProvider>
+    </TextNodeDebugger>
   );
 }
 
