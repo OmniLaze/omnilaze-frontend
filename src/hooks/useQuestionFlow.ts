@@ -238,16 +238,21 @@ export const useQuestionFlow = ({
     hasUserInputForStep,
   ]);
 
-  // Handle editing mode
+  // Handle editing mode - 修复编辑模式下的问题显示
   useEffect(() => {
     if (editingStep !== null && isStateRestored) {
       const stepData = STEP_CONTENT[editingStep];
       if (stepData) {
-        // Show question directly without typewriter effect
-        handleQuestionTransition(stepData.message, true);
+        // 在编辑模式下，直接显示问题文字
+        setTextDirectly(stepData.message);
+        
+        // 确保输入区域也显示出来
+        setTimeout(() => {
+          inputSectionAnimation.setValue(1);
+        }, 50);
       }
     }
-  }, [editingStep, isStateRestored, handleQuestionTransition]);
+  }, [editingStep, isStateRestored, setTextDirectly, inputSectionAnimation]);
 
   // Auto-navigate to first incomplete step after restore
   useEffect(() => {

@@ -471,8 +471,8 @@ const QuestionWizard: React.FC<QuestionWizardProps> = memo(({
           })}
         currentCard={
           <View style={{ flex: 1, paddingHorizontal: 16 }}>
-            {/* Order message log */}
-            <OrderMessageLog messages={orderMessagesLog} />
+            {/* Order message log - 已注释掉订单详情显示 */}
+            {/* <OrderMessageLog messages={orderMessagesLog} /> */}
             
             <View style={{ flex: 1 }}>
               {!auth.isAuthenticated ? (

@@ -344,11 +344,11 @@ export const useFormSteps = (props: UseFormStepsProps) => {
     // 更新已完成答案集合
     setCompletedAnswers(newCompletedAnswers);
     
-    // 重置所有后续步骤的状态
-    resetSubsequentStepStates(stepIndex);
+    // 重置所有后续步骤的状态，包括当前步骤
+    resetCurrentAndSubsequentStepStates(stepIndex);
     
-    // 恢复当前编辑步骤的值
-    restoreEditingStepValues(answerToEdit);
+    // 注意：不再恢复当前编辑步骤的值，让用户重新选择
+    // restoreEditingStepValues(answerToEdit); // 已注释掉
     
     // 设置当前步骤为编辑的步骤
     setCurrentStep(stepIndex);
@@ -357,44 +357,69 @@ export const useFormSteps = (props: UseFormStepsProps) => {
     // 注意：下滑手势切换到当前问题视图的逻辑在App.tsx的useEffect中处理
   };
   
-  // 重置后续步骤的状态
+  // 重置当前步骤及后续步骤的状态 - 新增函数
+  const resetCurrentAndSubsequentStepStates = (fromStep: number) => {
+    // 重置当前步骤的状态
+    switch (fromStep) {
+      case 0: // 地址步骤
+        setAddress('');
+        setIsAddressConfirmed(false);
+        setShowMap(false);
+        mapAnimation.setValue(0);
+        setSelectedAddressSuggestion(null);
+        break;
+      case 1: // 食物类型步骤
+        setSelectedFoodType([]);
+        break;
+      case 2: // 过敏源步骤
+        setSelectedAllergies([]);
+        setOtherAllergyText('');
+        break;
+      case 3: // 口味偏好步骤
+        setSelectedPreferences([]);
+        setOtherPreferenceText('');
+        break;
+      case 4: // 用餐时间步骤
+        setDeliveryTime('');
+        break;
+      case 5: // 预算步骤
+        setBudget('');
+        break;
+    }
+    
+    // 然后重置后续步骤（复用原有逻辑）
+    resetSubsequentStepStates(fromStep);
+  };
+
+  // 重置后续步骤的状态（不包括当前步骤）
   const resetSubsequentStepStates = (fromStep: number) => {
-    // 根据编辑的步骤，重置相应的后续状态
-    if (fromStep <= 0) {
+    // 根据编辑的步骤，重置相应的后续状态（不包括当前步骤）
+    if (fromStep < 1) {
       // 编辑地址后，重置所有后续状态
       setSelectedFoodType([]);
+      setOtherAllergyText('');
+      setOtherPreferenceText('');
+    }
+    
+    if (fromStep < 2) {
+      // 食物类型后，重置忌口、偏好、时间、预算
       setSelectedAllergies([]);
+      setOtherAllergyText('');
+    }
+    
+    if (fromStep < 3) {
+      // 忌口后，重置偏好、时间、预算
       setSelectedPreferences([]);
-      setDeliveryTime('');
-      setBudget('');
-      setIsAddressConfirmed(false);
-      setShowMap(false);
-      mapAnimation.setValue(0);
+      setOtherPreferenceText('');
     }
     
-    if (fromStep <= 1) {
-      // 编辑食物类型后，重置忌口、偏好、时间、预算
-      setSelectedAllergies([]);
-      setSelectedPreferences([]);
+    if (fromStep < 4) {
+      // 偏好后，重置时间、预算
       setDeliveryTime('');
-      setBudget('');
     }
     
-    if (fromStep <= 2) {
-      // 编辑忌口后，重置偏好、时间、预算
-      setSelectedPreferences([]);
-      setDeliveryTime('');
-      setBudget('');
-    }
-    
-    if (fromStep <= 3) {
-      // 编辑偏好后，重置时间、预算
-      setDeliveryTime('');
-      setBudget('');
-    }
-    
-    if (fromStep <= 4) {
-      // 编辑时间后，重置预算
+    if (fromStep < 5) {
+      // 时间后，重置预算
       setBudget('');
     }
     
@@ -464,46 +489,57 @@ export const useFormSteps = (props: UseFormStepsProps) => {
     }
   };
 
-  // 完成编辑 - 简化版，级联逻辑已在handleEditAnswer中处理
+  // 完成编辑 - 修复后的版本，正确处理编辑后的步骤推进
   const handleFinishEditing = () => {
     const currentAnswer = getCurrentAnswer();
     if (currentAnswer && editingStep !== null) {
+      const currentEditingStep = editingStep;
       
       // 使用统一的回答提交函数
-      const success = handleAnswerSubmission(editingStep, currentAnswer, {
+      const success = handleAnswerSubmission(currentEditingStep, currentAnswer, {
         isEditing: true,
-        skipAnimation: false, // 🔧 修复：不跳过动画，确保后续动画正常执行
+        skipAnimation: false,
         onComplete: () => {
-          // 🔧 生产环境日志清理：条件性日志输出
           if (process.env.NODE_ENV === 'development') {
-            console.log('✅ 编辑完成回调执行');
+            console.log('✅ 编辑完成回调执行，当前编辑步骤:', currentEditingStep);
           }
           
           // 编辑完成后的基本处理
-          if (editingStep === 0) {
+          if (currentEditingStep === 0) {
             setIsAddressConfirmed(true);
           }
           
-          const currentEditingStep = editingStep;
+          // 清除编辑状态
+          setEditingStep(null);
+          setOriginalAnswerBeforeEdit(null);
           
-          // 🔧 修复：使用React 18的状态更新最佳实践，确保状态同步
-          // 先调用handleStepProgression，它内部会处理步骤推进和输入框显示
-          if (currentEditingStep !== null && currentEditingStep < STEP_CONTENT.length - 1) {
+          // 找到下一个未完成的步骤
+          const nextStep = findNextIncompleteStep();
+          
+          if (nextStep !== -1) {
+            // 如果有未完成的步骤，跳转到那个步骤
             if (process.env.NODE_ENV === 'development') {
-              console.log('🔄 编辑完成，调用handleStepProgression推进到下一步');
+              console.log('🔄 编辑完成，跳转到下一个未完成步骤:', nextStep);
             }
-            handleStepProgression(currentEditingStep);
+            setCurrentStep(nextStep);
+            
+            // 触发问题显示
+            const nextStepData = STEP_CONTENT[nextStep];
+            if (nextStepData) {
+              setTimeout(() => {
+                // 这里需要触发问题文字的显示
+                // 通过调用handleStepProgression来触发问题流程
+                handleStepProgression(currentEditingStep);
+              }, 100);
+            }
           } else {
+            // 如果所有步骤都已完成，跳转到最后一步（确认页面）
             if (process.env.NODE_ENV === 'development') {
-              console.log('📝 编辑完成，已经是最后一步，无需推进');
+              console.log('📝 编辑完成，所有步骤已完成，跳转到确认页面');
             }
+            setCurrentStep(STEP_CONTENT.length - 1);
+            handleStepProgression(currentEditingStep);
           }
-          
-          // 然后在下一个tick清除编辑状态，避免竞争条件
-          setTimeout(() => {
-            setEditingStep(null);
-            setOriginalAnswerBeforeEdit(null);
-          }, 0);
         }
       });
       
