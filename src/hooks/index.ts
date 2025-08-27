@@ -114,3 +114,10 @@ export const useAnimations = () => {
 export { useAppState } from './useAppState';
 export { useFormSteps } from './useFormSteps';
 export { useOrderManagement } from './useOrderManagement';
+
+// ========== New Exports ==========
+export { useScrollManager } from './useScrollManager';
+export { useAnimationManager } from './useAnimationManager';
+export { useQuestionFlow } from './useQuestionFlow';
+export { useOrderFlow } from './useOrderFlow';
+export * from './usePerformanceOptimization';
