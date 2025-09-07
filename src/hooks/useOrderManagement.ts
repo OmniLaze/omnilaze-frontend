@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { createOrder, submitOrder, saveUserPreferences } from '../services/api';
+import { createOrder, submitOrder, saveUserPreferences, createEarlyOrder, updateOrderData } from '../services/api';
 import { TIMING } from '../constants';
 import { eventBus } from '../utils/eventBus';
 import type { AuthResult } from '../types';
+import { updateOrderPaymentStatus } from '../utils/orderTransformer';
 
 interface UseOrderManagementProps {
   authResult: AuthResult | null;
@@ -56,6 +57,63 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
   
   // 防重复触发：订单状态推进流程闸门
   const [orderStatusFlowRunning, setOrderStatusFlowRunning] = useState(false);
+
+  // 早期订单创建 - 在用户登录后立即创建
+  const createEarlyOrderForUser = async (userId: string, phoneNumber: string) => {
+    try {
+      const result = await createEarlyOrder(userId, phoneNumber, {
+        basicInfo: {
+          deliveryAddress: address || '',
+          budgetAmount: budget ? parseFloat(budget) : 30,
+          budgetCurrency: 'CNY'
+        }
+      });
+
+      if (result.success) {
+        setCurrentOrderId(result.order_id || null);
+        setCurrentOrderNumber(result.order_number || null);
+        setCurrentUserSequenceNumber(result.user_sequence_number || null);
+        
+        console.log('早期订单创建成功:', result.order_id);
+        return result.order_id;
+      } else {
+        console.error('早期订单创建失败:', result.message);
+        return null;
+      }
+    } catch (error) {
+      console.error('早期订单创建异常:', error);
+      return null;
+    }
+  };
+
+  // 更新早期订单为完整订单
+  const updateEarlyOrderWithFullData = async (orderId: string) => {
+    const orderData = {
+      address: address,
+      deliveryTime: deliveryTime,
+      allergies: selectedAllergies,
+      preferences: selectedPreferences,
+      budget: budget,
+      foodType: selectedFoodType,
+      isFreeOrder: isFreeOrder,
+      freeOrderType: isFreeOrder ? 'invite_reward' as const : undefined
+    };
+
+    try {
+      const result = await updateOrderData(orderId, orderData);
+      
+      if (result.success) {
+        console.log('订单数据更新成功');
+        return true;
+      } else {
+        console.error('订单数据更新失败:', result.message);
+        return false;
+      }
+    } catch (error) {
+      console.error('订单数据更新异常:', error);
+      return false;
+    }
+  };
 
   // 处理订单状态推进流程
   const handleOrderStatusFlow = () => {
@@ -165,29 +223,55 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
     return text;
   };
 
-  // 创建订单
-  const handleCreateOrder = async () => {
+  // 创建订单 - 支持早期订单和常规订单
+  const handleCreateOrder = async (useEarlyOrder = true) => {
     if (!authResult?.userId || !authResult?.phoneNumber) {
       setInputError('用户信息缺失，请重新登录');
       return;
     }
 
-    const orderData = {
-      address: address,
-      deliveryTime: deliveryTime,
-      allergies: selectedAllergies,
-      preferences: selectedPreferences,
-      budget: budget,
-      foodType: selectedFoodType,
-      isFreeOrder: isFreeOrder,
-      freeOrderType: isFreeOrder ? 'invite_reward' as const : undefined
-    };
-
     try {
       setIsOrderSubmitting(true);
       changeEmotion('📝');
       
-      const result = await createOrder(authResult.userId, authResult.phoneNumber, orderData);
+      let result;
+      
+      if (useEarlyOrder) {
+        // 早期订单流程：先创建订单，再更新数据
+        let orderId = await createEarlyOrderForUser(authResult.userId, authResult.phoneNumber);
+        
+        if (orderId) {
+          // 更新订单数据
+          const updateSuccess = await updateEarlyOrderWithFullData(orderId);
+          
+          if (updateSuccess) {
+            result = {
+              success: true,
+              order_id: orderId,
+              order_number: null, // 会通过状态获取
+              user_sequence_number: null
+            };
+          } else {
+            throw new Error('更新订单数据失败');
+          }
+        } else {
+          throw new Error('创建早期订单失败');
+        }
+      } else {
+        // 传统订单流程
+        const orderData = {
+          address: address,
+          deliveryTime: deliveryTime,
+          allergies: selectedAllergies,
+          preferences: selectedPreferences,
+          budget: budget,
+          foodType: selectedFoodType,
+          isFreeOrder: isFreeOrder,
+          freeOrderType: isFreeOrder ? 'invite_reward' as const : undefined
+        };
+
+        result = await createOrder(authResult.userId, authResult.phoneNumber, orderData);
+      }
       
       if (result.success) {
         setCurrentOrderId(result.order_id || null);
@@ -241,10 +325,18 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
           orderId: result.order_id,
           orderNumber: result.order_number,
           orderData: {
-            ...orderData,
+            address: address,
+            deliveryTime: deliveryTime,
+            allergies: selectedAllergies,
+            preferences: selectedPreferences,
+            budget: budget,
+            foodType: selectedFoodType,
+            isFreeOrder: isFreeOrder,
+            freeOrderType: isFreeOrder ? 'invite_reward' as const : undefined,
             id: result.order_id,
             orderNumber: result.order_number,
-            status: 'pending',
+            status: 'draft', // 早期订单初始状态
+            paymentStatus: 'unpaid',
             createdAt: new Date().toISOString()
           }
         });
@@ -256,7 +348,7 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
         changeEmotion('😰');
       }
     } catch (error) {
-      setInputError('创建订单失败，请重试');
+      setInputError(error instanceof Error ? error.message : '创建订单失败，请重试');
       triggerShake();
       changeEmotion('😰');
     } finally {
@@ -412,6 +504,8 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
     handleSubmitOrder,
     handleConfirmOrder,
     handleOrderStatusFlow,
-    createOrderSummaryAndPush
+    createOrderSummaryAndPush,
+    createEarlyOrderForUser,
+    updateEarlyOrderWithFullData
   };
 };

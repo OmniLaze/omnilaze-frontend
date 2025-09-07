@@ -24,6 +24,7 @@ import { MobileHeader } from './src/components/MobileHeader';
 import { UserMenu } from './src/components/UserMenu';
 import { InviteModalWithFreeDrink } from './src/components/InviteModalWithFreeDrink';
 import { OrderHistorySidebar } from './src/components/OrderHistorySidebar';
+import { OrderDetailModal } from './src/components/OrderDetailModal';
 import QuestionWizard from './src/components/QuestionWizard';
 import { TextNodeDebugger } from './src/components/TextNodeDebugger';
 
@@ -61,6 +62,8 @@ const AppContent = memo(() => {
   
   // Local state
   const [showOrderHistory, setShowOrderHistory] = useState(false);
+  const [showOrderDetail, setShowOrderDetail] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [previousStep, setPreviousStep] = useState<number | undefined>(undefined);
   const [orderMessagesLog, setOrderMessagesLog] = useState<any[]>([]);
   
@@ -73,8 +76,8 @@ const AppContent = memo(() => {
   // WebSocket configuration
   const socketConfig = React.useMemo(() => ({
     userId: auth.authResult?.userId,
-    orderId: order.currentOrderId,
-    enabled: auth.isAuthenticated && order.isPaymentCompleted && order.currentOrderId,
+    orderId: order.currentOrderId || undefined, // 转换null为undefined
+    enabled: Boolean(auth.isAuthenticated && order.isPaymentCompleted && order.currentOrderId), // 确保类型为boolean
     jwtToken: auth.authResult?.token,
     onOrderStatusChanged: (event: any) => {
       if (event.message) {
@@ -143,6 +146,20 @@ const AppContent = memo(() => {
     ];
     return titles[step] || '懒得点外卖';
   };
+  
+  // Handle order selection from history sidebar
+  const handleOrderSelect = useCallback((order: any) => {
+    setSelectedOrder(order);
+    setShowOrderHistory(false); // Close sidebar
+    setShowOrderDetail(true);    // Open detail modal
+  }, []);
+
+  // Handle order detail modal close
+  const handleDetailClose = useCallback(() => {
+    setShowOrderDetail(false);
+    setSelectedOrder(null);
+    setShowOrderHistory(true);   // Reopen sidebar
+  }, []);
   
   // Handle logout
   const handleLogout = useCallback(() => {
@@ -227,7 +244,17 @@ const AppContent = memo(() => {
         <OrderHistorySidebar
           isVisible={showOrderHistory}
           onClose={() => setShowOrderHistory(false)}
+          onOrderSelect={handleOrderSelect}
           userId={auth.authResult?.userId || null}
+        />
+      )}
+      
+      {/* Order Detail Modal */}
+      {selectedOrder && (
+        <OrderDetailModal
+          isVisible={showOrderDetail}
+          order={selectedOrder}
+          onClose={handleDetailClose}
         />
       )}
       

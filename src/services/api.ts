@@ -568,6 +568,93 @@ function getFallbackResults(keywords: string): AddressSearchResponse {
 }
 
 /**
+ * 早期订单创建 - 在用户开始填写表单时创建unpaid状态的订单
+ */
+export async function createEarlyOrder(userId: string, phoneNumber: string): Promise<CreateOrderResponse> {
+  try {
+    const response = await authFetch(buildApiUrl('/create-early-order'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        phone_number: phoneNumber,
+        // 早期订单不包含具体的表单数据
+        status: 'draft', // 草稿状态
+        payment_status: 'unpaid' // 未支付状态
+      })
+    });
+
+    const raw = await response.json();
+
+    if (!response.ok) {
+      throw new Error(raw.message || '创建早期订单失败');
+    }
+
+    if (raw?.success && raw?.data) {
+      const { order_id, order_number, user_sequence_number } = raw.data;
+      return {
+        success: true,
+        message: raw.message || '早期订单创建成功',
+        order_id,
+        order_number,
+        user_sequence_number
+      };
+    }
+
+    // 兼容老版本返回格式
+    return {
+      success: raw.success || false,
+      message: raw.message || '早期订单创建失败',
+      order_id: raw.order_id,
+      order_number: raw.order_number,
+      user_sequence_number: raw.user_sequence_number
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: handleApiError(error, '早期订单创建')
+    };
+  }
+}
+
+/**
+ * 更新订单数据 - 用于将早期订单更新为完整订单
+ */
+export async function updateOrderData(orderId: string, formData: OrderData): Promise<ApiResponse> {
+  try {
+    const response = await authFetch(buildApiUrl(`/orders/${orderId}/update`), {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        form_data: formData,
+        status: 'submitted' // 更新为已提交状态
+      })
+    });
+
+    const raw = await response.json();
+
+    if (!response.ok) {
+      throw new Error(raw.message || '更新订单失败');
+    }
+
+    return {
+      success: raw.success || true,
+      message: raw.message || '订单更新成功',
+      data: raw.data
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: handleApiError(error, '订单更新')
+    };
+  }
+}
+
+/**
  * 创建订单
  */
 export async function createOrder(userId: string, phoneNumber: string, formData: OrderData): Promise<CreateOrderResponse> {
@@ -964,6 +1051,19 @@ export const getOrderHistory = async (userId: string) => {
       throw new Error(data.message || "获取订单历史失败");
     }
 
+    // 使用新的转换器转换订单数据
+    if (data.success && data.data?.orders) {
+      const { transformOrderList } = require('../utils/orderTransformer');
+      const transformedOrders = transformOrderList(data.data.orders);
+      return {
+        ...data,
+        data: {
+          ...data.data,
+          orders: transformedOrders
+        }
+      };
+    }
+
     return data;
   } catch (error) {
     return {
@@ -1222,3 +1322,36 @@ export function redirectToAlipayPayment(h5Url: string, returnUrl?: string) {
     });
   }
 };
+
+// Re-export functions from API extensions
+export { 
+  createPaymentForHistoryOrder, 
+  getOrderPaymentInfo, 
+  canOrderContinuePayment,
+  getOrderDisplayStatus 
+} from './api-extensions';
+
+/**
+ * 更新订单支付状态
+ */
+export async function updateOrderPaymentStatus(orderId: string, status: 'unpaid' | 'paid' | 'failed'): Promise<ApiResponse> {
+  try {
+    const response = await authFetch(buildApiUrl(`/orders/${orderId}/payment-status`), {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        payment_status: status
+      })
+    });
+    const data = await response.json();
+    return data as ApiResponse;
+  } catch (error) {
+    console.error('[updateOrderPaymentStatus] Error:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : '更新支付状态失败'
+    };
+  }
+}

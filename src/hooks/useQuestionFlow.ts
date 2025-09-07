@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { STEP_CONTENT } from '../data/stepContent';
 import { useTypewriterEffect } from './index';
 import { useSafeTimeout } from './useSafeTimeout';
+import { VALUE_MAPPING } from '../data/checkboxOptions';
 
 interface UseQuestionFlowProps {
   isAuthenticated: boolean;
@@ -140,9 +141,12 @@ export const useQuestionFlow = ({
       case 'foodType':
       case 'allergy':
       case 'preference':
-        return Array.isArray(answer.value) ? answer.value.join('、') : answer.value;
+        if (Array.isArray(answer.value)) {
+          return answer.value.map(v => VALUE_MAPPING[v] || v).join('、');
+        }
+        return VALUE_MAPPING[answer.value] || answer.value;
       case 'deliveryTime':
-        return answer.value;
+        return answer.value === 'ASAP' ? '越快越好' : answer.value;
       case 'budget':
         return `¥${answer.value}`;
       case 'orderConfirmation':

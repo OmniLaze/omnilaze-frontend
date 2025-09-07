@@ -121,3 +121,12 @@ export { useAnimationManager } from './useAnimationManager';
 export { useQuestionFlow } from './useQuestionFlow';
 export { useOrderFlow } from './useOrderFlow';
 export * from './usePerformanceOptimization';
+
+// ========== Order Sync Utilities ==========
+export { 
+  orderSyncManager, 
+  useOrderSync,
+  handlePaymentStatusChange,
+  handleOrderStatusChange,
+  handleDeliveryStatusChange 
+} from '../utils/orderSyncManager';

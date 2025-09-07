@@ -1,5 +1,6 @@
 /**
  * 数据映射工具 - 统一处理订单数据的中英文转换
+ * 注意：订单数据结构转换已移动到 orderTransformer.ts
  */
 
 // 忌口选项映射 - 只包含 checkboxOptions.ts 中原有的选项
@@ -126,132 +127,14 @@ export function normalizeStatus(input: any): string {
 }
 
 export function formatOrderStatus(status: string): { text: string; color: string; bgColor?: string } {
-  // 新的统一状态系统：只有4种状态
+  // 统一状态系统 - 只有4种状态
   const statusMap: Record<string, { text: string; color: string; bgColor?: string }> = {
-    // 统一状态系统 - 只有4种状态
     'unpaid': { text: '未支付', color: '#6B7280', bgColor: '#F3F4F6' },
     'paid': { text: '已支付', color: '#4169E1', bgColor: '#E0F2FE' },
     'delivering': { text: '配送中', color: '#f59e0b', bgColor: '#FFF3CD' },
     'completed': { text: '完成', color: '#10b981', bgColor: '#D1FAE5' },
-    
-    // 保留向后兼容的旧状态映射（逐步迁移）
-    'draft': { text: '未支付', color: '#6B7280', bgColor: '#F3F4F6' },
-    'submitted': { text: '未支付', color: '#6B7280', bgColor: '#F3F4F6' },
-    'processing': { text: '已支付', color: '#4169E1', bgColor: '#E0F2FE' },
-    'cancelled': { text: '已取消', color: '#DC143C', bgColor: '#FDE2E2' },
   };
 
   const key = normalizeStatus(status);
   return statusMap[key] || { text: '未知', color: '#999999', bgColor: '#F3F4F6' };
-}
-
-/**
- * 规范化订单数据结构
- */
-export function normalizeOrderData(order: any): any {
-  // 提取嵌套的表单数据
-  const formData = order.form_data || order.formData || {};
-  
-  // 从 metadata 中提取 foodType
-  const metadataFoodType = order.metadata?.foodType || [];
-  
-  // 解析 JSON 字符串字段
-  let parsedAllergies = [];
-  let parsedPreferences = [];
-  
-  try {
-    if (order.dietaryRestrictions && typeof order.dietaryRestrictions === 'string') {
-      parsedAllergies = JSON.parse(order.dietaryRestrictions);
-    }
-    if (order.foodPreferences && typeof order.foodPreferences === 'string') {
-      parsedPreferences = JSON.parse(order.foodPreferences);
-    }
-  } catch (error) {
-    console.warn('解析订单数据时出错:', error);
-  }
-  
-  // 打印原始数据以便调试
-  console.log('🔧 规范化订单 - 原始数据:', {
-    id: order.id || order._id || order.order_id,
-    rawKeys: Object.keys(order),
-    backendFields: {
-      deliveryAddress: order.deliveryAddress,
-      budgetAmount: order.budgetAmount,
-      dietaryRestrictions: order.dietaryRestrictions,
-      foodPreferences: order.foodPreferences,
-      deliveryTime: order.deliveryTime,
-      metadata: order.metadata
-    },
-    parsedData: {
-      allergies: parsedAllergies,
-      preferences: parsedPreferences,
-      foodType: metadataFoodType
-    }
-  });
-  
-  const normalizedOrder = {
-    id: order.id || order._id || order.order_id,
-    orderNumber: order.orderNumber || order.order_number,
-    
-    // 基本信息 - 映射后端字段到前端期望的字段
-    address: order.deliveryAddress || order.address || formData.address || '',
-    budget: (order.budgetAmount ? order.budgetAmount.toString() : '') || order.budget || formData.budget || '',
-    deliveryTime: order.deliveryTime || order.delivery_time || formData.deliveryTime || formData.delivery_time || '',
-    
-    // 数组类型数据 - 从后端的 JSON 字符串和 metadata 中解析
-    foodType: metadataFoodType || order.foodType || order.food_type || formData.foodType || formData.food_type || formData.selectedFoodType || [],
-    allergies: parsedAllergies || order.allergies || formData.allergies || formData.selectedAllergies || [],
-    preferences: parsedPreferences || order.preferences || formData.preferences || formData.selectedPreferences || [],
-    
-    // 到达图片字段
-    arrivalImageUrl: order.arrivalImageUrl || order.arrival_image_url,
-    arrivalImageTakenAt: order.arrivalImageTakenAt || order.arrival_image_taken_at,
-    arrivalImageSource: order.arrivalImageSource || order.arrival_image_source,
-    
-    // 状态信息（优先使用后端的displayStatus）
-    status: order.displayStatus || normalizeStatus(order.status || 'draft'),
-    createdAt: order.createdAt || order.created_at || order.created_time || new Date().toISOString(),
-    
-    // 重要：保留完整的嵌套数据结构
-    form_data: formData,
-    formData: formData,
-    
-    // 其他字段
-    amount: order.budgetAmount || order.amount || order.order_amount,
-    totalAmount: order.budgetAmount || order.totalAmount || order.total_amount,
-    isFreeOrder: order.isFreeOrder || order.is_free_order || formData.isFreeOrder,
-
-    // ETA 预计到达时间（从后端 metadata 或直传字段）
-    etaEstimatedAt: order.etaEstimatedAt || order.eta_estimated_at || order.metadata?.eta_estimated_at || null,
-    etaSource: order.etaSource || order.eta_source || order.metadata?.eta_source || null,
-    
-    // 额外文本字段
-    otherAllergyText: formData.otherAllergyText || formData.other_allergy_text || '',
-    otherPreferenceText: formData.otherPreferenceText || formData.other_preference_text || '',
-    
-    // 保留原始后端字段以便调试
-    _backend: {
-      deliveryAddress: order.deliveryAddress,
-      budgetAmount: order.budgetAmount,
-      dietaryRestrictions: order.dietaryRestrictions,
-      foodPreferences: order.foodPreferences,
-      metadata: order.metadata,
-      etaEstimatedAt: order.etaEstimatedAt || order.metadata?.eta_estimated_at || null,
-    }
-  };
-  
-  console.log('🔧 规范化订单 - 结果:', {
-    id: normalizedOrder.id,
-    hasFormData: !!normalizedOrder.form_data,
-    formDataKeys: Object.keys(normalizedOrder.form_data || {}),
-    budget: normalizedOrder.budget,
-    address: normalizedOrder.address,
-    deliveryTime: normalizedOrder.deliveryTime,
-    foodType: normalizedOrder.foodType,
-    allergies: normalizedOrder.allergies,
-    preferences: normalizedOrder.preferences,
-    mappingSuccessful: !!(normalizedOrder.address && normalizedOrder.budget)
-  });
-  
-  return normalizedOrder;
 }

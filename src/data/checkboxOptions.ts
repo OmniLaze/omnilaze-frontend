@@ -95,9 +95,9 @@ export const FOOD_TYPE_OPTIONS = [
   },
 ];
 
-// 英文值到中文显示的映射 - 保持原有的选项
+// 英文值到中文显示的映射 - 涵盖所有可能的字段值
 export const VALUE_MAPPING: Record<string, string> = {
-  // 忌口映射 - 只包含原有的选项
+  // 忌口映射 - 标准选项
   'seafood': '海鲜类',
   'nuts': '坚果类',
   'eggs': '蛋类',
@@ -105,7 +105,11 @@ export const VALUE_MAPPING: Record<string, string> = {
   'dairy': '乳制品类',
   'other-allergy': '其他',
   
-  // 偏好映射
+  // 忌口映射 - 后端示例中的其他可能值
+  'peanuts': '花生过敏',
+  'shellfish': '贝类过敏',
+  
+  // 偏好映射 - 标准选项
   'spicy': '香辣',
   'mild': '清淡',
   'sweet': '甜口',
@@ -113,9 +117,19 @@ export const VALUE_MAPPING: Record<string, string> = {
   'salty': '咸鲜',
   'other-preference': '其他',
   
-  // 食物类型映射
+  // 偏好映射 - 后端示例中的其他可能值
+  'vegetarian': '素食',
+  'low-salt': '少盐',
+  
+  // 食物类型映射 - 标准选项
   'meal': '吃饭',
   'drink': '喝奶茶',
+  
+  // 食物类型映射 - 后端示例中的其他可能值
+  'chinese': '中餐',
+  'western': '西餐',
+  'food': '正餐',
+  'other': '其他',
 };
 
 // 将英文值数组转换为中文显示的函数 - 支持去重和排序

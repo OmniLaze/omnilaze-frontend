@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { createOrder, submitOrder } from '../services/api';
 import { convertToChineseDisplay } from '../data/checkboxOptions';
+import { Order } from '../types/order';
 
 interface UseOrderFlowProps {
   authResult: any;
@@ -144,6 +145,46 @@ export const useOrderFlow = ({
       setCurrentOrderId(orderId);
       setCurrentOrderNumber(orderNumber || '');
       setCurrentUserSequenceNumber(userSequenceNumber || currentUserSequenceNumber);
+
+      // 创建一个基础订单对象并缓存到同步管理器
+      try {
+        const { orderSyncManager } = await import('../utils/orderSyncManager');
+        const newOrder: Order = {
+          id: orderId,
+          orderNumber: orderNumber || '',
+          userId: authResult.userId,
+          phoneNumber: authResult.phoneNumber,
+          status: 'draft',
+          displayStatus: 'unpaid',
+          deliveryAddress: address,
+          deliveryTime: deliveryTime,
+          dietaryRestrictions: selectedAllergies,
+          foodPreferences: selectedPreferences,
+          budgetAmount: parseFloat(budget),
+          budgetCurrency: 'CNY',
+          metadata: {
+            foodType: selectedFoodType,
+          },
+          paymentStatus: 'unpaid',
+          paidAt: null,
+          paymentId: null,
+          arrivalImageUrl: null,
+          arrivalImageSource: null,
+          arrivalImageTakenAt: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: null,
+          submittedAt: null,
+          feedbacks: [],
+          voiceFeedbacks: [],
+          userSequenceNumber: userSequenceNumber || null,
+          isDeleted: false,
+        };
+        
+        orderSyncManager.updateOrderCache(newOrder);
+        console.log('📊 新订单已缓存到同步管理器:', orderId);
+      } catch (error) {
+        console.warn('缓存新订单到同步管理器失败:', error);
+      }
 
       const submitResponse = await submitOrder(orderId);
 

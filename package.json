@@ -30,8 +30,10 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
+    "@playwright/test": "^1.55.0",
     "@types/react": "~19.0.10",
     "@types/react-dom": "^19.1.7",
+    "playwright": "^1.55.0",
     "typescript": "~5.8.3"
   },
   "private": true,

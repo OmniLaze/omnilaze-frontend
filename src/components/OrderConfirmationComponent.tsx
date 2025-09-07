@@ -218,16 +218,53 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
   
   // 创建支付订单
   const handleCreatePayment = async () => {
-    // 测试模式：跳过真实支付
+    // 测试模式：模拟成功的支付流程，将订单标记为已支付
     if (DEV_CONFIG.SKIP_PAYMENT) {
-      console.log('🧪 测试模式：跳过支付，直接成功');
+      console.log('🧪 测试模式：模拟支付成功流程');
       setPaymentLoading(true);
       setPaymentStatus('processing');
+      
       setTimeout(() => {
         setPaymentLoading(false);
+        
+        // 测试模式：模拟支付成功，设置为已支付状态
+        console.log('✅ 测试模式：模拟支付成功，订单标记为已支付');
         setPaymentStatus('success');
-        handlePaymentComplete(true);
-      }, 1000); // 模拟1秒的支付时间
+        
+        // 🎯 关键：模拟支付成功的订单状态同步
+        if (currentOrderId) {
+          try {
+            // 创建模拟的支付完成数据
+            const mockPaymentData = {
+              paymentStatus: 'paid',
+              paidAt: new Date().toISOString(),
+              paymentId: `mock_payment_${Date.now()}`,
+            };
+            
+            // 使用订单同步管理器更新状态
+            import('../utils/orderSyncManager').then(({ orderSyncManager }) => {
+              orderSyncManager.syncPaymentStatus(currentOrderId, 'paid', mockPaymentData);
+              console.log('📊 已同步订单支付状态为已支付');
+            });
+          } catch (error) {
+            console.warn('同步支付状态失败:', error);
+          }
+        }
+        
+        // 调用 handlePaymentComplete，传递成功状态
+        handlePaymentComplete(true, '支付成功！订单已提交处理');
+        
+        // 🔄 触发历史记录刷新，确保状态更新在历史中体现
+        setTimeout(() => {
+          try {
+            const { eventBus } = require('../utils/eventBus');
+            eventBus.emit('orderHistoryUpdate');
+            console.log('📢 已触发订单历史更新事件');
+          } catch (error) {
+            console.warn('触发历史更新事件失败:', error);
+          }
+        }, 500);
+      }, 1000);
       return;
     }
 
@@ -242,9 +279,11 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
     setPaymentStatus('processing');
 
     try {
-      // 确保存在订单ID；若不存在，先创建订单
+      // 确保存在订单ID；若不存在，先创建订单或更新已存在的订单
       let orderId = currentOrderId || null;
+      
       if (!orderId) {
+        // 没有订单ID，需要创建新订单
         if (!authResult?.userId || !authResult?.phoneNumber) {
           throw new Error('用户信息缺失，请重新登录');
         }
@@ -268,10 +307,28 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
           setCurrentOrderNumber?.(res.order_number || null);
           setCurrentUserSequenceNumber?.(res.user_sequence_number || null);
         } catch {}
+      } else {
+        // 有订单ID，更新订单数据（早期订单模式）
+        const { updateOrderData } = await import('../services/api');
+        const orderData = {
+          address,
+          deliveryTime,
+          allergies: selectedAllergies,
+          preferences: selectedPreferences,
+          budget,
+          foodType: selectedFoodType,
+          isFreeOrder,
+          freeOrderType: isFreeOrder ? 'invite_reward' as const : undefined,
+        };
+        
+        const updateResult = await updateOrderData(orderId, orderData);
+        if (!updateResult.success) {
+          console.warn('订单数据更新失败，但继续支付流程:', updateResult.message);
+        }
       }
 
       // 创建支付
-      console.log('💳 创建支付(已有订单):', { orderId, amount: parseFloat(budget) });
+      console.log('💳 创建支付:', { orderId, amount: parseFloat(budget) });
       const response = await createPayment({
         orderId,
         provider: 'alipay',
