@@ -97,6 +97,9 @@ export interface Order {
   isEarlyOrder?: boolean;          // 标记是否为早期创建的订单
   canContinuePayment?: boolean;    // 是否可以从历史订单继续支付
   
+  // === 测试订单支持 ===
+  isTestOrder?: boolean;            // 标记是否为测试订单
+  
   // === 其他 ===
   userSequenceNumber?: number | null;
   isDeleted?: boolean;

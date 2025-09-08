@@ -319,26 +319,52 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
           }
         }
         
+        // 创建完整的订单对象并同步到状态管理器
+        const newOrder = {
+          id: result.order_id!,
+          orderNumber: result.order_number || '',
+          userId: authResult.userId,
+          phoneNumber: authResult.phoneNumber,
+          status: 'draft' as any,
+          displayStatus: 'unpaid' as any,
+          deliveryAddress: address,
+          deliveryTime: deliveryTime,
+          dietaryRestrictions: selectedAllergies,
+          foodPreferences: selectedPreferences,
+          budgetAmount: parseFloat(budget),
+          budgetCurrency: 'CNY' as any,
+          metadata: {
+            foodType: selectedFoodType,
+          },
+          paymentStatus: 'unpaid' as any,
+          paidAt: null,
+          paymentId: null,
+          arrivalImageUrl: null,
+          arrivalImageSource: null,
+          arrivalImageTakenAt: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: null,
+          submittedAt: null,
+          feedbacks: [],
+          voiceFeedbacks: [],
+          userSequenceNumber: result.user_sequence_number || null,
+          isDeleted: false,
+        };
+
+        // 同步到订单状态管理器
+        try {
+          const { orderSyncManager } = await import('../utils/orderSyncManager');
+          orderSyncManager.syncFullOrder(newOrder);
+          console.log('✅ 新订单已同步到状态管理器:', result.order_id);
+        } catch (error) {
+          console.warn('⚠️ 同步新订单到状态管理器失败:', error);
+        }
+        
         // 通知订单历史更新 - 触发组件重新获取订单列表
-        // 传递更详细的订单信息以便快速更新UI
         eventBus.emit('orderHistoryUpdate', { 
           orderId: result.order_id,
           orderNumber: result.order_number,
-          orderData: {
-            address: address,
-            deliveryTime: deliveryTime,
-            allergies: selectedAllergies,
-            preferences: selectedPreferences,
-            budget: budget,
-            foodType: selectedFoodType,
-            isFreeOrder: isFreeOrder,
-            freeOrderType: isFreeOrder ? 'invite_reward' as const : undefined,
-            id: result.order_id,
-            orderNumber: result.order_number,
-            status: 'draft', // 早期订单初始状态
-            paymentStatus: 'unpaid',
-            createdAt: new Date().toISOString()
-          }
+          orderData: newOrder
         });
         
         handleSubmitOrder(result.order_id!);
@@ -364,6 +390,15 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
       const result = await submitOrder(orderId);
       
       if (result.success) {
+        // 更新订单状态为已提交
+        try {
+          const { orderSyncManager } = await import('../utils/orderSyncManager');
+          orderSyncManager.syncOrderStatus(orderId, 'submitted');
+          console.log('✅ 订单提交状态已同步:', orderId);
+        } catch (error) {
+          console.warn('⚠️ 同步订单提交状态失败:', error);
+        }
+        
         setCurrentStep(5);
         // 订单提交成功，但不显示额外文本，因为handleConfirmOrder已经设置了最终消息
       } else {

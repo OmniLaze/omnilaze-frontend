@@ -79,19 +79,80 @@ const AppContent = memo(() => {
     orderId: order.currentOrderId || undefined, // 转换null为undefined
     enabled: Boolean(auth.isAuthenticated && order.isPaymentCompleted && order.currentOrderId), // 确保类型为boolean
     jwtToken: auth.authResult?.token,
-    onOrderStatusChanged: (event: any) => {
+    onOrderUpdate: async (event: any) => {
+      // 处理一般订单更新，同步到状态管理器
+      try {
+        const { orderSyncManager } = await import('./src/utils/orderSyncManager');
+        if (event.orderId && event.status) {
+          orderSyncManager.syncOrderStatus(event.orderId, event.status);
+          console.log('✅ WebSocket订单状态已同步:', event.orderId, event.status);
+        }
+      } catch (error) {
+        console.warn('⚠️ WebSocket订单状态同步失败:', error);
+      }
+    },
+    onPaymentUpdate: async (event: any) => {
+      // 处理支付状态更新，同步到状态管理器
+      try {
+        const { orderSyncManager } = await import('./src/utils/orderSyncManager');
+        if (event.orderId && event.status) {
+          orderSyncManager.syncPaymentStatus(event.orderId, event.status, {
+            paidAt: event.status === 'succeeded' ? event.updatedAt : undefined,
+            paymentId: event.paymentId,
+          });
+          console.log('✅ WebSocket支付状态已同步:', event.orderId, event.status);
+        }
+      } catch (error) {
+        console.warn('⚠️ WebSocket支付状态同步失败:', error);
+      }
+    },
+    onOrderStatusChanged: async (event: any) => {
       if (event.message) {
         pushOrderMessage(event.message, 'assistant');
       }
+      // 同步订单状态变更
+      try {
+        const { orderSyncManager } = await import('./src/utils/orderSyncManager');
+        if (event.orderId && event.status) {
+          orderSyncManager.syncOrderStatus(event.orderId, event.status);
+          console.log('✅ WebSocket订单状态变更已同步:', event.orderId, event.status);
+        }
+      } catch (error) {
+        console.warn('⚠️ WebSocket订单状态变更同步失败:', error);
+      }
     },
-    onOrderETASet: (event: any) => {
+    onOrderETASet: async (event: any) => {
       if (event.message) {
         pushOrderMessage(event.message, 'assistant');
       }
+      // ETA设置也可以更新订单状态
+      try {
+        const { orderSyncManager } = await import('./src/utils/orderSyncManager');
+        if (event.orderId) {
+          // 更新订单的预计送达时间等信息
+          orderSyncManager.syncOrderStatus(event.orderId, 'delivering'); // 通常ETA设置意味着开始配送
+          console.log('✅ WebSocket ETA状态已同步:', event.orderId);
+        }
+      } catch (error) {
+        console.warn('⚠️ WebSocket ETA状态同步失败:', error);
+      }
     },
-    onOrderDelivered: (event: any) => {
+    onOrderDelivered: async (event: any) => {
       if (event.message) {
         pushOrderMessage(event.message, 'delivery');
+      }
+      // 同步配送完成状态
+      try {
+        const { orderSyncManager } = await import('./src/utils/orderSyncManager');
+        if (event.orderId) {
+          orderSyncManager.syncDeliveryStatus(event.orderId, {
+            arrivalImageUrl: event.arrivalImageUrl,
+            arrivalImageTakenAt: event.updatedAt,
+          });
+          console.log('✅ WebSocket配送状态已同步:', event.orderId);
+        }
+      } catch (error) {
+        console.warn('⚠️ WebSocket配送状态同步失败:', error);
       }
     },
   }), [auth.authResult, auth.isAuthenticated, order.currentOrderId, order.isPaymentCompleted, pushOrderMessage]);

@@ -48,4 +48,5 @@ export interface AuthResult {
   isNewUser: boolean;
   userSequence?: number; // 用户注册次序
   isPhoneVerificationStep?: boolean; // 标识这只是手机号验证步骤
+  isTestUser?: boolean; // 标识是否为测试用户
 }

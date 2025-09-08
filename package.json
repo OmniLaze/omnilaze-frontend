@@ -9,7 +9,18 @@
     "web": "expo start --web",
     "build": "expo export -p web --output-dir dist",
     "build:production": "REACT_APP_API_URL=https://backend.omnilaze.co expo export -p web --output-dir dist",
-    "build:aws": "REACT_APP_API_URL=https://backend.omnilaze.co expo export -p web --output-dir dist"
+    "build:aws": "REACT_APP_API_URL=https://backend.omnilaze.co expo export -p web --output-dir dist",
+    "test": "node tests/test-frontend.js",
+    "test:advanced": "node tests/test-frontend-advanced.js",
+    "test:headless": "node tests/test-frontend-advanced.js --headless",
+    "test:mobile": "node tests/test-mobile.js",
+    "test:mobile:iphone": "node tests/test-mobile.js 'iPhone 14 Pro'",
+    "test:mobile:android": "node tests/test-mobile.js 'Samsung Galaxy S21'",
+    "test:mobile:all": "node tests/test-mobile.js --all",
+    "test:db:check": "node tests/check-db.js",
+    "test:db:seed": "node tests/create-order.js",
+    "test:order-sync": "node tests/test-order-sync.js",
+    "test:order-sync:headless": "HEADLESS=true node tests/test-order-sync.js"
   },
   "dependencies": {
     "@babel/runtime": "^7.25.6",

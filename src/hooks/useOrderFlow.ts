@@ -146,7 +146,7 @@ export const useOrderFlow = ({
       setCurrentOrderNumber(orderNumber || '');
       setCurrentUserSequenceNumber(userSequenceNumber || currentUserSequenceNumber);
 
-      // 创建一个基础订单对象并缓存到同步管理器
+      // 创建一个完整订单对象并缓存到同步管理器
       try {
         const { orderSyncManager } = await import('../utils/orderSyncManager');
         const newOrder: Order = {
@@ -154,7 +154,7 @@ export const useOrderFlow = ({
           orderNumber: orderNumber || '',
           userId: authResult.userId,
           phoneNumber: authResult.phoneNumber,
-          status: 'draft',
+          status: 'submitted', // 这里应该是submitted，因为已经调用了submitOrder
           displayStatus: 'unpaid',
           deliveryAddress: address,
           deliveryTime: deliveryTime,
@@ -173,17 +173,26 @@ export const useOrderFlow = ({
           arrivalImageTakenAt: null,
           createdAt: new Date().toISOString(),
           updatedAt: null,
-          submittedAt: null,
+          submittedAt: new Date().toISOString(), // 已提交时间
           feedbacks: [],
           voiceFeedbacks: [],
           userSequenceNumber: userSequenceNumber || null,
           isDeleted: false,
         };
         
-        orderSyncManager.updateOrderCache(newOrder);
-        console.log('📊 新订单已缓存到同步管理器:', orderId);
+        // 使用 syncFullOrder 而不是 updateOrderCache 确保完整同步
+        orderSyncManager.syncFullOrder(newOrder);
+        console.log('✅ 新订单已完整同步到状态管理器:', orderId);
+        
+        // 触发订单历史更新事件，传递完整订单对象
+        const { eventBus } = await import('../utils/eventBus');
+        eventBus.emit('orderHistoryUpdate', { 
+          orderId: orderId,
+          orderNumber: orderNumber,
+          orderData: newOrder
+        });
       } catch (error) {
-        console.warn('缓存新订单到同步管理器失败:', error);
+        console.warn('⚠️ 同步新订单到状态管理器失败:', error);
       }
 
       const submitResponse = await submitOrder(orderId);
@@ -254,6 +263,22 @@ export const useOrderFlow = ({
         ...prev,
         [6]: orderConfirmationAnswer,
       }));
+      
+      // 同步支付状态到订单管理器
+      try {
+        import('../utils/orderSyncManager').then(({ handlePaymentStatusChange }) => {
+          const orderId = localStorage.getItem('current_order_id');
+          if (orderId) {
+            handlePaymentStatusChange(orderId, 'paid', {
+              paidAt: new Date().toISOString(),
+              paymentId: `payment_${Date.now()}`, // 实际场景中应该使用真实的paymentId
+            });
+            console.log('✅ 支付状态已同步到订单管理器:', orderId);
+          }
+        });
+      } catch (error) {
+        console.warn('⚠️ 同步支付状态失败:', error);
+      }
       
       // Start order processing flow
       setIsSearchingRestaurant(true);

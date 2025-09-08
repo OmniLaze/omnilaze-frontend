@@ -1,3 +1,5 @@
+import { ENV_CONFIG } from '../config/env';
+
 export const LAYOUT = {
   QUESTION_LINE_HEIGHT: 32,
   ANSWER_LINE_HEIGHT: 36,
@@ -72,11 +74,14 @@ export const DEV_CONFIG = {
   // 开发模式下的模拟用户信息（仅在SKIP_AUTH为true时使用）
   MOCK_USER: {
     user_id: 'dev_user_123',
-    phone_number: '13800138000',
+    phone_number: '19900000000',  // 使用测试手机号前缀
     is_new_user: false,
+    is_test_user: true,            // 标记为测试用户
   },
-  // 开发模式固定验证码
-  DEV_VERIFICATION_CODE: '100000',
+  // 测试模式配置（从环境配置读取）
+  DEV_VERIFICATION_CODE: ENV_CONFIG.TEST_MODE.TEST_VERIFICATION_CODE,
+  TEST_PHONE_PREFIX: ENV_CONFIG.TEST_MODE.TEST_PHONE_PREFIX,
+  SHOW_TEST_INDICATORS: ENV_CONFIG.TEST_MODE.SHOW_TEST_INDICATORS,
   // 调色板调试工具开关
   ENABLE_COLOR_PALETTE: false, // 设置为true开启调色板功能，false完全禁用
   // 测试模式：跳过支付流程

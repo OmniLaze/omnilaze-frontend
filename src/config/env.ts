@@ -58,6 +58,19 @@ export const ENV_CONFIG = {
   ENABLE_ALIYUN_LOGIN:
     ((process.env.EXPO_PUBLIC_ENABLE_ALIYUN_LOGIN as string) || 'false') === 'true' ||
     Boolean((Constants?.expoConfig?.extra as any)?.enableAliyunLogin),
+
+  // 测试模式配置
+  TEST_MODE: {
+    // 测试验证码（与后端保持一致）
+    TEST_VERIFICATION_CODE: '100000',
+    // 测试手机号前缀（199开头的手机号为测试账号）
+    TEST_PHONE_PREFIX: '199',
+    // 是否显示测试模式标识
+    SHOW_TEST_INDICATORS: process.env.NODE_ENV !== 'production',
+  },
+
+  // 是否为生产环境
+  IS_PRODUCTION: process.env.NODE_ENV === 'production',
 };
 
 // 开发期调试：输出解析后的 API 地址

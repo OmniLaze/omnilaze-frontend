@@ -32,6 +32,7 @@ export interface VerificationResponse {
   phone_number?: string;
   is_new_user?: boolean;
   user_sequence?: number; // 用户注册次序
+  is_test_user?: boolean; // 测试用户标识
 }
 
 export interface AliyunLoginResponse {
@@ -41,6 +42,7 @@ export interface AliyunLoginResponse {
   phone_number?: string;
   is_new_user?: boolean;
   user_sequence?: number;
+  is_test_user?: boolean; // 测试用户标识
 }
 
 export interface InviteCodeResponse {
@@ -50,6 +52,7 @@ export interface InviteCodeResponse {
   phone_number?: string;
   user_invite_code?: string;
   user_sequence?: number; // 用户注册次序
+  is_test_user?: boolean; // 测试用户标识
 }
 
 export interface UserInviteStatsResponse {
@@ -93,6 +96,7 @@ export interface CreateOrderResponse {
   order_id?: string;
   order_number?: string;
   user_sequence_number?: number;
+  is_test_order?: boolean; // 测试订单标识
 }
 
 export interface SubmitOrderResponse {
@@ -306,7 +310,7 @@ export async function verifyCodeAndLogin(phoneNumber: string, code: string): Pro
 
     // 解包data并保存token
     if (result.success && result.data) {
-      const { access_token, user_id, phone_number, is_new_user, user_sequence } = result.data;
+      const { access_token, user_id, phone_number, is_new_user, user_sequence, is_test_user } = result.data;
       
       // 保存JWT token
       if (access_token) {
@@ -320,7 +324,8 @@ export async function verifyCodeAndLogin(phoneNumber: string, code: string): Pro
         user_id,
         phone_number,
         is_new_user,
-        user_sequence
+        user_sequence,
+        is_test_user  // 包含测试用户标识
       };
     }
 
@@ -351,7 +356,7 @@ export async function loginWithAliyunSpToken(spToken: string): Promise<AliyunLog
     }
 
     if (result.success && result.data) {
-      const { access_token, user_id, phone_number, is_new_user, user_sequence } = result.data;
+      const { access_token, user_id, phone_number, is_new_user, user_sequence, is_test_user } = result.data;
       if (access_token) {
         CookieManager.saveItem('auth_token', access_token);
       }
@@ -361,7 +366,8 @@ export async function loginWithAliyunSpToken(spToken: string): Promise<AliyunLog
         user_id,
         phone_number,
         is_new_user,
-        user_sequence
+        user_sequence,
+        is_test_user  // 包含测试用户标识
       };
     }
 
@@ -379,6 +385,9 @@ export async function loginWithAliyunSpToken(spToken: string): Promise<AliyunLog
  */
 export async function verifyInviteCodeAndCreateUser(phoneNumber: string, inviteCode: string): Promise<InviteCodeResponse> {
   try {
+    // 判断是否为测试用户（199开头的手机号）
+    const isTestUser = phoneNumber.startsWith('199');
+    
     const response = await fetch(buildApiUrl('/verify-invite-code'), {
       method: 'POST',
       headers: {
@@ -386,7 +395,8 @@ export async function verifyInviteCodeAndCreateUser(phoneNumber: string, inviteC
       },
       body: JSON.stringify({
         phone_number: phoneNumber,
-        invite_code: inviteCode
+        invite_code: inviteCode,
+        is_test_user: isTestUser  // 发送测试用户标识
       })
     });
 
@@ -398,7 +408,7 @@ export async function verifyInviteCodeAndCreateUser(phoneNumber: string, inviteC
 
     // 解包data并保存token
     if (result.success && result.data) {
-      const { access_token, user_id, phone_number, user_invite_code, user_sequence } = result.data;
+      const { access_token, user_id, phone_number, user_invite_code, user_sequence, is_test_user } = result.data;
       
       // 保存JWT token
       if (access_token) {
@@ -412,7 +422,8 @@ export async function verifyInviteCodeAndCreateUser(phoneNumber: string, inviteC
         user_id,
         phone_number,
         user_invite_code,
-        user_sequence
+        user_sequence,
+        is_test_user  // 包含测试用户标识
       };
     }
 
@@ -677,15 +688,16 @@ export async function createOrder(userId: string, phoneNumber: string, formData:
       throw new Error(raw.message || '创建订单失败');
     }
 
-    // 兼容后端返回 { success, code, message, data: { order_id, order_number } }
+    // 兼容后端返回 { success, code, message, data: { order_id, order_number, is_test_order } }
     if (raw?.success && raw?.data) {
-      const { order_id, order_number, user_sequence_number } = raw.data
+      const { order_id, order_number, user_sequence_number, is_test_order } = raw.data
       return {
         success: true,
         message: raw.message,
         order_id,
         order_number,
         user_sequence_number,
+        is_test_order,  // 包含测试订单标识
       } as CreateOrderResponse
     }
 

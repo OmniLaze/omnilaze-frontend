@@ -14,6 +14,7 @@ import { Order, PaymentStatus } from '../types/order';
 import { formatOrderForDisplay } from '../utils/orderTransformer';
 import { ActionButton } from './ActionButton';
 import { getOrderDisplayStatus, createPaymentForHistoryOrder } from '../services/api';
+import { ENV_CONFIG } from '../config/env';
 
 interface OrderInterfaceProps {
   order: Order;
@@ -151,6 +152,13 @@ export const OrderInterface: React.FC<OrderInterfaceProps> = ({
           </Text>
         )}
       </View>
+
+      {/* 测试订单标识 */}
+      {order.isTestOrder && ENV_CONFIG.TEST_MODE.SHOW_TEST_INDICATORS && (
+        <View style={styles.testIndicator}>
+          <Text style={styles.testIndicatorText}>🧪 测试订单</Text>
+        </View>
+      )}
 
       {/* 基本信息 */}
       <View style={styles.section}>
@@ -307,6 +315,19 @@ const createStyles = (theme: any) => StyleSheet.create({
   unpaidHint: {
     fontSize: 14,
     color: '#FF4444',
+    fontWeight: '500',
+  },
+  testIndicator: {
+    backgroundColor: '#FFF3CD',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginBottom: 12,
+    alignSelf: 'flex-start',
+  },
+  testIndicatorText: {
+    fontSize: 12,
+    color: '#856404',
     fontWeight: '500',
   },
   section: {
