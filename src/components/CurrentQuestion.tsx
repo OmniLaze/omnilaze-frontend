@@ -43,18 +43,9 @@ export const CurrentQuestion: React.FC<CurrentQuestionProps> = ({
   const { width } = Dimensions.get('window');
   const isMobileLayout = Platform.OS !== 'web' || (Platform.OS === 'web' && width <= 768);
   
-  // 渲染文本内容，对"正在挑选"和"正在持续跟进送达情况，记得接听电话"特殊处理
+  // 渲染文本内容，对"正在持续跟进送达情况，记得接听电话"特殊处理
   const renderQuestionText = () => {
-    if (displayedText === "正在挑选") {
-      return (
-        <LoadingDots
-          text="正在挑选"
-          style={questionStyles.currentQuestionText}
-          dotStyle={questionStyles.currentQuestionText}
-          speed={500}
-        />
-      );
-    } else if (displayedText === "正在持续跟进送达情况，记得接听电话") {
+    if (displayedText === "正在持续跟进送达情况，记得接听电话") {
       return (
         <LoadingDots
           text="正在持续跟进送达情况，记得接听电话"

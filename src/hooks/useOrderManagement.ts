@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { createOrder, submitOrder, saveUserPreferences, createEarlyOrder, updateOrderData } from '../services/api';
+import { createOrder, submitOrder, saveUserPreferences } from '../services/api';
 import { TIMING } from '../constants';
 import { eventBus } from '../utils/eventBus';
 import type { AuthResult } from '../types';
@@ -58,62 +58,6 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
   // 防重复触发：订单状态推进流程闸门
   const [orderStatusFlowRunning, setOrderStatusFlowRunning] = useState(false);
 
-  // 早期订单创建 - 在用户登录后立即创建
-  const createEarlyOrderForUser = async (userId: string, phoneNumber: string) => {
-    try {
-      const result = await createEarlyOrder(userId, phoneNumber, {
-        basicInfo: {
-          deliveryAddress: address || '',
-          budgetAmount: budget ? parseFloat(budget) : 30,
-          budgetCurrency: 'CNY'
-        }
-      });
-
-      if (result.success) {
-        setCurrentOrderId(result.order_id || null);
-        setCurrentOrderNumber(result.order_number || null);
-        setCurrentUserSequenceNumber(result.user_sequence_number || null);
-        
-        console.log('早期订单创建成功:', result.order_id);
-        return result.order_id;
-      } else {
-        console.error('早期订单创建失败:', result.message);
-        return null;
-      }
-    } catch (error) {
-      console.error('早期订单创建异常:', error);
-      return null;
-    }
-  };
-
-  // 更新早期订单为完整订单
-  const updateEarlyOrderWithFullData = async (orderId: string) => {
-    const orderData = {
-      address: address,
-      deliveryTime: deliveryTime,
-      allergies: selectedAllergies,
-      preferences: selectedPreferences,
-      budget: budget,
-      foodType: selectedFoodType,
-      isFreeOrder: isFreeOrder,
-      freeOrderType: isFreeOrder ? 'invite_reward' as const : undefined
-    };
-
-    try {
-      const result = await updateOrderData(orderId, orderData);
-      
-      if (result.success) {
-        console.log('订单数据更新成功');
-        return true;
-      } else {
-        console.error('订单数据更新失败:', result.message);
-        return false;
-      }
-    } catch (error) {
-      console.error('订单数据更新异常:', error);
-      return false;
-    }
-  };
 
   // 处理订单状态推进流程
   const handleOrderStatusFlow = () => {
@@ -223,8 +167,8 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
     return text;
   };
 
-  // 创建订单 - 支持早期订单和常规订单
-  const handleCreateOrder = async (useEarlyOrder = true) => {
+  // 创建订单 - 使用标准订单创建流程
+  const handleCreateOrder = async () => {
     if (!authResult?.userId || !authResult?.phoneNumber) {
       setInputError('用户信息缺失，请重新登录');
       return;
@@ -234,44 +178,19 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
       setIsOrderSubmitting(true);
       changeEmotion('📝');
       
-      let result;
-      
-      if (useEarlyOrder) {
-        // 早期订单流程：先创建订单，再更新数据
-        let orderId = await createEarlyOrderForUser(authResult.userId, authResult.phoneNumber);
-        
-        if (orderId) {
-          // 更新订单数据
-          const updateSuccess = await updateEarlyOrderWithFullData(orderId);
-          
-          if (updateSuccess) {
-            result = {
-              success: true,
-              order_id: orderId,
-              order_number: null, // 会通过状态获取
-              user_sequence_number: null
-            };
-          } else {
-            throw new Error('更新订单数据失败');
-          }
-        } else {
-          throw new Error('创建早期订单失败');
-        }
-      } else {
-        // 传统订单流程
-        const orderData = {
-          address: address,
-          deliveryTime: deliveryTime,
-          allergies: selectedAllergies,
-          preferences: selectedPreferences,
-          budget: budget,
-          foodType: selectedFoodType,
-          isFreeOrder: isFreeOrder,
-          freeOrderType: isFreeOrder ? 'invite_reward' as const : undefined
-        };
+      // 标准订单创建流程
+      const orderData = {
+        address: address,
+        deliveryTime: deliveryTime,
+        allergies: selectedAllergies,
+        preferences: selectedPreferences,
+        budget: budget,
+        foodType: selectedFoodType,
+        isFreeOrder: isFreeOrder,
+        freeOrderType: isFreeOrder ? 'invite_reward' as const : undefined
+      };
 
-        result = await createOrder(authResult.userId, authResult.phoneNumber, orderData);
-      }
+      const result = await createOrder(orderData);
       
       if (result.success) {
         setCurrentOrderId(result.order_id || null);
@@ -297,7 +216,7 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
             if (process.env.NODE_ENV === 'development') {
               console.log('💾 保存用户偏好以便下次快速下单...');
             }
-            const preferencesResult = await saveUserPreferences(authResult.userId, formData);
+            const preferencesResult = await saveUserPreferences(formData);
             
             if (preferencesResult.success) {
               // 🔧 生产环境日志清理：条件性日志输出
@@ -428,46 +347,40 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
           [5]: { type: 'payment', value: '已确认支付' }
         }));
         
-        // 显示"正在挑选..."问题
+        // 显示订单处理状态（不再调用 typeText）
         setIsSearchingRestaurant(true);
-        typeText("正在挑选", { // 移除省略号，由LoadingDots组件处理
-          instant: false,
-          streaming: false,
-          speed: 15,
-          onComplete: () => {
-            console.log('正在挑选文字显示完成，开始创建订单');
-            // 在显示完成后再创建订单
-            setTimeout(async () => {
-              try {
-                await handleCreateOrder();
-                setIsOrderCompleted(true);
-                setIsSearchingRestaurant(false);
-                changeEmotion('✅');
-                setOrderFlowRunning(false);
-                
-                // 在开始订单状态推进之前，先创建并推入订单总结文字
-                createOrderSummaryAndPush(
-                  address,
-                  deliveryTime,
-                  selectedAllergies,
-                  selectedPreferences,
-                  selectedFoodType,
-                  budget
-                );
-                
-                // 1秒后开始订单状态推进流程（让"正在挑选"先显示一段时间）
-                setTimeout(() => {
-                  handleOrderStatusFlow();
-                }, 1000);
-              } catch (error) {
-                setIsSearchingRestaurant(false);
-                changeEmotion('😰');
-                setInputError('订单创建失败，请重试');
-                setOrderFlowRunning(false);
-              }
-            }, 500);
+        
+        // 直接开始创建订单
+        console.log('开始创建订单');
+        setTimeout(async () => {
+          try {
+            await handleCreateOrder();
+            setIsOrderCompleted(true);
+            setIsSearchingRestaurant(false);
+            changeEmotion('✅');
+            setOrderFlowRunning(false);
+            
+            // 在开始订单状态推进之前，先创建并推入订单总结文字
+            createOrderSummaryAndPush(
+              address,
+              deliveryTime,
+              selectedAllergies,
+              selectedPreferences,
+              selectedFoodType,
+              budget
+            );
+            
+            // 1秒后开始订单状态推进流程
+            setTimeout(() => {
+              handleOrderStatusFlow();
+            }, 1000);
+          } catch (error) {
+            setIsSearchingRestaurant(false);
+            changeEmotion('😰');
+            setInputError('订单创建失败，请重试');
+            setOrderFlowRunning(false);
           }
-        });
+        }, 500);
       } catch (error) {
         setIsSearchingRestaurant(false);
         changeEmotion('😰');
@@ -486,46 +399,40 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
         [5]: { type: 'payment', value: '已确认支付' }
       }));
       
-      // 显示"正在挑选..."问题
+      // 显示订单处理状态（不再调用 typeText）
       setIsSearchingRestaurant(true);
-      typeText("正在挑选", { // 移除省略号，由LoadingDots组件处理
-        instant: false,
-        streaming: false,
-        speed: 15,
-        onComplete: () => {
-          console.log('正在挑选文字显示完成，开始创建订单');
-          // 在显示完成后再创建订单
-          setTimeout(async () => {
-            try {
-              await handleCreateOrder();
-              setIsOrderCompleted(true);
-              setIsSearchingRestaurant(false);
-              changeEmotion('✅');
-              setOrderFlowRunning(false);
-              
-              // 在开始订单状态推进之前，先创建并推入订单总结文字
-              createOrderSummaryAndPush(
-                address,
-                deliveryTime,
-                selectedAllergies,
-                selectedPreferences,
-                selectedFoodType,
-                budget
-              );
-              
-              // 1秒后开始订单状态推进流程（让"正在挑选"先显示一段时间）
-              setTimeout(() => {
-                handleOrderStatusFlow();
-              }, 1000);
-            } catch (error) {
-              setIsSearchingRestaurant(false);
-              changeEmotion('😰');
-              setInputError('订单创建失败，请重试');
-              setOrderFlowRunning(false);
-            }
-          }, 500);
+      
+      // 直接开始创建订单
+      console.log('开始创建订单');
+      setTimeout(async () => {
+        try {
+          await handleCreateOrder();
+          setIsOrderCompleted(true);
+          setIsSearchingRestaurant(false);
+          changeEmotion('✅');
+          setOrderFlowRunning(false);
+          
+          // 在开始订单状态推进之前，先创建并推入订单总结文字
+          createOrderSummaryAndPush(
+            address,
+            deliveryTime,
+            selectedAllergies,
+            selectedPreferences,
+            selectedFoodType,
+            budget
+          );
+          
+          // 1秒后开始订单状态推进流程
+          setTimeout(() => {
+            handleOrderStatusFlow();
+          }, 1000);
+        } catch (error) {
+          setIsSearchingRestaurant(false);
+          changeEmotion('😰');
+          setInputError('订单创建失败，请重试');
+          setOrderFlowRunning(false);
         }
-      });
+      }, 500);
     } catch (error) {
       setIsSearchingRestaurant(false);
       changeEmotion('😰');
@@ -539,8 +446,6 @@ export const useOrderManagement = (props: UseOrderManagementProps) => {
     handleSubmitOrder,
     handleConfirmOrder,
     handleOrderStatusFlow,
-    createOrderSummaryAndPush,
-    createEarlyOrderForUser,
-    updateEarlyOrderWithFullData
+    createOrderSummaryAndPush
   };
 };

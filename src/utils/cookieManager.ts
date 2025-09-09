@@ -45,18 +45,18 @@ export const CookieManager = {
     }
   },
 
-  // 保存用户会话
-  saveUserSession: (userId: string, phoneNumber: string, isNewUser: boolean) => {
+  // 保存用户会话（仅保存非敏感的UI状态）
+  // 注意：不应该包含userId、phoneNumber等敏感信息
+  // 这些信息应该从JWT Token中解析
+  saveUserSession: (isNewUser: boolean) => {
     const sessionData = {
-      userId,
-      phoneNumber,
       isNewUser,
       loginTime: new Date().getTime()
     };
     CookieManager.setCookie('user_session', JSON.stringify(sessionData), 7); // 7天有效期
   },
 
-  // 获取用户会话
+  // 获取用户会话（仅返回UI状态）
   getUserSession: () => {
     const sessionData = CookieManager.getCookie('user_session');
     if (sessionData) {
@@ -68,7 +68,11 @@ export const CookieManager = {
         const sevenDays = 7 * 24 * 60 * 60 * 1000;
         
         if (now - loginTime < sevenDays) {
-          return parsed;
+          // 返回非敏感信息
+          return {
+            isNewUser: parsed.isNewUser,
+            loginTime: parsed.loginTime
+          };
         } else {
           // 会话过期，删除cookie
           CookieManager.deleteCookie('user_session');

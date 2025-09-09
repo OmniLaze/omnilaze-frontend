@@ -12,6 +12,7 @@ interface UseOrderFlowProps {
   budget: string;
   selectedFoodType: string[];
   isFreeOrder: boolean;
+  currentStep: number; // 新增
   currentUserSequenceNumber: number | null;
   otherAllergyText: string;
   otherPreferenceText: string;
@@ -22,6 +23,7 @@ interface UseOrderFlowProps {
   setIsOrderSubmitting: (submitting: boolean) => void;
   setIsSearchingRestaurant: (searching: boolean) => void;
   setIsOrderCompleted: (completed: boolean) => void;
+  setOrderStatus?: (status: string | undefined) => void; // 新增
   setCurrentStep: (step: number) => void;
   setCompletedAnswers: (answers: any) => void;
   setInputError: (error: string) => void;
@@ -41,6 +43,7 @@ export const useOrderFlow = ({
   budget,
   selectedFoodType,
   isFreeOrder,
+  currentStep, // 新增
   currentUserSequenceNumber,
   otherAllergyText,
   otherPreferenceText,
@@ -51,6 +54,7 @@ export const useOrderFlow = ({
   setIsOrderSubmitting,
   setIsSearchingRestaurant,
   setIsOrderCompleted,
+  setOrderStatus, // 新增
   setCurrentStep,
   setCompletedAnswers,
   setInputError,
@@ -244,6 +248,12 @@ export const useOrderFlow = ({
   // Handle payment completion
   const handlePaymentComplete = useCallback((success: boolean, orderText?: string) => {
     if (success) {
+      // 确保只有在订单确认步骤（步骤6）才处理支付完成
+      if (currentStep < 6) {
+        console.log('⚠️ 支付完成回调被调用，但当前不在订单确认步骤，跳过处理');
+        return;
+      }
+      
       // Save step 6 answer
       const orderConfirmationAnswer = {
         type: 'orderConfirmation' as const,
@@ -282,36 +292,34 @@ export const useOrderFlow = ({
       
       // Start order processing flow
       setIsSearchingRestaurant(true);
+      setOrderStatus?.('searching'); // 设置订单状态为"正在挑选"
       
-      typeText('正在挑选', {
-        instant: false,
-        streaming: false,
-        speed: 15,
-        onComplete: () => {
-          setTimeout(() => {
-            // Push order summary
-            createOrderSummaryAndPush(
-              address,
-              deliveryTime,
-              selectedAllergies,
-              selectedPreferences,
-              selectedFoodType,
-              budget
-            );
-            
-            // End searching state
-            setIsSearchingRestaurant(false);
-            setIsOrderCompleted(true);
-            changeEmotion('✅');
-          }, 500);
-        },
-      });
+      // 不再调用 typeText('正在挑选', ...) 
+      // 订单处理状态将由 OrderProcessingStatus 组件显示
+      
+      setTimeout(() => {
+        // Push order summary
+        createOrderSummaryAndPush(
+          address,
+          deliveryTime,
+          selectedAllergies,
+          selectedPreferences,
+          selectedFoodType,
+          budget
+        );
+        
+        // End searching state
+        setIsSearchingRestaurant(false);
+        setIsOrderCompleted(true);
+        changeEmotion('✅');
+      }, 500);
 
       if (orderText) {
         setOrderMessage(orderText);
       }
     }
   }, [
+    currentStep, // 新增
     address,
     deliveryTime,
     selectedAllergies,
@@ -320,6 +328,7 @@ export const useOrderFlow = ({
     budget,
     setCompletedAnswers,
     setIsSearchingRestaurant,
+    setOrderStatus, // 确保这个也在依赖中
     setIsOrderCompleted,
     setOrderMessage,
     typeText,

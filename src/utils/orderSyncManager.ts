@@ -5,20 +5,28 @@
 
 import React from 'react';
 import { eventBus } from './eventBus';
-import { Order } from '../types/order';
+import { Order, OrderStatus } from '../types/order';
 import { updateOrderPaymentStatus, getOrderPriorityStatus } from './orderTransformer';
 
 export interface OrderStateUpdateEvent {
   orderId: string;
-  type: 'payment_status' | 'order_status' | 'delivery_status' | 'full_update';
+  type: 'status_changed' | 'payment_status' | 'eta_set' | 'delivered' | 'feedback_completed' | 'full_update';
   data: {
+    status?: OrderStatus;
     paymentStatus?: string;
     orderStatus?: string;
     paidAt?: string;
     paymentId?: string;
     arrivalImageUrl?: string;
     arrivalImageTakenAt?: string;
+    estimatedDeliveryTime?: string;
     updatedAt?: string;
+    message?: string;
+    // 新增状态字段
+    isSelecting?: boolean;
+    isDelivering?: boolean;
+    isDelivered?: boolean;
+    isFeedbackCompleted?: boolean;
     order?: Order; // 完整订单对象用于 full_update
   };
 }
@@ -75,6 +83,19 @@ class OrderSyncManager {
     let updatedOrder: Order;
 
     switch (type) {
+      case 'status_changed':
+        // 处理新的统一状态变更
+        updatedOrder = {
+          ...currentOrder,
+          status: data.status!,
+          isSelecting: data.isSelecting ?? currentOrder.isSelecting,
+          isDelivering: data.isDelivering ?? currentOrder.isDelivering,
+          isDelivered: data.isDelivered ?? currentOrder.isDelivered,
+          isFeedbackCompleted: data.isFeedbackCompleted ?? currentOrder.isFeedbackCompleted,
+          updatedAt: data.updatedAt || new Date().toISOString(),
+        };
+        break;
+        
       case 'payment_status':
         updatedOrder = updateOrderPaymentStatus(
           currentOrder,
@@ -84,23 +105,69 @@ class OrderSyncManager {
             paymentId: data.paymentId,
           }
         );
+        // 支付成功后自动更新状态为paid
+        if (data.paymentStatus === 'paid') {
+          updatedOrder.status = 'paid';
+        }
+        break;
+      
+      case 'eta_set':
+        // 设置ETA时自动更新为delivering状态
+        updatedOrder = {
+          ...currentOrder,
+          status: 'delivering',
+          isDelivering: true,
+          isSelecting: false,
+          metadata: {
+            ...currentOrder.metadata,
+            eta_estimated_at: data.estimatedDeliveryTime,
+          },
+          updatedAt: data.updatedAt || new Date().toISOString(),
+        };
+        break;
+      
+      case 'delivered':
+        // 送达时更新状态
+        updatedOrder = {
+          ...currentOrder,
+          status: 'delivered',
+          isDelivered: true,
+          isDelivering: false,
+          arrivalImageUrl: data.arrivalImageUrl || currentOrder.arrivalImageUrl,
+          arrivalImageTakenAt: data.arrivalImageTakenAt || currentOrder.arrivalImageTakenAt,
+          updatedAt: data.updatedAt || new Date().toISOString(),
+        };
+        break;
+        
+      case 'feedback_completed':
+        // 反馈完成时更新状态
+        updatedOrder = {
+          ...currentOrder,
+          status: 'feedback_completed',
+          isFeedbackCompleted: true,
+          isDelivered: true, // 已反馈说明也已送达
+          updatedAt: data.updatedAt || new Date().toISOString(),
+        };
         break;
       
       case 'order_status':
+        // 兼容旧的order_status类型
         updatedOrder = {
           ...currentOrder,
-          status: data.orderStatus as any,
+          status: (data.orderStatus || data.status) as OrderStatus,
           updatedAt: data.updatedAt || new Date().toISOString(),
         };
         break;
       
       case 'delivery_status':
+        // 兼容旧的delivery_status类型
         updatedOrder = {
           ...currentOrder,
+          status: 'delivered',
+          isDelivered: true,
           arrivalImageUrl: data.arrivalImageUrl || currentOrder.arrivalImageUrl,
           arrivalImageTakenAt: data.arrivalImageTakenAt || currentOrder.arrivalImageTakenAt,
           updatedAt: data.updatedAt || new Date().toISOString(),
-          displayStatus: 'completed' as any, // 送达完成
         };
         break;
       
@@ -169,16 +236,66 @@ class OrderSyncManager {
   }
 
   /**
-   * 同步配送状态变化
+   * 同步统一状态变化
    */
-  syncDeliveryStatus(orderId: string, deliveryData: {
+  syncStatusChange(orderId: string, status: OrderStatus, stateFields?: {
+    isSelecting?: boolean;
+    isDelivering?: boolean;
+    isDelivered?: boolean;
+    isFeedbackCompleted?: boolean;
+  }) {
+    this.broadcastOrderUpdate({
+      orderId,
+      type: 'status_changed',
+      data: {
+        status,
+        ...stateFields,
+        updatedAt: new Date().toISOString(),
+      },
+    });
+  }
+
+  /**
+   * 同步ETA设置
+   */
+  syncETASet(orderId: string, estimatedDeliveryTime: string) {
+    this.broadcastOrderUpdate({
+      orderId,
+      type: 'eta_set',
+      data: {
+        estimatedDeliveryTime,
+        updatedAt: new Date().toISOString(),
+      },
+    });
+  }
+
+  /**
+   * 同步订单送达
+   */
+  syncOrderDelivered(orderId: string, deliveryData: {
     arrivalImageUrl?: string;
     arrivalImageTakenAt?: string;
   }) {
     this.broadcastOrderUpdate({
       orderId,
-      type: 'delivery_status',
-      data: deliveryData,
+      type: 'delivered',
+      data: {
+        ...deliveryData,
+        updatedAt: new Date().toISOString(),
+      },
+    });
+  }
+
+  /**
+   * 同步反馈完成
+   */
+  syncFeedbackCompleted(orderId: string) {
+    this.broadcastOrderUpdate({
+      orderId,
+      type: 'feedback_completed',
+      data: {
+        updatedAt: new Date().toISOString(),
+      },
     });
   }
 
@@ -260,8 +377,29 @@ export function handleOrderStatusChange(orderId: string, orderStatus: string) {
 }
 
 /**
- * 便捷函数：处理配送状态变化
+ * 便捷函数：处理统一状态变化
  */
-export function handleDeliveryStatusChange(orderId: string, deliveryData: any) {
-  orderSyncManager.syncDeliveryStatus(orderId, deliveryData);
+export function handleStatusChange(orderId: string, status: OrderStatus, stateFields?: any) {
+  orderSyncManager.syncStatusChange(orderId, status, stateFields);
+}
+
+/**
+ * 便捷函数：处理ETA设置
+ */
+export function handleETASet(orderId: string, estimatedDeliveryTime: string) {
+  orderSyncManager.syncETASet(orderId, estimatedDeliveryTime);
+}
+
+/**
+ * 便捷函数：处理订单送达
+ */
+export function handleOrderDelivered(orderId: string, deliveryData: any) {
+  orderSyncManager.syncOrderDelivered(orderId, deliveryData);
+}
+
+/**
+ * 便捷函数：处理反馈完成
+ */
+export function handleFeedbackCompleted(orderId: string) {
+  orderSyncManager.syncFeedbackCompleted(orderId);
 }

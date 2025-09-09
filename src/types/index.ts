@@ -43,6 +43,7 @@ export interface AddressSearchResponse {
 }
 
 export interface AuthResult {
+  token?: string; // JWT token
   userId?: string;
   phoneNumber: string;
   isNewUser: boolean;

@@ -279,53 +279,30 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
     setPaymentStatus('processing');
 
     try {
-      // 确保存在订单ID；若不存在，先创建订单或更新已存在的订单
-      let orderId = currentOrderId || null;
-      
-      if (!orderId) {
-        // 没有订单ID，需要创建新订单
-        if (!authResult?.userId || !authResult?.phoneNumber) {
-          throw new Error('用户信息缺失，请重新登录');
-        }
-        const orderData = {
-          address,
-          deliveryTime,
-          allergies: selectedAllergies,
-          preferences: selectedPreferences,
-          budget,
-          foodType: selectedFoodType,
-          isFreeOrder,
-          freeOrderType: isFreeOrder ? 'invite_reward' as const : undefined,
-        };
-        const res = await createOrder(authResult.userId, authResult.phoneNumber, orderData);
-        if (!res.success || !res.order_id) {
-          throw new Error(res.message || '创建订单失败');
-        }
-        orderId = res.order_id;
-        try {
-          setCurrentOrderId?.(res.order_id || null);
-          setCurrentOrderNumber?.(res.order_number || null);
-          setCurrentUserSequenceNumber?.(res.user_sequence_number || null);
-        } catch {}
-      } else {
-        // 有订单ID，更新订单数据（早期订单模式）
-        const { updateOrderData } = await import('../services/api');
-        const orderData = {
-          address,
-          deliveryTime,
-          allergies: selectedAllergies,
-          preferences: selectedPreferences,
-          budget,
-          foodType: selectedFoodType,
-          isFreeOrder,
-          freeOrderType: isFreeOrder ? 'invite_reward' as const : undefined,
-        };
-        
-        const updateResult = await updateOrderData(orderId, orderData);
-        if (!updateResult.success) {
-          console.warn('订单数据更新失败，但继续支付流程:', updateResult.message);
-        }
+      // 创建新订单
+      if (!authResult?.userId || !authResult?.phoneNumber) {
+        throw new Error('用户信息缺失，请重新登录');
       }
+      const orderData = {
+        address,
+        deliveryTime,
+        allergies: selectedAllergies,
+        preferences: selectedPreferences,
+        budget,
+        foodType: selectedFoodType,
+        isFreeOrder,
+        freeOrderType: isFreeOrder ? 'invite_reward' as const : undefined,
+      };
+      const res = await createOrder(orderData);
+      if (!res.success || !res.order_id) {
+        throw new Error(res.message || '创建订单失败');
+      }
+      const orderId = res.order_id;
+      try {
+        setCurrentOrderId?.(res.order_id || null);
+        setCurrentOrderNumber?.(res.order_number || null);
+        setCurrentUserSequenceNumber?.(res.user_sequence_number || null);
+      } catch {}
 
       // 创建支付
       console.log('💳 创建支付:', { orderId, amount: parseFloat(budget) });
@@ -477,14 +454,7 @@ export const OrderConfirmationComponent: React.FC<OrderConfirmationComponentProp
     <WrapperComponent {...wrapperProps}>
       
       {/* 根据订单状态显示不同内容 */}
-      {isSearchingRestaurant ? (
-        // 搜索餐厅状态：显示加载提示
-        <Animated.View style={{ opacity: 1, marginBottom: 12 }}>
-          <Text style={[questionStyles.currentQuestionText, { minHeight: 20 }]}>
-            {summaryDisplayedText || '正在挑选...'}
-          </Text>
-        </Animated.View>
-      ) : isOrderCompleted ? (
+      {isOrderCompleted ? (
         // 订单完成状态：显示完成信息
         <Animated.View style={{ opacity: 1, marginBottom: 12 }}>
           <Text style={[questionStyles.currentQuestionText, { minHeight: 20 }]}>

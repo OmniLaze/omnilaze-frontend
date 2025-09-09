@@ -8,6 +8,7 @@ import { useOrderFlow } from '../hooks/useOrderFlow';
 import { CurrentQuestion } from './CurrentQuestion';
 import { CompletedQuestion } from './CompletedQuestion';
 import { AuthComponent } from './AuthComponent';
+import { OrderProcessingStatus } from './OrderProcessingStatus';
 import { FormInputContainer } from './FormContainers';
 import { FormActionButtonContainer } from './FormContainers';
 import WizardFlatList from './WizardFlatList';
@@ -109,6 +110,7 @@ const QuestionWizard: React.FC<QuestionWizardProps> = memo(({
     budget: form.budget,
     selectedFoodType: form.selectedFoodType,
     isFreeOrder: order.isFreeOrder,
+    currentStep: form.currentStep, // 新增
     currentUserSequenceNumber: order.currentUserSequenceNumber,
     otherAllergyText: form.otherAllergyText,
     otherPreferenceText: form.otherPreferenceText,
@@ -119,6 +121,7 @@ const QuestionWizard: React.FC<QuestionWizardProps> = memo(({
     setIsOrderSubmitting: order.setIsOrderSubmitting,
     setIsSearchingRestaurant: order.setIsSearchingRestaurant,
     setIsOrderCompleted: order.setIsOrderCompleted,
+    setOrderStatus: order.setOrderStatus, // 新增
     setCurrentStep: form.setCurrentStep,
     setCompletedAnswers: form.setCompletedAnswers,
     setInputError: ui.setInputError,
@@ -273,25 +276,19 @@ const QuestionWizard: React.FC<QuestionWizardProps> = memo(({
     auth.setIsAuthenticated(true);
     auth.setAuthResult(result);
     
+    // 保存JWT Token到持久化存储
+    if (result.token) {
+      const AuthService = require('../services/authService').default;
+      AuthService.setToken(result.token);
+      console.log('✅ JWT Token已保存');
+    }
+    
+    // 保存非敏感的UI状态
+    const { CookieManager } = require('../utils/cookieManager');
+    CookieManager.saveUserSession(result.isNewUser);
+    
     // 🔑 关键修复：清空认证问题文本，防止登录后还显示"手机号？"
     auth.setAuthQuestionText('');
-    
-    // 🎯 早期订单创建 - 用户登录成功后立即创建未支付订单
-    if (result.userId && result.phoneNumber && !order.currentOrderId) {
-      try {
-        const { createEarlyOrder } = await import('../services/api');
-        const orderResult = await createEarlyOrder(result.userId, result.phoneNumber);
-        
-        if (orderResult.success) {
-          order.setCurrentOrderId(orderResult.order_id || null);
-          order.setCurrentOrderNumber(orderResult.order_number || null);
-          order.setCurrentUserSequenceNumber(orderResult.user_sequence_number || null);
-          console.log('早期订单创建成功:', orderResult.order_id);
-        }
-      } catch (error) {
-        console.error('早期订单创建失败:', error);
-      }
-    }
     
     // Clear text and move to first step
     clearText();
@@ -587,6 +584,14 @@ const QuestionWizard: React.FC<QuestionWizardProps> = memo(({
                     resetTrigger={auth.authResetTrigger}
                   />
                 </CurrentQuestion>
+              ) : order.isPaymentCompleted && order.currentOrderId ? (
+                // 支付完成后显示订单处理状态
+                <OrderProcessingStatus
+                  currentOrderId={order.currentOrderId}
+                  isPaymentCompleted={order.isPaymentCompleted}
+                  orderStatus={order.orderStatus}
+                  animationValue={currentQuestionAnimation}
+                />
               ) : (
                 <CurrentQuestion
                   displayedText={displayedText}

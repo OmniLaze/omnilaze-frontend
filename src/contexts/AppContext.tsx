@@ -189,6 +189,7 @@ interface OrderContextValue {
   isSearchingRestaurant: boolean;
   isOrderCompleted: boolean;
   orderMessage: string;
+  orderStatus?: string; // 新增：订单状态（searching, confirmed, preparing, delivering, delivered）
   
   // 支付状态管理 - 统一的支付状态
   paymentStatus: PaymentStatus;
@@ -209,6 +210,7 @@ interface OrderContextValue {
   setIsSearchingRestaurant: (value: boolean) => void;
   setIsOrderCompleted: (value: boolean) => void;
   setOrderMessage: (value: string) => void;
+  setOrderStatus: (value: string | undefined) => void; // 新增
   setPaymentStatus: (value: PaymentStatus) => void;
   setIsPaymentCompleted: (value: boolean) => void;
   setShowPaymentModal: (value: boolean) => void;
@@ -216,9 +218,6 @@ interface OrderContextValue {
   setShowFreeDrinkModal: (value: boolean) => void;
   setIsQuickOrderMode: (value: boolean) => void;
   setShowGoToPaymentButton: (value: boolean) => void;
-  
-  // 早期订单创建
-  createEarlyOrder: () => Promise<boolean>;
   
   // 重置方法
   resetOrder: () => void;
@@ -237,6 +236,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [isSearchingRestaurant, setIsSearchingRestaurant] = useState(false);
   const [isOrderCompleted, setIsOrderCompleted] = useState(false);
   const [orderMessage, setOrderMessage] = useState('');
+  const [orderStatus, setOrderStatus] = useState<string | undefined>(undefined); // 新增
   
   // 支付状态管理 - 统一的支付状态
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('unpaid');
@@ -249,46 +249,6 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [isQuickOrderMode, setIsQuickOrderMode] = useState(false);
   const [showGoToPaymentButton, setShowGoToPaymentButton] = useState(false);
 
-  // 早期订单创建函数 - 在用户开始填写表单时就创建订单
-  const createEarlyOrder = useCallback(async (): Promise<boolean> => {
-    // 如果已经存在订单，直接返回成功
-    if (currentOrderId) {
-      console.log('订单已存在，跳过早期创建:', currentOrderId);
-      return true;
-    }
-
-    try {
-      // 导入API函数（延迟导入避免循环依赖）
-      const { createEarlyOrder: apiCreateEarlyOrder } = await import('../services/api');
-      
-      // 这里需要获取用户信息，暂时使用占位实现
-      // TODO: 从AuthContext获取用户信息
-      const userId = 'temp-user-id';
-      const phoneNumber = 'temp-phone';
-      
-      const result = await apiCreateEarlyOrder(userId, phoneNumber);
-      
-      if (result.success && result.order_id) {
-        setCurrentOrderId(result.order_id);
-        setCurrentOrderNumber(result.order_number || null);
-        setCurrentUserSequenceNumber(result.user_sequence_number || null);
-        setPaymentStatus('unpaid');
-        
-        console.log('早期订单创建成功:', {
-          orderId: result.order_id,
-          orderNumber: result.order_number
-        });
-        
-        return true;
-      } else {
-        console.error('早期订单创建失败:', result.message);
-        return false;
-      }
-    } catch (error) {
-      console.error('早期订单创建异常:', error);
-      return false;
-    }
-  }, [currentOrderId]);
 
   const resetOrder = useCallback(() => {
     setCurrentOrderId(null);
@@ -298,6 +258,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setIsSearchingRestaurant(false);
     setIsOrderCompleted(false);
     setOrderMessage('');
+    setOrderStatus(undefined); // 重置订单状态
     setPaymentStatus('unpaid');
     setIsPaymentCompleted(false);
     setShowPaymentModal(false);
@@ -320,6 +281,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         isSearchingRestaurant,
         isOrderCompleted,
         orderMessage,
+        orderStatus, // 新增
         
         // 支付状态管理
         paymentStatus,
@@ -340,6 +302,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         setIsSearchingRestaurant,
         setIsOrderCompleted,
         setOrderMessage,
+        setOrderStatus, // 新增
         setPaymentStatus,
         setIsPaymentCompleted,
         setShowPaymentModal,
@@ -347,9 +310,6 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         setShowFreeDrinkModal,
         setIsQuickOrderMode,
         setShowGoToPaymentButton,
-        
-        // 早期订单创建
-        createEarlyOrder,
         
         // 重置方法
         resetOrder,

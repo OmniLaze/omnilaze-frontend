@@ -5,7 +5,9 @@
 import { 
   Order, 
   OrderMetadata, 
-  OrderDisplayStatus, 
+  OrderStatus,
+  ORDER_STATUS_DISPLAY,
+  ORDER_STATUS_COLOR,
   CreateOrderFormData,
   OrderFeedback,
   OrderVoiceFeedback 
@@ -95,8 +97,13 @@ export function transformBackendOrder(backendOrder: any): Order {
     orderNumber: backendOrder.orderNumber || backendOrder.order_number,
     userId: backendOrder.userId || backendOrder.user_id,
     phoneNumber: backendOrder.phoneNumber || backendOrder.phone_number,
-    status: backendOrder.status || 'draft',
-    displayStatus: (backendOrder.displayStatus || 'unpaid') as OrderDisplayStatus,
+    status: (backendOrder.status || 'unpaid') as OrderStatus,
+    
+    // 新增状态字段
+    isSelecting: backendOrder.isSelecting || backendOrder.is_selecting || false,
+    isDelivering: backendOrder.isDelivering || backendOrder.is_delivering || false,
+    isDelivered: backendOrder.isDelivered || backendOrder.is_delivered || false,
+    isFeedbackCompleted: backendOrder.isFeedbackCompleted || backendOrder.is_feedback_completed || false,
     
     // 订单内容
     deliveryAddress: backendOrder.deliveryAddress || backendOrder.delivery_address || '',
@@ -125,6 +132,8 @@ export function transformBackendOrder(backendOrder: any): Order {
     createdAt: backendOrder.createdAt || backendOrder.created_at,
     updatedAt: backendOrder.updatedAt || backendOrder.updated_at || null,
     submittedAt: backendOrder.submittedAt || backendOrder.submitted_at || null,
+    orderDate: backendOrder.orderDate || backendOrder.order_date || null,
+    arrivalImageImportedAt: backendOrder.arrivalImageImportedAt || backendOrder.arrival_image_imported_at || null,
     
     // 关联数据
     feedbacks: transformFeedbacks(backendOrder.feedbacks),
@@ -133,6 +142,7 @@ export function transformBackendOrder(backendOrder: any): Order {
     // 其他
     userSequenceNumber: backendOrder.userSequenceNumber || backendOrder.user_sequence_number || null,
     isDeleted: backendOrder.isDeleted || backendOrder.is_deleted || false,
+    isTestOrder: backendOrder.isTestOrder || backendOrder.is_test_order || false,
   };
 }
 
@@ -176,8 +186,8 @@ export function formatOrderForDisplay(order: Order) {
     // 格式化时间显示
     displayDeliveryTime: formatDeliveryTime(order.deliveryTime),
     // 格式化状态显示
-    displayStatusText: getStatusDisplayText(order.displayStatus),
-    displayStatusColor: getStatusColor(order.displayStatus),
+    displayStatusText: ORDER_STATUS_DISPLAY[order.status] || '未知',
+    displayStatusColor: ORDER_STATUS_COLOR[order.status] || '#999999',
     // 格式化食物类型
     displayFoodType: formatFoodType(order.metadata.foodType),
     // 格式化忌口
@@ -199,29 +209,15 @@ function formatDeliveryTime(time: string | null): string {
 /**
  * 获取状态显示文本
  */
-function getStatusDisplayText(status: OrderDisplayStatus): string {
-  const statusMap: Record<OrderDisplayStatus, string> = {
-    'unpaid': '未支付',
-    'pending_payment': '支付中',
-    'paid': '已支付',
-    'delivering': '配送中',
-    'completed': '已完成',
-  };
-  return statusMap[status] || '未知';
+export function getStatusDisplayText(status: OrderStatus): string {
+  return ORDER_STATUS_DISPLAY[status] || '未知';
 }
 
 /**
  * 获取状态颜色
  */
-function getStatusColor(status: OrderDisplayStatus): string {
-  const colorMap: Record<OrderDisplayStatus, string> = {
-    'unpaid': '#6B7280',
-    'pending_payment': '#f59e0b',
-    'paid': '#4169E1',
-    'delivering': '#3b82f6',
-    'completed': '#10b981',
-  };
-  return colorMap[status] || '#999999';
+export function getStatusColor(status: OrderStatus): string {
+  return ORDER_STATUS_COLOR[status] || '#999999';
 }
 
 /**
@@ -260,74 +256,31 @@ export function transformOrderList(orders: any[]): Order[] {
  * 判断订单是否可以继续支付
  */
 export function canContinuePayment(order: Order): boolean {
-  const validOrderStatuses = ['draft', 'submitted', 'processing'];
-  const validPaymentStatuses = ['unpaid', 'failed'];
+  // 只有未支付状态才能继续支付
+  const validOrderStatuses: OrderStatus[] = ['unpaid'];
+  const validPaymentStatuses = ['unpaid', 'failed', 'pending_payment'];
   
   return validOrderStatuses.includes(order.status) && 
          validPaymentStatuses.includes(order.paymentStatus || 'unpaid');
 }
 
 /**
- * 获取订单的优先支付状态（用于状态同步）
+ * 获取订单的优先显示状态（基于新的统一状态系统）
  */
 export function getOrderPriorityStatus(order: Order): {
-  status: string;
+  status: OrderStatus;
   canPayment: boolean;
   statusText: string;
   statusColor: string;
 } {
-  // 如果有送达图片，优先显示已完成
-  if (order.arrivalImageUrl) {
-    return {
-      status: 'completed',
-      canPayment: false,
-      statusText: '已送达',
-      statusColor: '#10b981'
-    };
-  }
-
-  // 检查支付状态
-  if (order.paymentStatus === 'paid' && order.paidAt) {
-    if (order.status === 'delivering') {
-      return {
-        status: 'delivering',
-        canPayment: false,
-        statusText: '配送中',
-        statusColor: '#3b82f6'
-      };
-    }
-    return {
-      status: 'paid',
-      canPayment: false,
-      statusText: '已支付',
-      statusColor: '#4169E1'
-    };
-  }
-
-  if (order.paymentStatus === 'pending_payment') {
-    return {
-      status: 'pending_payment',
-      canPayment: true,
-      statusText: '支付中',
-      statusColor: '#f59e0b'
-    };
-  }
-
-  if (order.paymentStatus === 'failed') {
-    return {
-      status: 'failed',
-      canPayment: true,
-      statusText: '支付失败',
-      statusColor: '#ef4444'
-    };
-  }
-
-  // 默认未支付状态
+  // 直接使用新的统一状态系统
+  const status = order.status;
+  
   return {
-    status: 'unpaid',
+    status: status,
     canPayment: canContinuePayment(order),
-    statusText: '未支付',
-    statusColor: '#6B7280'
+    statusText: ORDER_STATUS_DISPLAY[status],
+    statusColor: ORDER_STATUS_COLOR[status]
   };
 }
 
@@ -345,10 +298,7 @@ export function updateOrderPaymentStatus(
     paidAt: paymentStatus === 'paid' ? (paymentData?.paidAt || new Date().toISOString()) : order.paidAt,
     paymentId: paymentData?.paymentId || order.paymentId,
     updatedAt: new Date().toISOString(),
-    // 更新 displayStatus 以反映新的支付状态
-    displayStatus: getOrderPriorityStatus({
-      ...order,
-      paymentStatus: paymentStatus as any,
-    }).status as any,
+    // 根据支付状态更新订单状态
+    status: paymentStatus === 'paid' ? 'paid' : order.status,
   };
 }

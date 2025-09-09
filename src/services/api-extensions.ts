@@ -1,5 +1,5 @@
 /**
- * API服务扩展 - 早期订单创建和支付继续功能
+ * API服务扩展 - 支付继续功能
  */
 
 import { ENV_CONFIG } from '../config/env';
@@ -36,8 +36,14 @@ const authFetch = async (url: string, options: RequestInit = {}) => {
  */
 export async function createPaymentForHistoryOrder(orderId: string, paymentData: CreatePaymentData): Promise<CreatePaymentResponse> {
   try {
-    // 更新订单支付状态为处理中
-    orderSyncManager.syncPaymentStatus(orderId, 'pending_payment');
+    // 更新订单状态为支付中（保持统一状态系统）
+    // 支付中时订单状态仍为unpaid，只是UI上显示处理中
+    orderSyncManager.syncStatusChange(orderId, 'unpaid', {
+      isSelecting: false,
+      isDelivering: false,
+      isDelivered: false,
+      isFeedbackCompleted: false
+    });
 
     const response = await authFetch(buildApiUrl(`/orders/${orderId}/payment`), {
       method: 'POST',
@@ -50,15 +56,14 @@ export async function createPaymentForHistoryOrder(orderId: string, paymentData:
     const data = await response.json();
 
     if (!response.ok) {
-      // 支付创建失败，恢复为未支付状态
-      orderSyncManager.syncPaymentStatus(orderId, 'unpaid');
+      // 支付创建失败，保持unpaid状态
       throw new Error(data.message || '为历史订单创建支付失败');
     }
 
     return data;
   } catch (error) {
     // 确保失败时状态正确
-    orderSyncManager.syncPaymentStatus(orderId, 'failed');
+    orderSyncManager.syncStatusChange(orderId, 'unpaid');
     
     return {
       success: false,
@@ -103,67 +108,44 @@ export async function getOrderPaymentInfo(orderId: string): Promise<ApiResponse<
  * 检查订单是否可以继续支付
  */
 export function canOrderContinuePayment(order: any): boolean {
-  // 订单状态为draft或submitted，且支付状态为unpaid或failed时，可以继续支付
-  const validOrderStatuses = ['draft', 'submitted'];
-  const validPaymentStatuses = ['unpaid', 'failed'];
-  
-  return validOrderStatuses.includes(order.status) && 
-         validPaymentStatuses.includes(order.paymentStatus);
+  // 使用新的统一状态系统
+  // 只有unpaid状态的订单可以继续支付
+  return order.status === 'unpaid';
 }
 
 /**
- * 获取订单显示状态的颜色和文本
+ * 获取订单显示状态的颜色和文本 - 使用新的统一状态系统
  */
 export function getOrderDisplayStatus(order: any): {
   displayStatusText: string;
   displayStatusColor: string;
   canContinuePayment: boolean;
 } {
-  // 优先检查送达状态
-  if (order.arrivalImageUrl || order.displayStatus === 'completed') {
-    return {
-      displayStatusText: '已送达',
-      displayStatusColor: '#10b981',
-      canContinuePayment: false,
-    };
-  }
+  // 导入状态显示映射
+  const ORDER_STATUS_DISPLAY: Record<string, string> = {
+    'unpaid': '未支付',
+    'paid': '已支付',
+    'selecting': '正在挑选',
+    'delivering': '配送中',
+    'delivered': '已送达',
+    'feedback_completed': '已完成'
+  };
 
-  // 检查支付和订单状态
-  switch (order.paymentStatus || order.displayStatus) {
-    case 'paid':
-      if (order.status === 'delivering' || order.displayStatus === 'delivering') {
-        return {
-          displayStatusText: '配送中',
-          displayStatusColor: '#3b82f6',
-          canContinuePayment: false,
-        };
-      }
-      return {
-        displayStatusText: '已支付',
-        displayStatusColor: '#10b981',
-        canContinuePayment: false,
-      };
+  const ORDER_STATUS_COLOR: Record<string, string> = {
+    'unpaid': '#6B7280',      // 灰色
+    'paid': '#10B981',         // 绿色
+    'selecting': '#F59E0B',    // 橙色
+    'delivering': '#3B82F6',   // 蓝色
+    'delivered': '#8B5CF6',    // 紫色
+    'feedback_completed': '#10B981' // 绿色
+  };
 
-    case 'pending_payment':
-      return {
-        displayStatusText: '支付中',
-        displayStatusColor: '#f59e0b',
-        canContinuePayment: true,
-      };
-
-    case 'failed':
-      return {
-        displayStatusText: '支付失败',
-        displayStatusColor: '#ef4444',
-        canContinuePayment: true,
-      };
-
-    case 'unpaid':
-    default:
-      return {
-        displayStatusText: '未支付',
-        displayStatusColor: '#6b7280',
-        canContinuePayment: true,
-      };
-  }
+  // 直接使用新的统一状态
+  const status = order.status || 'unpaid';
+  
+  return {
+    displayStatusText: ORDER_STATUS_DISPLAY[status] || '未知',
+    displayStatusColor: ORDER_STATUS_COLOR[status] || '#999999',
+    canContinuePayment: status === 'unpaid',
+  };
 }

@@ -22,14 +22,19 @@ export interface PaymentUpdateEvent {
   [key: string]: any;
 }
 
-// 新增：订单状态变更事件
+// 新增：订单状态变更事件 - 使用新的统一状态系统
 export interface OrderStatusChangedEvent {
   orderId: string;
-  status: string;
-  type: 'eta_set' | 'status_changed' | 'delivered';
+  status: 'unpaid' | 'paid' | 'selecting' | 'delivering' | 'delivered' | 'feedback_completed';
+  type: 'status_changed' | 'eta_set' | 'delivered' | 'feedback_completed';
   message?: string;
   estimatedDeliveryTime?: string;
   arrivalImageUrl?: string;
+  arrivalImageTakenAt?: string;
+  isSelecting?: boolean;
+  isDelivering?: boolean;
+  isDelivered?: boolean;
+  isFeedbackCompleted?: boolean;
   updatedAt: string;
 }
 

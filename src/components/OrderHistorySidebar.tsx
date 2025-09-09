@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Modal, Animated, Platform, SafeAreaView } from 'react-native';
 import { useTheme } from '../contexts/ColorThemeContext';
 import { getOrderHistory } from '../services/api';
+import AuthService from '../services/authService';
 import { Order } from '../types/order';
 import { formatOrderForDisplay, getOrderPriorityStatus } from '../utils/orderTransformer';
 import { eventBus } from '../utils/eventBus';
@@ -28,15 +29,18 @@ export const OrderHistorySidebar: React.FC<OrderHistorySidebarProps> = ({
 
   // 使用 useCallback 包装 loadOrderHistory，避免函数重复创建
   const loadOrderHistory = useCallback(async () => {
-    if (!userId) return;
+    // 从AuthService获取userId
+    const currentUserId = AuthService.getCurrentUserId();
+    
+    if (!currentUserId) return;
     
     setLoading(true);
     try {
       // 调试日志已简化
       if (process.env.NODE_ENV === 'development') {
-        console.log('🔄 加载订单历史，用户ID:', userId);
+        console.log('🔄 加载订单历史，用户ID:', currentUserId);
       }
-      const result = await getOrderHistory(userId);
+      const result = await getOrderHistory();
       
       console.log('📋 API返回结果:', result);
       
@@ -64,10 +68,10 @@ export const OrderHistorySidebar: React.FC<OrderHistorySidebarProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
-    if (isVisible && userId) {
+    if (isVisible) {
       loadOrderHistory();
       // Slide in animation
       Animated.timing(slideAnim, {
@@ -83,14 +87,12 @@ export const OrderHistorySidebar: React.FC<OrderHistorySidebarProps> = ({
         useNativeDriver: true,
       }).start();
     }
-  }, [isVisible, userId, loadOrderHistory]); // 添加 loadOrderHistory 作为依赖
+  }, [isVisible, loadOrderHistory]); // 添加 loadOrderHistory 作为依赖
 
   // 监听订单历史更新事件
   useEffect(() => {
     const off = eventBus.on('orderHistoryUpdate', () => {
-      if (userId) {
-        loadOrderHistory();
-      }
+      loadOrderHistory();
     });
     
     // 监听订单状态变化事件，实时更新订单显示
@@ -109,7 +111,7 @@ export const OrderHistorySidebar: React.FC<OrderHistorySidebarProps> = ({
       off();
       offOrderStateChanged();
     };
-  }, [userId, loadOrderHistory]);
+  }, [loadOrderHistory]);
 
   const getOrderAmount = (order: Order): string => {
     // 直接使用统一的字段名
@@ -161,18 +163,16 @@ export const OrderHistorySidebar: React.FC<OrderHistorySidebarProps> = ({
       if (DEV_CONFIG.SKIP_PAYMENT) {
         console.log('🧪 测试模式：模拟历史订单支付成功');
         
-        // 模拟支付成功，更新订单状态
-        const mockPaymentData = {
-          paymentStatus: 'paid',
-          paidAt: new Date().toISOString(),
-          paymentId: `mock_payment_history_${Date.now()}`,
-        };
-        
-        // 使用订单同步管理器更新支付状态
+        // 使用订单同步管理器更新状态为paid
         const { orderSyncManager } = await import('../utils/orderSyncManager');
-        orderSyncManager.syncPaymentStatus(order.id, 'paid', mockPaymentData);
+        orderSyncManager.syncStatusChange(order.id, 'paid', {
+          isSelecting: true,  // 支付成功后自动进入挑选状态
+          isDelivering: false,
+          isDelivered: false,
+          isFeedbackCompleted: false
+        });
         
-        console.log('✅ 测试模式：历史订单支付状态已更新为已支付');
+        console.log('✅ 测试模式：历史订单状态已更新为已支付');
         
         // 延迟刷新订单历史，确保状态更新体现
         setTimeout(() => {

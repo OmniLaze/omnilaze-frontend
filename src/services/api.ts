@@ -18,6 +18,7 @@ import { ENV_CONFIG } from '../config/env';
 import { Platform } from 'react-native';
 import type { AddressSuggestion, AddressSearchResponse } from '../types';
 import { CookieManager } from '../utils/cookieManager';
+import AuthService from './authService';
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -28,6 +29,7 @@ export interface ApiResponse<T = any> {
 export interface VerificationResponse {
   success: boolean;
   message: string;
+  token?: string; // JWT token
   user_id?: string;
   phone_number?: string;
   is_new_user?: boolean;
@@ -38,6 +40,7 @@ export interface VerificationResponse {
 export interface AliyunLoginResponse {
   success: boolean;
   message: string;
+  token?: string; // JWT token
   user_id?: string;
   phone_number?: string;
   is_new_user?: boolean;
@@ -48,6 +51,7 @@ export interface AliyunLoginResponse {
 export interface InviteCodeResponse {
   success: boolean;
   message: string;
+  token?: string; // JWT token
   user_id?: string;
   phone_number?: string;
   user_invite_code?: string;
@@ -314,13 +318,14 @@ export async function verifyCodeAndLogin(phoneNumber: string, code: string): Pro
       
       // 保存JWT token
       if (access_token) {
-        CookieManager.saveItem('auth_token', access_token);
+        AuthService.setToken(access_token);
       }
       
-      // 返回解包后的数据
+      // 返回解包后的数据，包含token
       return {
         success: true,
         message: result.message,
+        token: access_token,  // 添加token到返回值
         user_id,
         phone_number,
         is_new_user,
@@ -358,11 +363,12 @@ export async function loginWithAliyunSpToken(spToken: string): Promise<AliyunLog
     if (result.success && result.data) {
       const { access_token, user_id, phone_number, is_new_user, user_sequence, is_test_user } = result.data;
       if (access_token) {
-        CookieManager.saveItem('auth_token', access_token);
+        AuthService.setToken(access_token);
       }
       return {
         success: true,
         message: result.message,
+        token: access_token,  // 添加token到返回值
         user_id,
         phone_number,
         is_new_user,
@@ -412,13 +418,14 @@ export async function verifyInviteCodeAndCreateUser(phoneNumber: string, inviteC
       
       // 保存JWT token
       if (access_token) {
-        CookieManager.saveItem('auth_token', access_token);
+        AuthService.setToken(access_token);
       }
       
-      // 返回解包后的数据
+      // 返回解包后的数据，包含token
       return {
         success: true,
         message: result.message,
+        token: access_token,  // 添加token到返回值
         user_id,
         phone_number,
         user_invite_code,
@@ -578,102 +585,29 @@ function getFallbackResults(keywords: string): AddressSearchResponse {
   };
 }
 
-/**
- * 早期订单创建 - 在用户开始填写表单时创建unpaid状态的订单
- */
-export async function createEarlyOrder(userId: string, phoneNumber: string): Promise<CreateOrderResponse> {
-  try {
-    const response = await authFetch(buildApiUrl('/create-early-order'), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        user_id: userId,
-        phone_number: phoneNumber,
-        // 早期订单不包含具体的表单数据
-        status: 'draft', // 草稿状态
-        payment_status: 'unpaid' // 未支付状态
-      })
-    });
 
-    const raw = await response.json();
-
-    if (!response.ok) {
-      throw new Error(raw.message || '创建早期订单失败');
-    }
-
-    if (raw?.success && raw?.data) {
-      const { order_id, order_number, user_sequence_number } = raw.data;
-      return {
-        success: true,
-        message: raw.message || '早期订单创建成功',
-        order_id,
-        order_number,
-        user_sequence_number
-      };
-    }
-
-    // 兼容老版本返回格式
-    return {
-      success: raw.success || false,
-      message: raw.message || '早期订单创建失败',
-      order_id: raw.order_id,
-      order_number: raw.order_number,
-      user_sequence_number: raw.user_sequence_number
-    };
-  } catch (error) {
-    return {
-      success: false,
-      message: handleApiError(error, '早期订单创建')
-    };
-  }
-}
-
-/**
- * 更新订单数据 - 用于将早期订单更新为完整订单
- */
-export async function updateOrderData(orderId: string, formData: OrderData): Promise<ApiResponse> {
-  try {
-    const response = await authFetch(buildApiUrl(`/orders/${orderId}/update`), {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        form_data: formData,
-        status: 'submitted' // 更新为已提交状态
-      })
-    });
-
-    const raw = await response.json();
-
-    if (!response.ok) {
-      throw new Error(raw.message || '更新订单失败');
-    }
-
-    return {
-      success: raw.success || true,
-      message: raw.message || '订单更新成功',
-      data: raw.data
-    };
-  } catch (error) {
-    return {
-      success: false,
-      message: handleApiError(error, '订单更新')
-    };
-  }
-}
 
 /**
  * 创建订单
  */
-export async function createOrder(userId: string, phoneNumber: string, formData: OrderData): Promise<CreateOrderResponse> {
+export async function createOrder(formData: OrderData): Promise<CreateOrderResponse> {
+  const token = AuthService.getToken();
+  const userId = AuthService.getCurrentUserId();
+  const phoneNumber = AuthService.getCurrentUserPhone();
+  
+  if (!token || !userId || !phoneNumber) {
+    return {
+      success: false,
+      message: '未登录'
+    };
+  }
+  
   try {
     const response = await authFetch(buildApiUrl('/create-order'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({
         user_id: userId,
@@ -714,11 +648,21 @@ export async function createOrder(userId: string, phoneNumber: string, formData:
  * 提交订单
  */
 export async function submitOrder(orderId: string): Promise<SubmitOrderResponse> {
+  const token = AuthService.getToken();
+  
+  if (!token) {
+    return {
+      success: false,
+      message: '未登录'
+    };
+  }
+  
   try {
     const response = await authFetch(buildApiUrl('/submit-order'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({
         order_id: orderId
@@ -743,12 +687,22 @@ export async function submitOrder(orderId: string): Promise<SubmitOrderResponse>
 /**
  * 获取用户邀请统计信息
  */
-export async function getUserInviteStats(userId: string): Promise<UserInviteStatsResponse> {
+export async function getUserInviteStats(): Promise<UserInviteStatsResponse> {
+  const token = AuthService.getToken();
+  
+  if (!token) {
+    return {
+      success: false,
+      message: '未登录'
+    };
+  }
+  
   try {
-    const response = await fetch(buildApiUrl(`/get-user-invite-stats?user_id=${encodeURIComponent(userId)}`), {
+    const response = await fetch(buildApiUrl('/get-user-invite-stats'), {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
       }
     });
 
@@ -771,12 +725,22 @@ export async function getUserInviteStats(userId: string): Promise<UserInviteStat
 /**
  * 获取用户邀请进度
  */
-export async function getInviteProgress(userId: string): Promise<InviteProgressResponse> {
+export async function getInviteProgress(): Promise<InviteProgressResponse> {
+  const token = AuthService.getToken();
+  
+  if (!token) {
+    return {
+      success: false,
+      message: '未登录'
+    };
+  }
+  
   try {
-    const response = await fetch(buildApiUrl(`/get-invite-progress?user_id=${encodeURIComponent(userId)}`), {
+    const response = await fetch(buildApiUrl('/get-invite-progress'), {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
       }
     });
 
@@ -854,12 +818,23 @@ export interface FormDataFromPreferencesResponse {
 /**
  * 领取免单奶茶资格
  */
-export async function claimFreeDrink(userId: string): Promise<FreeDrinkResponse> {
+export async function claimFreeDrink(): Promise<FreeDrinkResponse> {
+  const token = AuthService.getToken();
+  const userId = AuthService.getCurrentUserId();
+  
+  if (!token || !userId) {
+    return {
+      success: false,
+      message: '未登录'
+    };
+  }
+  
   try {
     const response = await fetch(buildApiUrl('/claim-free-drink'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({
         user_id: userId
@@ -917,12 +892,23 @@ export async function getFreeDrinksRemaining(): Promise<FreeDrinkResponse> {
 /**
  * 获取用户偏好设置
  */
-export async function getUserPreferences(userId: string): Promise<PreferencesResponse> {
+export async function getUserPreferences(): Promise<PreferencesResponse> {
+  const token = AuthService.getToken();
+  const userId = AuthService.getCurrentUserId();
+  
+  if (!token || !userId) {
+    return {
+      success: false,
+      message: '未登录'
+    };
+  }
+  
   try {
     const response = await fetch(buildApiUrl(`/preferences/${userId}`), {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
       }
     });
 
@@ -944,12 +930,23 @@ export async function getUserPreferences(userId: string): Promise<PreferencesRes
 /**
  * 保存用户偏好设置
  */
-export async function saveUserPreferences(userId: string, formData: any): Promise<PreferencesResponse> {
+export async function saveUserPreferences(formData: any): Promise<PreferencesResponse> {
+  const token = AuthService.getToken();
+  const userId = AuthService.getCurrentUserId();
+  
+  if (!token || !userId) {
+    return {
+      success: false,
+      message: '未登录'
+    };
+  }
+  
   try {
     const response = await enhancedFetch(buildApiUrl('/preferences'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({
         user_id: userId,
@@ -975,12 +972,26 @@ export async function saveUserPreferences(userId: string, formData: any): Promis
 /**
  * 检查用户偏好是否完整（用于判断是否可以快速下单）
  */
-export async function checkPreferencesCompleteness(userId: string): Promise<PreferencesCompletenessResponse> {
+export async function checkPreferencesCompleteness(): Promise<PreferencesCompletenessResponse> {
+  const token = AuthService.getToken();
+  const userId = AuthService.getCurrentUserId();
+  
+  if (!token || !userId) {
+    return {
+      success: false,
+      has_preferences: false,
+      is_complete: false,
+      can_quick_order: false,
+      message: '未登录'
+    };
+  }
+  
   try {
     const response = await enhancedFetch(buildApiUrl(`/preferences/${userId}/complete`), {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
       }
     });
 
@@ -1005,12 +1016,34 @@ export async function checkPreferencesCompleteness(userId: string): Promise<Pref
 /**
  * 获取用户偏好并转换为表单数据格式
  */
-export async function getPreferencesAsFormData(userId: string): Promise<FormDataFromPreferencesResponse> {
+export async function getPreferencesAsFormData(): Promise<FormDataFromPreferencesResponse> {
+  const token = AuthService.getToken();
+  const userId = AuthService.getCurrentUserId();
+  
+  if (!token || !userId) {
+    return {
+      success: false,
+      has_preferences: false,
+      form_data: {
+        address: '',
+        selectedFoodType: [],
+        selectedAllergies: [],
+        selectedPreferences: [],
+        budget: '',
+        otherAllergyText: '',
+        otherPreferenceText: '',
+        selectedAddressSuggestion: null
+      },
+      message: '未登录'
+    };
+  }
+  
   try {
     const response = await fetch(buildApiUrl(`/preferences/${userId}/form-data`), {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
       }
     });
 
@@ -1043,7 +1076,18 @@ export async function getPreferencesAsFormData(userId: string): Promise<FormData
 /**
  * 获取用户订单历史
  */
-export const getOrderHistory = async (userId: string) => {
+export const getOrderHistory = async () => {
+  const token = AuthService.getToken();
+  const userId = AuthService.getCurrentUserId();
+  
+  if (!token || !userId) {
+    return {
+      success: false,
+      data: { orders: [] },
+      message: '未登录'
+    };
+  }
+  
   try {
     // 避免浏览器/中间层缓存：添加时间戳并声明不缓存
     const url = buildApiUrl(`/orders/${userId}`) + `?t=${Date.now()}`;
@@ -1051,6 +1095,7 @@ export const getOrderHistory = async (userId: string) => {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
       },
       // Web端明确声明不使用缓存
       cache: (Platform.OS === 'web' ? 'no-store' : undefined) as any,

@@ -3,6 +3,7 @@ import { Animated } from 'react-native';
 import { CookieManager } from '../utils/cookieManager';
 import { STEP_CONTENT } from '../data/stepContent';
 import { DEV_CONFIG } from '../constants';
+import AuthService from '../services/authService';
 import type { CompletedAnswers, Answer, AuthResult, AddressSuggestion } from '../types';
 
 export const useAppState = () => {
@@ -191,7 +192,11 @@ export const useAppState = () => {
         setCurrentOrderId(savedConversation.currentOrderId || null);
         setCurrentOrderNumber(savedConversation.currentOrderNumber || null);
         setCurrentUserSequenceNumber(savedConversation.currentUserSequenceNumber || null);
-        setIsSearchingRestaurant(savedConversation.isSearchingRestaurant || false);
+        // 只有在支付完成且有订单ID的情况下才恢复isSearchingRestaurant状态
+        const shouldShowSearching = savedConversation.isSearchingRestaurant && 
+                                   savedConversation.isPaymentCompleted && 
+                                   savedConversation.currentOrderId;
+        setIsSearchingRestaurant(shouldShowSearching || false);
         setIsFreeOrder(savedConversation.isFreeOrder || false);
         // 恢复支付相关状态
         setShowGoToPaymentButton(savedConversation.showGoToPaymentButton || false);
@@ -203,57 +208,62 @@ export const useAppState = () => {
       return;
     }
     
-    const savedSession = CookieManager.getUserSession();
+    // 检查JWT Token
+    const token = AuthService.getToken();
     
-    if (savedSession) {
-      setIsAuthenticated(true);
-      setAuthResult({
-        userId: savedSession.userId,
-        phoneNumber: savedSession.phoneNumber,
-        isNewUser: savedSession.isNewUser
-      });
-      
-      const phoneAnswer = { type: 'phone' as const, value: savedSession.phoneNumber };
-      setCompletedAnswers({ [-1]: phoneAnswer });
-      
-      const savedConversation = CookieManager.getConversationState();
-      
-      if (savedConversation) {
-        setCurrentStep(savedConversation.currentStep || 0);
-        setCompletedAnswers(prev => ({
-          ...prev,
-          ...savedConversation.completedAnswers
-        }));
-        setEditingStep(savedConversation.editingStep || null); // 恢复编辑状态
-        setOriginalAnswerBeforeEdit(savedConversation.originalAnswerBeforeEdit || null); // 恢复编辑前答案
-        setAddress(savedConversation.address || '');
-        setBudget(savedConversation.budget || '');
-        setDeliveryTime(savedConversation.deliveryTime || '');
-        setSelectedAllergies(Array.from(new Set(savedConversation.selectedAllergies || [])));
-        setSelectedPreferences(Array.from(new Set(savedConversation.selectedPreferences || [])));
-        setSelectedFoodType(Array.from(new Set(savedConversation.selectedFoodType || [])));
-        setOtherAllergyText(savedConversation.otherAllergyText || '');
-        setOtherPreferenceText(savedConversation.otherPreferenceText || '');
-        setIsAddressConfirmed(savedConversation.isAddressConfirmed || false);
-        setShowMap(savedConversation.showMap || false);
-        setIsOrderCompleted(savedConversation.isOrderCompleted || false);
-        setOrderMessage(savedConversation.orderMessage || '');
-        // 恢复新增的订单相关状态
-        setCurrentOrderId(savedConversation.currentOrderId || null);
-        setCurrentOrderNumber(savedConversation.currentOrderNumber || null);
-        setCurrentUserSequenceNumber(savedConversation.currentUserSequenceNumber || null);
-        setIsSearchingRestaurant(savedConversation.isSearchingRestaurant || false);
-        setIsFreeOrder(savedConversation.isFreeOrder || false);
-        // 恢复支付相关状态
-        setShowGoToPaymentButton(savedConversation.showGoToPaymentButton || false);
-        setIsPaymentCompleted(savedConversation.isPaymentCompleted || false);
-        setShowPaymentModal(savedConversation.showPaymentModal || false);
+    if (token && AuthService.isAuthenticated()) {
+      const tokenData = AuthService.parseToken();
+      if (tokenData) {
+        setIsAuthenticated(true);
+        setAuthResult({
+          userId: tokenData.userId || '',
+          phoneNumber: tokenData.phone || '',
+          isNewUser: false // JWT存在表示是老用户
+        });
+        
+        const phoneAnswer = { type: 'phone' as const, value: tokenData.phone || '' };
+        setCompletedAnswers({ [-1]: phoneAnswer });
+        
+        const savedConversation = CookieManager.getConversationState();
+        
+        if (savedConversation) {
+          setCurrentStep(savedConversation.currentStep || 0);
+          setCompletedAnswers(prev => ({
+            ...prev,
+            ...savedConversation.completedAnswers
+          }));
+          setEditingStep(savedConversation.editingStep || null); // 恢复编辑状态
+          setOriginalAnswerBeforeEdit(savedConversation.originalAnswerBeforeEdit || null); // 恢复编辑前答案
+          setAddress(savedConversation.address || '');
+          setBudget(savedConversation.budget || '');
+          setDeliveryTime(savedConversation.deliveryTime || '');
+          setSelectedAllergies(Array.from(new Set(savedConversation.selectedAllergies || [])));
+          setSelectedPreferences(Array.from(new Set(savedConversation.selectedPreferences || [])));
+          setSelectedFoodType(Array.from(new Set(savedConversation.selectedFoodType || [])));
+          setOtherAllergyText(savedConversation.otherAllergyText || '');
+          setOtherPreferenceText(savedConversation.otherPreferenceText || '');
+          setIsAddressConfirmed(savedConversation.isAddressConfirmed || false);
+          setShowMap(savedConversation.showMap || false);
+          setIsOrderCompleted(savedConversation.isOrderCompleted || false);
+          setOrderMessage(savedConversation.orderMessage || '');
+          // 恢复新增的订单相关状态
+          setCurrentOrderId(savedConversation.currentOrderId || null);
+          setCurrentOrderNumber(savedConversation.currentOrderNumber || null);
+          setCurrentUserSequenceNumber(savedConversation.currentUserSequenceNumber || null);
+          // 只有在支付完成且有订单ID的情况下才恢复isSearchingRestaurant状态
+          const shouldShowSearching = savedConversation.isSearchingRestaurant && 
+                                     savedConversation.isPaymentCompleted && 
+                                     savedConversation.currentOrderId;
+          setIsSearchingRestaurant(shouldShowSearching || false);
+          setIsFreeOrder(savedConversation.isFreeOrder || false);
+          // 恢复支付相关状态
+          setShowGoToPaymentButton(savedConversation.showGoToPaymentButton || false);
+          setIsPaymentCompleted(savedConversation.isPaymentCompleted || false);
+          setShowPaymentModal(savedConversation.showPaymentModal || false);
+        }
       }
-      
-      setIsStateRestored(true);
-    } else {
-      setIsStateRestored(true);
     }
+    setIsStateRestored(true);
   }, []);
 
   // 监听状态变化，自动保存对话状态

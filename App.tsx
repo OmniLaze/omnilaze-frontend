@@ -84,7 +84,8 @@ const AppContent = memo(() => {
       try {
         const { orderSyncManager } = await import('./src/utils/orderSyncManager');
         if (event.orderId && event.status) {
-          orderSyncManager.syncOrderStatus(event.orderId, event.status);
+          // 使用新的统一状态系统
+          orderSyncManager.syncStatusChange(event.orderId, event.status);
           console.log('✅ WebSocket订单状态已同步:', event.orderId, event.status);
         }
       } catch (error) {
@@ -95,12 +96,15 @@ const AppContent = memo(() => {
       // 处理支付状态更新，同步到状态管理器
       try {
         const { orderSyncManager } = await import('./src/utils/orderSyncManager');
-        if (event.orderId && event.status) {
-          orderSyncManager.syncPaymentStatus(event.orderId, event.status, {
-            paidAt: event.status === 'succeeded' ? event.updatedAt : undefined,
-            paymentId: event.paymentId,
+        if (event.orderId && event.status === 'succeeded') {
+          // 支付成功时更新为paid状态，并自动进入selecting状态
+          orderSyncManager.syncStatusChange(event.orderId, 'paid', {
+            isSelecting: true,
+            isDelivering: false,
+            isDelivered: false,
+            isFeedbackCompleted: false
           });
-          console.log('✅ WebSocket支付状态已同步:', event.orderId, event.status);
+          console.log('✅ WebSocket支付成功，订单状态更新为paid+selecting:', event.orderId);
         }
       } catch (error) {
         console.warn('⚠️ WebSocket支付状态同步失败:', error);
@@ -110,12 +114,17 @@ const AppContent = memo(() => {
       if (event.message) {
         pushOrderMessage(event.message, 'assistant');
       }
-      // 同步订单状态变更
+      // 同步订单状态变更 - 使用新的统一状态系统
       try {
         const { orderSyncManager } = await import('./src/utils/orderSyncManager');
         if (event.orderId && event.status) {
-          orderSyncManager.syncOrderStatus(event.orderId, event.status);
-          console.log('✅ WebSocket订单状态变更已同步:', event.orderId, event.status);
+          orderSyncManager.syncStatusChange(event.orderId, event.status, {
+            isSelecting: event.isSelecting,
+            isDelivering: event.isDelivering,
+            isDelivered: event.isDelivered,
+            isFeedbackCompleted: event.isFeedbackCompleted
+          });
+          console.log('✅ WebSocket订单状态变更已同步:', event.orderId, event.status, event.type);
         }
       } catch (error) {
         console.warn('⚠️ WebSocket订单状态变更同步失败:', error);
@@ -125,13 +134,12 @@ const AppContent = memo(() => {
       if (event.message) {
         pushOrderMessage(event.message, 'assistant');
       }
-      // ETA设置也可以更新订单状态
+      // ETA设置时更新为delivering状态
       try {
         const { orderSyncManager } = await import('./src/utils/orderSyncManager');
-        if (event.orderId) {
-          // 更新订单的预计送达时间等信息
-          orderSyncManager.syncOrderStatus(event.orderId, 'delivering'); // 通常ETA设置意味着开始配送
-          console.log('✅ WebSocket ETA状态已同步:', event.orderId);
+        if (event.orderId && event.estimatedDeliveryTime) {
+          orderSyncManager.syncETASet(event.orderId, event.estimatedDeliveryTime);
+          console.log('✅ WebSocket ETA已设置，订单进入配送状态:', event.orderId);
         }
       } catch (error) {
         console.warn('⚠️ WebSocket ETA状态同步失败:', error);
@@ -145,11 +153,11 @@ const AppContent = memo(() => {
       try {
         const { orderSyncManager } = await import('./src/utils/orderSyncManager');
         if (event.orderId) {
-          orderSyncManager.syncDeliveryStatus(event.orderId, {
+          orderSyncManager.syncOrderDelivered(event.orderId, {
             arrivalImageUrl: event.arrivalImageUrl,
-            arrivalImageTakenAt: event.updatedAt,
+            arrivalImageTakenAt: event.arrivalImageTakenAt || event.updatedAt,
           });
-          console.log('✅ WebSocket配送状态已同步:', event.orderId);
+          console.log('✅ WebSocket订单已送达:', event.orderId);
         }
       } catch (error) {
         console.warn('⚠️ WebSocket配送状态同步失败:', error);

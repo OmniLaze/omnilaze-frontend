@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Modal, Platform, ScrollView, 
 import { SimpleIcon } from './SimpleIcon';
 import { COLORS } from '../constants';
 import { useTheme } from '../contexts/ColorThemeContext';
+import AuthService from '../services/authService';
 import { 
   getUserInviteStats, 
   getInviteProgress, 
@@ -44,37 +45,20 @@ export const InviteModalWithFreeDrink: React.FC<InviteModalWithFreeDrinkProps> =
   const freeDrinkOpacity = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
-  // 获取数据
-  useEffect(() => {
-    if (isVisible && userId) {
-      loadAllData();
-    }
-  }, [isVisible, userId]);
-
-  // 检查是否应该显示免单动画
-  useEffect(() => {
-    if (inviteStats && !loading) {
-      // 检查免单资格：邀请满3人 + 未领取过 + 全局还有名额
-      const isEligible = inviteStats.eligible_for_free_drink && 
-                        !inviteStats.free_drink_claimed && 
-                        freeDrinksRemaining > 0;
-      
-      if (isEligible && !showFreeDrinkOffer) {
-        // 延迟显示动画，让用户先看到3/3的成就感
-        setTimeout(() => {
-          triggerFreeDrinkAnimation();
-        }, 1000);
-      }
-    }
-  }, [inviteStats, loading, freeDrinksRemaining]);
-
   // 🔧 性能优化：使用 useCallback 稳定函数引用
   const loadAllData = useCallback(async () => {
+    const currentUserId = AuthService.getCurrentUserId();
+    
+    if (!currentUserId) {
+      setLoading(false);
+      return;
+    }
+    
     setLoading(true);
     try {
       const [statsResponse, progressResponse, freeDrinksResponse] = await Promise.all([
-        getUserInviteStats(userId),
-        getInviteProgress(userId),
+        getUserInviteStats(),
+        getInviteProgress(),
         getFreeDrinksRemaining()
       ]);
       
@@ -94,7 +78,31 @@ export const InviteModalWithFreeDrink: React.FC<InviteModalWithFreeDrinkProps> =
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, []);
+
+  // 获取数据
+  useEffect(() => {
+    if (isVisible) {
+      loadAllData();
+    }
+  }, [isVisible, loadAllData]);
+
+  // 检查是否应该显示免单动画
+  useEffect(() => {
+    if (inviteStats && !loading) {
+      // 检查免单资格：邀请满3人 + 未领取过 + 全局还有名额
+      const isEligible = inviteStats.eligible_for_free_drink && 
+                        !inviteStats.free_drink_claimed && 
+                        freeDrinksRemaining > 0;
+      
+      if (isEligible && !showFreeDrinkOffer) {
+        // 延迟显示动画，让用户先看到3/3的成就感
+        setTimeout(() => {
+          triggerFreeDrinkAnimation();
+        }, 1000);
+      }
+    }
+  }, [inviteStats, loading, freeDrinksRemaining]);
 
   // 🔧 性能优化：使用 useCallback 稳定函数引用
   const triggerFreeDrinkAnimation = useCallback(() => {
@@ -133,7 +141,7 @@ export const InviteModalWithFreeDrink: React.FC<InviteModalWithFreeDrinkProps> =
   // 🔧 性能优化：使用 useCallback 稳定函数引用
   const handleFreeDrinkClaim = useCallback(async () => {
     try {
-      const response = await claimFreeDrink(userId);
+      const response = await claimFreeDrink();
       if (response.success) {
         onFreeDrinkClaim();
         onClose();

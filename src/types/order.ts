@@ -39,9 +39,9 @@ export interface OrderVoiceFeedback {
 }
 
 /**
- * 订单状态类型 - 与后端保持一致
+ * 订单状态类型 - 新的统一状态系统
  */
-export type OrderStatus = 'draft' | 'submitted' | 'processing' | 'delivering' | 'completed' | 'cancelled';
+export type OrderStatus = 'unpaid' | 'paid' | 'selecting' | 'delivering' | 'delivered' | 'feedback_completed';
 
 /**
  * 支付状态类型 - 统一的支付状态管理
@@ -49,9 +49,28 @@ export type OrderStatus = 'draft' | 'submitted' | 'processing' | 'delivering' | 
 export type PaymentStatus = 'unpaid' | 'pending_payment' | 'paid' | 'failed' | 'refunded' | 'partial_refunded';
 
 /**
- * 显示状态类型 - 用于UI展示的简化状态
+ * 状态显示映射
  */
-export type OrderDisplayStatus = 'unpaid' | 'pending_payment' | 'paid' | 'delivering' | 'completed';
+export const ORDER_STATUS_DISPLAY: Record<OrderStatus, string> = {
+  'unpaid': '未支付',
+  'paid': '已支付',
+  'selecting': '正在挑选',
+  'delivering': '配送中',
+  'delivered': '已送达',
+  'feedback_completed': '已完成'
+};
+
+/**
+ * 状态颜色映射
+ */
+export const ORDER_STATUS_COLOR: Record<OrderStatus, string> = {
+  'unpaid': '#6B7280',      // 灰色
+  'paid': '#10B981',         // 绿色
+  'selecting': '#F59E0B',    // 橙色
+  'delivering': '#3B82F6',   // 蓝色
+  'delivered': '#8B5CF6',    // 紫色
+  'feedback_completed': '#10B981' // 绿色
+};
 
 /**
  * 订单接口 - 与后端Prisma模型对齐
@@ -62,8 +81,13 @@ export interface Order {
   orderNumber: string;
   userId: string;
   phoneNumber: string;
-  status: OrderStatus;
-  displayStatus: OrderDisplayStatus;
+  status: OrderStatus;  // 新的统一状态
+  
+  // === 新增状态字段 ===
+  isSelecting?: boolean;         // 是否挑选中
+  isDelivering?: boolean;        // 是否配送中  
+  isDelivered?: boolean;         // 是否已送达
+  isFeedbackCompleted?: boolean; // 是否已反馈
   
   // === 订单内容（使用后端字段名）===
   deliveryAddress: string;
@@ -88,17 +112,16 @@ export interface Order {
   createdAt: string;
   updatedAt?: string | null;
   submittedAt?: string | null;
+  orderDate?: string | null;     // 下单日期
+  arrivalImageImportedAt?: string | null; // 图片导入时间
   
   // === 关联数据 ===
   feedbacks?: OrderFeedback[];
   voiceFeedbacks?: OrderVoiceFeedback[];
   
-  // === 早期订单支持 ===
-  isEarlyOrder?: boolean;          // 标记是否为早期创建的订单
-  canContinuePayment?: boolean;    // 是否可以从历史订单继续支付
-  
   // === 测试订单支持 ===
   isTestOrder?: boolean;            // 标记是否为测试订单
+  canContinuePayment?: boolean;     // 是否可以从历史订单继续支付
   
   // === 其他 ===
   userSequenceNumber?: number | null;
@@ -109,33 +132,6 @@ export interface Order {
  * 创建订单的表单数据 - API请求格式
  */
 export interface CreateOrderFormData {
-  address: string;
-  deliveryTime: string;
-  allergies: string[];
-  preferences: string[];
-  budget: string;
-  foodType: string[];
-  isFreeOrder?: boolean;
-  freeOrderType?: 'invite_reward';
-}
-
-/**
- * 早期订单创建的表单数据 - 在用户初始化时创建
- */
-export interface CreateEarlyOrderData {
-  userId: string;
-  phoneNumber: string;
-  basicInfo?: {
-    deliveryAddress?: string;
-    budgetAmount?: number;
-    budgetCurrency?: string;
-  };
-}
-
-/**
- * 订单数据更新接口 - 用于更新早期创建的订单
- */
-export interface UpdateOrderData {
   address: string;
   deliveryTime: string;
   allergies: string[];

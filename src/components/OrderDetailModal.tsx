@@ -10,10 +10,19 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { useTheme } from '../contexts/ColorThemeContext';
-import { Order } from '../types/order';
+import { Order, OrderStatus, ORDER_STATUS_DISPLAY, ORDER_STATUS_COLOR } from '../types/order';
 import { useAuth, useForm, useOrder, useUI } from '../contexts/AppContext';
 import QuestionWizard from './QuestionWizard';
 import { SimpleIcon } from './SimpleIcon';
+
+// Helper functions for status display
+const getStatusText = (status: OrderStatus): string => {
+  return ORDER_STATUS_DISPLAY[status] || '未知';
+};
+
+const getStatusColor = (status: OrderStatus): string => {
+  return ORDER_STATUS_COLOR[status] || '#999999';
+};
 
 interface OrderDetailModalProps {
   isVisible: boolean;
@@ -99,7 +108,8 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
       orderContext.setCurrentOrderId(order.id);
       
       // 根据订单状态设置支付状态
-      if (order.paymentStatus === 'paid') {
+      if (order.status !== 'unpaid') {
+        // 非unpaid状态说明已支付
         orderContext.setIsPaymentCompleted(true);
         orderContext.setIsOrderCompleted(true);
       } else {
@@ -201,12 +211,12 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
             <View style={styles.headerRight}>
               {order && (
                 <View style={[styles.statusPill, { 
-                  backgroundColor: order.paymentStatus === 'paid' ? '#10b98120' : '#f5971220' 
+                  backgroundColor: getStatusColor(order.status) + '20'
                 }]}>
                   <Text style={[styles.statusText, { 
-                    color: order.paymentStatus === 'paid' ? '#10b981' : '#f59712' 
+                    color: getStatusColor(order.status)
                   }]}>
-                    {order.paymentStatus === 'paid' ? '已支付' : '未支付'}
+                    {getStatusText(order.status)}
                   </Text>
                 </View>
               )}
