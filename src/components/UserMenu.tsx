@@ -10,6 +10,7 @@ interface UserMenuProps {
   isVisible: boolean;
   onLogout: () => void;
   onInvite: () => void;
+  onHistoryPress: () => void;
   phoneNumber: string;
 }
 
@@ -17,6 +18,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({
   isVisible,
   onLogout,
   onInvite,
+  onHistoryPress,
   phoneNumber,
 }) => {
   const [showDropdown, setShowDropdown] = useState(false);
@@ -46,6 +48,11 @@ export const UserMenu: React.FC<UserMenuProps> = ({
     setShowDropdown(false);
     setShowBubble(false); // 点击邀请后隐藏气泡
     onInvite();
+  };
+
+  const handleHistory = () => {
+    setShowDropdown(false);
+    onHistoryPress();
   };
 
   const handleAbout = () => {
@@ -109,6 +116,17 @@ export const UserMenu: React.FC<UserMenuProps> = ({
       {/* 下拉菜单 */}
       {showDropdown && (
         <View style={styles.dropdown}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={handleHistory}
+            activeOpacity={0.7}
+          >
+            <SimpleIcon name="time" size={16} color={COLORS.PRIMARY} />
+            <Text style={styles.menuItemText}>历史订单</Text>
+          </TouchableOpacity>
+          
+          <View style={styles.separator} />
+          
           <TouchableOpacity
             style={styles.menuItem}
             onPress={handleInvite}
